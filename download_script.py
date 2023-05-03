@@ -11,7 +11,7 @@ class DownloadScript:
         self.allUsersJson = []
         self.allMapsUrls = []
 
-    def get_all_users(self, start=0, end=10):
+    def get_all_users(self, start=0, end=20000):
         # get all users in range of pages
         for page in range(start, end):
             response = requests.get(
@@ -36,15 +36,15 @@ class DownloadScript:
                     for version in map['versions']:
                         self.allMapsUrls.append(version['downloadURL'])
 
-    def get_all_maps_from_user(self, star_id=None, end_id=None):
+    def get_all_maps_from_user(self, start_id=None, end_id=None):
         '''
         Download all maps from user
-        star_id: start index of allMapsUrls
+        start_id: start index of allMapsUrls
         end_id: end index of allMapsUrls
 
         default: download all maps
         '''
-        for index, url in enumerate(self.allMapsUrls[star_id:end_id]):
+        for index, url in enumerate(self.allMapsUrls[start_id:end_id]):
             response = requests.get(url)
             with open(f"data/song{index}.zip", 'wb') as f:
                 f.write(response.content)
