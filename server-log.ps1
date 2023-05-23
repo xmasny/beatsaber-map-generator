@@ -2,7 +2,7 @@
 $puttyPath = "C:\Program Files\PuTTY\putty.exe"
 
 # Set the remote server information
-$remoteServer = "davinci.fmph.uniba.sk"
+$remoteServer = "kaistore.dcs.fmph.uniba.sk"
 $remoteUser = "masny5"
 $remotePassword = "xg6fxgfk6c"
 Start-Process $puttyPath -ArgumentList "-ssh $remoteUser@$remoteServer -pw $remotePassword"
