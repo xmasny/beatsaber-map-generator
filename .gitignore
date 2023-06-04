@@ -131,3 +131,6 @@ dmypy.json
 .vscode
 data
 *.ipynb
+
+map_ids.txt
+terminal*.txt
