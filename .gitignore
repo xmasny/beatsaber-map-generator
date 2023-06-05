@@ -132,5 +132,7 @@ dmypy.json
 data
 *.ipynb
 
-map_ids.txt
-terminal*.txt
+
+terminal
+saved_data
+shell_commands.txt

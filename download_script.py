@@ -3,8 +3,11 @@ import math
 import zipfile
 import os
 import json
-import numpy as np
 from io import TextIOWrapper
+import csv
+import time
+
+time.time()
 
 
 class DownloadScript:
@@ -13,45 +16,68 @@ class DownloadScript:
         self.songFolder = "data"
         self.zipFiles = []
         self.allUsersJson = []
-        self.allMapsUrls = []
         self.map_info = []
         self.maps_ids = []
 
     def get_all_users(self, start=0, end=20000):
         # get all users in range of pages
         for page in range(start, end):
-            response = requests.get(
-                f"https://api.beatsaver.com/users/list/{page}")
+            while True:
+                try:
+                    response = requests.get(
+                        f"https://api.beatsaver.com/users/list/{page}")
+                    break
+                except Exception as e:
+                    print(e)
+                    self.terminal_file.write(f"{e}\n")
+                    time.sleep(10)
             jsonUsers = response.json()
             for user in jsonUsers:
-                self.allUsersJson.append({
-                    "id": user["id"],
-                    "totalMaps": user['stats']["totalMaps"],
-                })
+                self.allUsersJson.append([
+                    user["id"],
+                    user['stats']["totalMaps"],
+                ])
             print(f"Users page {page} done")
             self.terminal_file.write(f"Users page {page} done\n")
             self.terminal_file.flush()
+        with open(f'saved_data/users{time.time()}.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(self.allUsersJson)
 
     def get_all_maps(self):
         # get all zip maps from users
+        song_index = 1
+        allMapsUrls = []
         for user in self.allUsersJson:
-            for page in range(0, math.ceil(int(user['totalMaps'] / 20))):
-                response = requests.get(
-                    f"https://api.beatsaver.com/maps/uploader/{user['id']}/{page}")
+            for page in range(0, math.ceil(int(user[1] / 20))):
+                while True:
+                    try:
+                        response = requests.get(
+                            f"https://api.beatsaver.com/maps/uploader/{user[0]}/{page}")
+                        break
+                    except Exception as e:
+                        print(e)
+                        self.terminal_file.write(f"{e}\n")
+                        time.sleep(10)
                 jsonUserMaps = response.json()
                 print(
-                    f"User {user['id']} maps page {page} done")
+                    f"User {user[0]} maps page {page} done")
                 self.terminal_file.write(
-                    f"User {user['id']} maps page {page} done\n")
+                    f"User {user[0]} maps page {page} done\n")
                 self.terminal_file.flush()
                 for map in jsonUserMaps['docs']:
                     self.map_info.append(map)
                     self.maps_ids.append(map['id'])
                     for version in map['versions']:
-                        self.allMapsUrls.append(version['downloadURL'])
-        with open('map_ids.txt', 'w') as file:
-            for item in self.maps_ids:
-                file.write(str(item) + '\n')
+                        allMapsUrls.append([
+                            f'song{song_index}', map['id'], version['downloadURL']])
+                        song_index += 1
+        with open('saved_data/map_zips.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(allMapsUrls)
+
+        with open('saved_data/map_info.json', 'w') as file:
+            json.dump(self.map_info, file)
 
     def get_all_maps_from_user(self, start_id=None, end_id=None):
         '''
@@ -61,13 +87,24 @@ class DownloadScript:
 
         default: download all maps
         '''
-        for index, url in enumerate(self.allMapsUrls[start_id:end_id]):
-            response = requests.get(url)
-            with open(f"data/song{index}.zip", 'wb') as f:
+        with open('saved_data/map_zips.csv', 'r', newline='') as file:
+            reader = csv.reader(file)
+            allMapsUrls = list(reader)
+            response = None
+
+        for map in allMapsUrls[start_id:end_id]:
+            while True:
+                try:
+                    response = requests.get(map[2])
+                    break
+                except Exception as e:
+                    print(e)
+                    time.sleep(10)
+            with open(f"data/{map[0]}.zip", 'wb') as f:
                 f.write(response.content)
-            print(f"song{index}/{len(self.allMapsUrls)-1} downloaded")
+            print(f"{map[0]}/{len(allMapsUrls)} downloaded")
             self.terminal_file.write(
-                f"song{index}/{len(self.allMapsUrls)-1} downloaded\n")
+                f"{map[0]}/{len(allMapsUrls)} downloaded\n")
             self.terminal_file.flush()
 
     def get_all_zips(self):
@@ -83,14 +120,3 @@ class DownloadScript:
                 zip_ref.extractall(f"data/{zip_file[:-4]}")
                 # remove song zip file
             os.remove(f"data/{zip_file}")
-
-    def get_all_map_info(self):
-        # get all map info
-        for index, map in enumerate(self.map_info):
-            os.makedirs(f"data/song{index}/generated")
-
-            print(f"song{index}/{len(self.map_info)-1} detail info created")
-            self.terminal_file.write(
-                f"song{index}/{len(self.map_info)-1} detail info created\n")
-            with open(f"data/song{index}/generated/DetailInfo.dat", 'w') as f:
-                json.dump(map, f)

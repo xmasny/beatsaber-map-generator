@@ -3,7 +3,7 @@ import datetime
 from download_script import DownloadScript
 import os
 
-folders = ["data", "terminal"]
+folders = ["data", "terminal", "saved_data"]
 
 for folder in folders:
     if not os.path.exists(folder):
@@ -41,15 +41,14 @@ try:
         file.write(f"unzip_all_zips Start time: {start_date()}\n")
         download.unzip_all_zips()
 
-        file.write(f"get_all_map_info Start time: {start_date()}\n")
-        download.get_all_map_info()
-
     end_time = time.time()
     runtime = end_time - start_time
 
     print("Runtime:", runtime, "seconds")
 
 except Exception as e:
+    end_time = time.time()
+    runtime = end_time - start_time
     with open(f"terminal/{start_time}.txt", 'a') as file:
         file.write(f"Error time: {start_date()}\n")
         file.write(f"Error: {e}\n")
