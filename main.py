@@ -47,10 +47,7 @@ try:
     print("Runtime:", runtime, "seconds")
 
 except Exception as e:
-    end_time = time.time()
-    runtime = end_time - start_time
     with open(f"terminal/{start_time}.txt", 'a') as file:
         file.write(f"Error time: {start_date()}\n")
         file.write(f"Error: {e}\n")
-    print("Runtime:", runtime, "seconds")
     exit()
