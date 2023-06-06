@@ -59,7 +59,6 @@ class DownloadScript:
             users = csv.reader(users_file)
             for (user) in users:
                 user_maps = 0
-                test = math.ceil(int(int(user[1]) / 20))
                 for page in range(0, math.ceil(int(int(user[1]) / 20) + 1)):
                     while True:
                         try:
@@ -85,17 +84,6 @@ class DownloadScript:
                     writer = csv.writer(file)
                     writer.writerow(user_maps_info)
 
-                    # for map in jsonUserMaps['docs']:
-                    #     self.map_info.append(map)
-                    #     self.maps_ids.append(map['id'])
-                    #     for version in map['versions']:
-                    #         allMapsUrls.append([
-                    #             f'song{song_index}', map['id'], version['downloadURL']])
-                    #         song_index += 1
-        # with open('saved_data/map_zips.csv', 'w', newline='') as file:
-        #     writer = csv.writer(file)
-        #     writer.writerows(allMapsUrls)
-
         print("Number of maps: ", len(allMaps))
         self.terminal_file.write(f"Number of maps: {len(allMaps)}\n")
 
@@ -105,6 +93,24 @@ class DownloadScript:
         with open('saved_data/map_info.json', 'r') as file:
             allMaps = json.load(file)
             print("Number of maps from json: ", len(allMaps))
+
+    def get_all_maps_urls(self):
+        # get all zip maps urls
+        allMapsUrls = []
+        with open('saved_data/map_info.json', 'r') as file:
+            allMaps = json.load(file)
+            for index, map in enumerate(allMaps):
+                allMapsUrls.append([
+                    f'song{index + 1}',
+                    map["id"],
+                    map['versions'][0]["downloadURL"]
+                ])
+                print(f"Map {index + 1}/{len(allMaps)} added")
+                self.terminal_file.write(f"Map {index} added\n")
+                self.terminal_file.flush()
+        with open('saved_data/map_zips.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(allMapsUrls)
 
     def get_all_maps_from_user(self, start_id=None, end_id=None):
         '''
@@ -144,8 +150,10 @@ class DownloadScript:
 
     def unzip_all_zips(self):
         # unzip file
-        for index, zip_file in set(self.zipFiles):
-            print(f"Unzipping {zip_file} {index}/{len(self.zipFiles) - 1}")
+        for index, zip_file in enumerate(self.zipFiles):
+            print(f"Unzipping {zip_file} {index + 1}/{len(self.zipFiles)}")
+            self.terminal_file.write(
+                f"Unzipping {zip_file} {index + 1}/{len(self.zipFiles)}\n")
             try:
                 with zipfile.ZipFile(f"data/{zip_file}", "r") as zip_ref:
                     zip_ref.extractall(f"data/{zip_file[:-4]}")
@@ -156,10 +164,9 @@ class DownloadScript:
                 print(f"{zip_file} removed")
                 self.terminal_file.write(f"{zip_file} removed\n")
             except Exception as e:
-                filename = traceback.extract_tb(e.__traceback__)[-1].filename
 
                 # Printing the file name
-                print(f"Error occurred in file {index}: {filename}")
+                print(f"Error occurred in file song{index + 1}")
                 self.terminal_file.write(
-                    f"Error occurred in file {index}: {filename}\n")
+                    f"Error occurred in file {index}\n")
                 continue

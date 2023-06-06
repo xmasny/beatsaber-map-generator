@@ -39,10 +39,14 @@ try:
             download.get_all_maps()
 
         if script_no == "3":
-            file.write(f"get_all_maps_from_user Start time: {start_date()}\n")
-            download.get_all_maps_from_user()
+            file.write(f"get_all_maps_urls Start time: {start_date()}\n")
+            download.get_all_maps_urls()
 
         if script_no == "4":
+            file.write(f"get_all_maps_from_user Start time: {start_date()}\n")
+            download.get_all_maps_from_user(end_id=10)
+
+        if script_no == "5":
             file.write(f"get_all_zips Start time: {start_date()}\n")
             download.get_all_zips()
 
@@ -55,8 +59,11 @@ try:
     print("Runtime:", runtime, "seconds")
 
 except Exception as e:
+    runtime_exeption = time.time() - start_time
     print(e)
+    print("Runtime:", runtime_exeption, "seconds")
     with open(f"terminal/{start_time}.txt", 'a') as file:
         file.write(f"Error time: {start_date()}\n")
         file.write(f"Error: {e}\n")
+        file.write(f"Runtime: {runtime_exeption} seconds\n")
     exit()
