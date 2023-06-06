@@ -32,7 +32,7 @@ try:
 
         if script_no == "1":
             file.write(f"get_all_users Start time: {start_date()}\n")
-            download.get_all_users(end=1)
+            download.get_all_users()
 
         if script_no == "2":
             file.write(f"get_all_maps Start time: {start_date()}\n")
@@ -44,7 +44,7 @@ try:
 
         if script_no == "4":
             file.write(f"get_all_maps_from_user Start time: {start_date()}\n")
-            download.get_all_maps_from_user(end_id=10)
+            download.get_all_maps_from_user()
 
         if script_no == "5":
             file.write(f"get_all_zips Start time: {start_date()}\n")
