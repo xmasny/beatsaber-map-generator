@@ -11,6 +11,7 @@ for folder in folders:
         os.makedirs(folder)
 
 
+print_scripts()
 script_no = input("Choose script: ")
 
 start_time = time.time()
@@ -22,8 +23,6 @@ def start_date():
 
 
 print("Start time:", start_date)
-
-print_scripts()
 
 
 try:
