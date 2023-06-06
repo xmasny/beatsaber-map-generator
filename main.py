@@ -11,6 +11,8 @@ for folder in folders:
         os.makedirs(folder)
 
 
+script_no = input("Choose script: ")
+
 start_time = time.time()
 
 
@@ -23,7 +25,6 @@ print("Start time:", start_date)
 
 print_scripts()
 
-script_no = input("Choose script: ")
 
 try:
     with open(f"terminal/{start_time}.txt", 'a') as file:
