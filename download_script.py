@@ -118,5 +118,9 @@ class DownloadScript:
         for zip_file in self.zipFiles:
             with zipfile.ZipFile(f"data/{zip_file}", "r") as zip_ref:
                 zip_ref.extractall(f"data/{zip_file[:-4]}")
+                print(f"{zip_file} unzipped")
+                self.terminal_file.write(f"{zip_file} unzipped\n")
                 # remove song zip file
             os.remove(f"data/{zip_file}")
+            print(f"{zip_file} removed")
+            self.terminal_file.write(f"{zip_file} removed\n")

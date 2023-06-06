@@ -26,14 +26,14 @@ try:
 
         download = DownloadScript(file)
 
-        file.write(f"get_all_users Start time: {start_date()}\n")
-        download.get_all_users()
+        # file.write(f"get_all_users Start time: {start_date()}\n")
+        # download.get_all_users()
 
-        file.write(f"get_all_maps Start time: {start_date()}\n")
-        download.get_all_maps()
+        # file.write(f"get_all_maps Start time: {start_date()}\n")
+        # download.get_all_maps()
 
-        file.write(f"get_all_maps_from_user Start time: {start_date()}\n")
-        download.get_all_maps_from_user()
+        # file.write(f"get_all_maps_from_user Start time: {start_date()}\n")
+        # download.get_all_maps_from_user()
 
         file.write(f"get_all_zips Start time: {start_date()}\n")
         download.get_all_zips()
