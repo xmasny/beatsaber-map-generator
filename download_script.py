@@ -6,6 +6,7 @@ import json
 from io import TextIOWrapper
 import csv
 import time
+import traceback
 
 time.time()
 
@@ -118,11 +119,20 @@ class DownloadScript:
     def unzip_all_zips(self):
         # unzip file
         for zip_file in self.zipFiles:
-            with zipfile.ZipFile(f"data/{zip_file}", "r") as zip_ref:
-                zip_ref.extractall(f"data/{zip_file[:-4]}")
-                print(f"{zip_file} unzipped")
-                self.terminal_file.write(f"{zip_file} unzipped\n")
-                # remove song zip file
-            os.remove(f"data/{zip_file}")
-            print(f"{zip_file} removed")
-            self.terminal_file.write(f"{zip_file} removed\n")
+            try:
+                with zipfile.ZipFile(f"data/{zip_file}", "r") as zip_ref:
+                    zip_ref.extractall(f"data/{zip_file[:-4]}")
+                    print(f"{zip_file} unzipped")
+                    self.terminal_file.write(f"{zip_file} unzipped\n")
+                    # remove song zip file
+                os.remove(f"data/{zip_file}")
+                print(f"{zip_file} removed")
+                self.terminal_file.write(f"{zip_file} removed\n")
+            except Exception as e:
+                filename = traceback.extract_tb(e.__traceback__)[-1].filename
+
+                # Printing the file name
+                print("Error occurred in file:", filename)
+                self.terminal_file.write(
+                    f"Error occurred in file: {filename}\n")
+                continue
