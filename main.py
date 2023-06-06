@@ -32,7 +32,7 @@ try:
 
         if script_no == "1":
             file.write(f"get_all_users Start time: {start_date()}\n")
-            download.get_all_users()
+            download.get_all_users(end=1)
 
         if script_no == "2":
             file.write(f"get_all_maps Start time: {start_date()}\n")

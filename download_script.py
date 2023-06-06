@@ -26,7 +26,7 @@ class DownloadScript:
             while True:
                 try:
                     response = requests.get(
-                        f"https://api.be2atsaver.com/users/list/{page}")
+                        f"https://api.beatsaver.com/users/list/{page}")
                     break
                 except Exception as e:
                     print(e)
@@ -58,7 +58,9 @@ class DownloadScript:
         with open('saved_data/usersNew.csv', 'r') as users_file:
             users = csv.reader(users_file)
             for (user) in users:
-                for page in range(0, math.ceil(int(int(user[1]) / 20))):
+                user_maps = 0
+                test = math.ceil(int(int(user[1]) / 20))
+                for page in range(0, math.ceil(int(int(user[1]) / 20) + 1)):
                     while True:
                         try:
                             response = requests.get(
@@ -69,6 +71,7 @@ class DownloadScript:
                             self.terminal_file.write(f"{e}\n")
                             time.sleep(10)
                     jsonUserMaps = response.json()
+                    user_maps += len(jsonUserMaps['docs'])
                     print(
                         f"User {user[0]} maps page {page} done")
                     self.terminal_file.write(
@@ -76,6 +79,12 @@ class DownloadScript:
                     self.terminal_file.flush()
 
                     allMaps.extend(jsonUserMaps['docs'])
+
+                user_maps_info = [user[0], user[1], user_maps]
+                with open('saved_data/user_maps.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(user_maps_info)
+
                     # for map in jsonUserMaps['docs']:
                     #     self.map_info.append(map)
                     #     self.maps_ids.append(map['id'])
