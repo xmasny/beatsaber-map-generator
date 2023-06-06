@@ -16,17 +16,17 @@ class DownloadScript:
         self.terminal_file = file
         self.songFolder = "data"
         self.zipFiles = []
-        self.allUsersJson = []
         self.map_info = []
         self.maps_ids = []
 
     def get_all_users(self, start=0, end=20000):
         # get all users in range of pages
+        allUsersJson = []
         for page in range(start, end):
             while True:
                 try:
                     response = requests.get(
-                        f"https://api.beatsaver.com/users/list/{page}")
+                        f"https://api.be2atsaver.com/users/list/{page}")
                     break
                 except Exception as e:
                     print(e)
@@ -34,51 +34,68 @@ class DownloadScript:
                     time.sleep(10)
             jsonUsers = response.json()
             for user in jsonUsers:
-                self.allUsersJson.append([
+                allUsersJson.append([
                     user["id"],
                     user['stats']["totalMaps"],
                 ])
             print(f"Users page {page} done")
             self.terminal_file.write(f"Users page {page} done\n")
             self.terminal_file.flush()
-        with open(f'saved_data/users{time.time()}.csv', 'w', newline='') as file:
+
+        if os.path.exists('saved_data/usersNew.csv'):
+            if os.path.exists('saved_data/usersOld.csv'):
+                os.remove('saved_data/usersOld.csv')
+            os.rename('saved_data/usersNew.csv', 'saved_data/usersOld.csv')
+        with open(f'saved_data/usersNew.csv', 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerows(self.allUsersJson)
+            writer.writerows(allUsersJson)
 
     def get_all_maps(self):
         # get all zip maps from users
         song_index = 1
-        allMapsUrls = []
-        for user in self.allUsersJson:
-            for page in range(0, math.ceil(int(user[1] / 20))):
-                while True:
-                    try:
-                        response = requests.get(
-                            f"https://api.beatsaver.com/maps/uploader/{user[0]}/{page}")
-                        break
-                    except Exception as e:
-                        print(e)
-                        self.terminal_file.write(f"{e}\n")
-                        time.sleep(10)
-                jsonUserMaps = response.json()
-                print(
-                    f"User {user[0]} maps page {page} done")
-                self.terminal_file.write(
-                    f"User {user[0]} maps page {page} done\n")
-                self.terminal_file.flush()
-                for map in jsonUserMaps['docs']:
-                    self.map_info.append(map)
-                    self.maps_ids.append(map['id'])
-                    for version in map['versions']:
-                        allMapsUrls.append([
-                            f'song{song_index}', map['id'], version['downloadURL']])
-                        song_index += 1
-        with open('saved_data/map_zips.csv', 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerows(allMapsUrls)
+        allMaps = []
+
+        with open('saved_data/usersNew.csv', 'r') as users_file:
+            users = csv.reader(users_file)
+            for (user) in users:
+                for page in range(0, math.ceil(int(int(user[1]) / 20))):
+                    while True:
+                        try:
+                            response = requests.get(
+                                f"https://api.beatsaver.com/maps/uploader/{user[0]}/{page}")
+                            break
+                        except Exception as e:
+                            print(e)
+                            self.terminal_file.write(f"{e}\n")
+                            time.sleep(10)
+                    jsonUserMaps = response.json()
+                    print(
+                        f"User {user[0]} maps page {page} done")
+                    self.terminal_file.write(
+                        f"User {user[0]} maps page {page} done\n")
+                    self.terminal_file.flush()
+
+                    allMaps.extend(jsonUserMaps['docs'])
+                    # for map in jsonUserMaps['docs']:
+                    #     self.map_info.append(map)
+                    #     self.maps_ids.append(map['id'])
+                    #     for version in map['versions']:
+                    #         allMapsUrls.append([
+                    #             f'song{song_index}', map['id'], version['downloadURL']])
+                    #         song_index += 1
+        # with open('saved_data/map_zips.csv', 'w', newline='') as file:
+        #     writer = csv.writer(file)
+        #     writer.writerows(allMapsUrls)
+
+        print("Number of maps: ", len(allMaps))
+        self.terminal_file.write(f"Number of maps: {len(allMaps)}\n")
 
         with open('saved_data/map_info.json', 'w') as file:
-            json.dump(self.map_info, file)
+            json.dump(allMaps, file)
+
+        with open('saved_data/map_info.json', 'r') as file:
+            allMaps = json.load(file)
+            print("Number of maps from json: ", len(allMaps))
 
     def get_all_maps_from_user(self, start_id=None, end_id=None):
         '''
@@ -118,7 +135,8 @@ class DownloadScript:
 
     def unzip_all_zips(self):
         # unzip file
-        for zip_file in self.zipFiles:
+        for index, zip_file in set(self.zipFiles):
+            print(f"Unzipping {zip_file} {index}/{len(self.zipFiles) - 1}")
             try:
                 with zipfile.ZipFile(f"data/{zip_file}", "r") as zip_ref:
                     zip_ref.extractall(f"data/{zip_file[:-4]}")
@@ -132,7 +150,7 @@ class DownloadScript:
                 filename = traceback.extract_tb(e.__traceback__)[-1].filename
 
                 # Printing the file name
-                print("Error occurred in file:", filename)
+                print(f"Error occurred in file {index}: {filename}")
                 self.terminal_file.write(
-                    f"Error occurred in file: {filename}\n")
+                    f"Error occurred in file {index}: {filename}\n")
                 continue
