@@ -112,6 +112,8 @@ class DownloadScript:
         for file_name in os.listdir(self.songFolder):
             if file_name.endswith(".zip"):
                 self.zipFiles.append(file_name)
+                print(f"{file_name} added")
+                self.terminal_file.write(f"{file_name} added\n")
 
     def unzip_all_zips(self):
         # unzip file
