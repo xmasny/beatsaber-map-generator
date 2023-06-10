@@ -8,3 +8,5 @@ def print_scripts():
     print("Get all maps urls: 3")
     print("Get all maps from user: 4")
     print("Zips work: 5")
+    print("Save song info: 6")
+    print("Get song versions: 7")

@@ -2,6 +2,7 @@ import time
 import datetime
 from download_script import DownloadScript
 from utils import *
+from data_generation import *
 import os
 
 folders = ["data", "terminal", "saved_data"]
@@ -29,6 +30,7 @@ try:
     with open(f"terminal/{start_time}.txt", 'a') as file:
 
         download = DownloadScript(file)
+        generation = DataGeneration(file)
 
         if script_no == "1":
             file.write(f"get_all_users Start time: {start_date()}\n")
@@ -52,6 +54,14 @@ try:
 
             file.write(f"unzip_all_zips Start time: {start_date()}\n")
             download.unzip_all_zips()
+
+        if script_no == "6":
+            file.write(f"save_song_info Start time: {start_date()}\n")
+            generation.save_song_info()
+
+        if script_no == "7":
+            file.write(f"get_song_versions Start time: {start_date()}\n")
+            generation.get_song_versions()
 
     end_time = time.time()
     runtime = end_time - start_time

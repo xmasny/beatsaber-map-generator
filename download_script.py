@@ -6,7 +6,6 @@ import json
 from io import TextIOWrapper
 import csv
 import time
-import traceback
 
 time.time()
 
