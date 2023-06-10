@@ -34,7 +34,7 @@ class DataGeneration:
         versions = []
         for song in self.map_csv:
             if song[0] in os.listdir('data'):
-                if 'Info.dat' in os.listdir(f'data/{song[0]}'):
+                if 'Info.dat' or 'info.dat' in os.listdir(f'data/{song[0]}'):
                     difficultyBeatmapsFilenames = []
                     with open(f'data/{song[0]}/Info.dat', 'r') as f:
                         song_info = json.load(f)
@@ -59,10 +59,11 @@ class DataGeneration:
                                     f"{song[0]} {difficultyFilename} version not found\n")
                                 self.terminal_file.flush()
                 else:
-                    print(song[0], "Info.dat not found")
+                    print(song[0], "Info.dat or info.dat not found")
                     print(os.listdir(f'data/{song[0]}'))
                     print('-------------------')
-                    self.terminal_file.write(f"{song[0]} Info.dat not found\n")
+                    self.terminal_file.write(
+                        f"{song[0]} Info.dat or info.dat not found\n")
                     self.terminal_file.write(
                         f"{os.listdir(f'data/{song[0]}')}\n")
                     self.terminal_file.write("-------------------\n")
