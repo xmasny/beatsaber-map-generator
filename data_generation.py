@@ -38,6 +38,9 @@ class DataGeneration:
         versions = []
         for song in self.map_csv:
             if song[0] in os.listdir('data'):
+                print(song[0], "versions")
+                self.terminal_file.write(f"{song[0]} versions\n")
+                self.terminal_file.flush()
                 if 'Info.dat' or 'info.dat' in os.listdir(f'data/{song[0]}'):
                     difficultyBeatmapsFilenames = []
                     with open(f'data/{song[0]}/Info.dat', 'r') as f:
