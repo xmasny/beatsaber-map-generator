@@ -38,12 +38,15 @@ class DataGeneration:
         versions = []
         for song in self.map_csv:
             if song[0] in os.listdir('data'):
+                directory_path = f"data/{song[0]}"
+
                 print(song[0], "versions")
                 self.terminal_file.write(f"{song[0]} versions\n")
                 self.terminal_file.flush()
-                if 'Info.dat' or 'info.dat' in os.listdir(f'data/{song[0]}'):
+
+                if any(filename.lower() == 'info.dat' for filename in os.listdir(directory_path)):
                     difficultyBeatmapsFilenames = []
-                    with open(f'data/{song[0]}/Info.dat', 'r') as f:
+                    with open(f'{directory_path}/Info.dat', 'r') as f:
                         song_info = json.load(f)
 
                     for difficultyBeatmapSet in song_info['_difficultyBeatmapSets']:
@@ -52,7 +55,7 @@ class DataGeneration:
                                 difficultyBeatmap['_beatmapFilename'])
 
                     for difficultyFilename in difficultyBeatmapsFilenames:
-                        with open(f'data/{song[0]}/{difficultyFilename}', 'r') as f:
+                        with open(f'{directory_path}/{difficultyFilename}', 'r') as f:
                             difficulty_data = json.load(f)
 
                             if 'version' in difficulty_data:
@@ -66,13 +69,13 @@ class DataGeneration:
                                     f"{song[0]} {difficultyFilename} version not found\n")
                                 self.terminal_file.flush()
                 else:
-                    print(song[0], "Info.dat or info.dat not found")
-                    print(os.listdir(f'data/{song[0]}'))
+                    print(song[0], "Info.dat does not exist in the directory.")
+                    print(os.listdir(directory_path))
                     print('-------------------')
                     self.terminal_file.write(
-                        f"{song[0]} Info.dat or info.dat not found\n")
+                        f"{song[0]} Info.dat does not exist in the directory.\n")
                     self.terminal_file.write(
-                        f"{os.listdir(f'data/{song[0]}')}\n")
+                        f"{os.listdir(directory_path)}\n")
                     self.terminal_file.write("-------------------\n")
                     self.terminal_file.flush()
 
