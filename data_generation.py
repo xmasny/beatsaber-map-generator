@@ -26,13 +26,15 @@ class DataGeneration:
 
                 with open(f'data/{song[0]}/generated/SongInfo.dat', 'w') as f:
                     json.dump(song_info[0], f)
-                    print(song[0], "SongInfo.dat saved")
-                    self.terminal_file.write(
-                        f"{song[0]} SongInfo.dat saved\n")
+                    message = f"{song[0]} SongInfo.dat saved"
+                    print(message)
+                    self.terminal_file.write(f"{message}\n")
                     self.terminal_file.flush()
             else:
-                print(song[0], "not found")
-                self.terminal_file.write(f"{song[0]} not found\n")
+                message = f"{song[0]} not found"
+                print(message)
+                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.flush()
 
     def get_song_versions(self):
         versions = []
@@ -40,50 +42,68 @@ class DataGeneration:
             if song[0] in os.listdir('data'):
                 directory_path = f"data/{song[0]}"
 
+                info_dat_file = next((filename for filename in os.listdir(
+                    directory_path) if filename.lower() == 'info.dat'), None)
+
                 print(song[0], "versions")
                 self.terminal_file.write(f"{song[0]} versions\n")
                 self.terminal_file.flush()
 
-                if any(filename.lower() == 'info.dat' for filename in os.listdir(directory_path)):
+                if info_dat_file is not None:
+                    info_dat_file_path = os.path.join(
+                        directory_path, info_dat_file)
                     difficultyBeatmapsFilenames = []
-                    with open(f'{directory_path}/Info.dat', 'r') as f:
-                        song_info = json.load(f)
+                    try:
+                        with open(info_dat_file_path, 'r') as f:
+                            song_info = json.load(f)
 
-                    for difficultyBeatmapSet in song_info['_difficultyBeatmapSets']:
-                        for difficultyBeatmap in difficultyBeatmapSet['_difficultyBeatmaps']:
-                            difficultyBeatmapsFilenames.append(
-                                difficultyBeatmap['_beatmapFilename'])
+                        for difficultyBeatmapSet in song_info['_difficultyBeatmapSets']:
+                            for difficultyBeatmap in difficultyBeatmapSet['_difficultyBeatmaps']:
+                                difficultyBeatmapsFilenames.append(
+                                    difficultyBeatmap['_beatmapFilename'])
 
-                    for difficultyFilename in difficultyBeatmapsFilenames:
-                        with open(f'{directory_path}/{difficultyFilename}', 'r') as f:
-                            difficulty_data = json.load(f)
+                        for difficultyFilename in difficultyBeatmapsFilenames:
+                            with open(f'{directory_path}/{difficultyFilename}', 'r') as f:
+                                difficulty_data = json.load(f)
 
-                            if 'version' in difficulty_data:
-                                versions.append(difficulty_data['version'])
-                            elif '_version' in difficulty_data:
-                                versions.append(difficulty_data['_version'])
-                            else:
-                                print(song[0], difficultyFilename,
-                                      "version not found")
-                                self.terminal_file.write(
-                                    f"{song[0]} {difficultyFilename} version not found\n")
-                                self.terminal_file.flush()
+                                if 'version' in difficulty_data:
+                                    versions.append(difficulty_data['version'])
+                                elif '_version' in difficulty_data:
+                                    versions.append(
+                                        difficulty_data['_version'])
+                                else:
+                                    message = f"'version' or '_version' not found in {difficultyFilename}"
+                                    print(song[0], message)
+                                    self.terminal_file.write(
+                                        f"{song[0]} {message}\n")
+                                    self.terminal_file.flush()
+
+                    except OSError as e:
+                        message = f"Error opening 'Info.dat' file: {e}"
+                        print(message)
+                        self.terminal_file.write(f"{message}\n")
+                    except json.JSONDecodeError as e:
+                        message = f"Error loading JSON data from 'Info.dat' file: {e}"
+                        print(message)
+                        self.terminal_file.write(f"{message}\n")
+
                 else:
-                    print(song[0], "Info.dat does not exist in the directory.")
+                    message = f"'Info.dat' file not found in directory."
+                    print(song[0], message)
                     print(os.listdir(directory_path))
                     print('-------------------')
-                    self.terminal_file.write(
-                        f"{song[0]} Info.dat does not exist in the directory.\n")
-                    self.terminal_file.write(
-                        f"{os.listdir(directory_path)}\n")
+                    self.terminal_file.write(f"{song[0]} {message}\n")
+                    self.terminal_file.write(f"{os.listdir(directory_path)}\n")
                     self.terminal_file.write("-------------------\n")
                     self.terminal_file.flush()
 
             else:
-                print(song[0], "not found")
-                self.terminal_file.write(f"{song[0]} not found\n")
+                message = "not found"
+                print(song[0], message)
+                self.terminal_file.write(f"{song[0]} {message}\n")
                 self.terminal_file.flush()
 
-        print("Versions: ", Counter(versions))
-        self.terminal_file.write(f"Versions: {Counter(versions)}\n")
+        message = f"Versions: {Counter(versions)}"
+        print(message)
+        self.terminal_file.write(f"{message}\n")
         self.terminal_file.flush()
