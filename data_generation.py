@@ -26,6 +26,10 @@ class DataGeneration:
 
                 with open(f'data/{song[0]}/generated/SongInfo.dat', 'w') as f:
                     json.dump(song_info[0], f)
+                    print(song[0], "SongInfo.dat saved")
+                    self.terminal_file.write(
+                        f"{song[0]} SongInfo.dat saved\n")
+                    self.terminal_file.flush()
             else:
                 print(song[0], "not found")
                 self.terminal_file.write(f"{song[0]} not found\n")
