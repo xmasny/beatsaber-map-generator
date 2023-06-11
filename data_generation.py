@@ -82,10 +82,12 @@ class DataGeneration:
                         message = f"Error opening 'Info.dat' file: {e}"
                         print(message)
                         self.terminal_file.write(f"{message}\n")
+                        continue
                     except json.JSONDecodeError as e:
                         message = f"Error loading JSON data from 'Info.dat' file: {e}"
                         print(message)
                         self.terminal_file.write(f"{message}\n")
+                        continue
 
                 else:
                     message = f"'Info.dat' file not found in directory."
