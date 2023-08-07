@@ -1,0 +1,471 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/lolPants/beatmap-schemas/master/schemas/info.schema.json",
+  "type": "object",
+  "title": "Info",
+  "description": "Beat Saber Beatmap Info",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "required": [
+        "_version",
+        "_songName",
+        "_songSubName",
+        "_songAuthorName",
+        "_levelAuthorName",
+        "_beatsPerMinute",
+        "_songTimeOffset",
+        "_shuffle",
+        "_shufflePeriod",
+        "_previewStartTime",
+        "_previewDuration",
+        "_songFilename",
+        "_coverImageFilename",
+        "_environmentName",
+        "_difficultyBeatmapSets"
+      ]
+    },
+    {
+      "if": {
+        "properties": {
+          "_difficultyBeatmapSets": {
+            "type": "array",
+            "contains": {
+              "type": "object",
+              "properties": {
+                "_beatmapCharacteristicName": {
+                  "enum": [
+                    "360Degree",
+                    "90Degree"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "_allDirectionsEnvironmentName"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "_version": {
+      "type": "string",
+      "title": "Beatmap Version",
+      "default": "2.1.0",
+      "examples": [
+        "2.1.0"
+      ],
+      "pattern": "^([2-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+    },
+    "_songName": {
+      "type": "string",
+      "title": "Song Name",
+      "pattern": "^(.+)$"
+    },
+    "_songSubName": {
+      "type": "string",
+      "title": "Song Subname",
+      "pattern": "^(.*)$"
+    },
+    "_songAuthorName": {
+      "type": "string",
+      "title": "Song Author Name",
+      "description": "Artist of this Beatmap's song",
+      "pattern": "^(.+)$"
+    },
+    "_levelAuthorName": {
+      "type": "string",
+      "title": "Creator of this Beatmap",
+      "pattern": "^(.+)$"
+    },
+    "_beatsPerMinute": {
+      "type": "number",
+      "title": "Beatmap BPM",
+      "minimum": 0
+    },
+    "_songTimeOffset": {
+      "type": "number",
+      "title": "Song Offset",
+      "description": "Offset between beatmap and audio (seconds)"
+    },
+    "_shuffle": {
+      "type": "number",
+      "title": "Shuffle",
+      "description": "Time (in beats) of how much a note should shift when shuffled",
+      "minimum": 0
+    },
+    "_shufflePeriod": {
+      "type": "number",
+      "title": "Shuffle Period",
+      "description": "Time (in beats) of how often a note should shift",
+      "minimum": 0
+    },
+    "_previewStartTime": {
+      "type": "number",
+      "title": "Preview Start Time",
+      "description": "How long (in seconds) into beatmap audio the level preview will start",
+      "minimum": 0
+    },
+    "_previewDuration": {
+      "type": "number",
+      "title": "Preview Duration",
+      "description": "Duration (in seconds) of level audio preview",
+      "minimum": 0
+    },
+    "_songFilename": {
+      "type": "string",
+      "title": "Song Filename",
+      "default": "song.egg",
+      "pattern": "^(?!.{256,})(?!(aux|clock\\$|con|nul|prn|com[1-9]|lpt[1-9])(?:$|\\.))[^ ][ \\.\\w-$()+=[\\];#@~,&amp;']+[^\\. ]$"
+    },
+    "_coverImageFilename": {
+      "type": "string",
+      "title": "Cover Image Filename",
+      "default": "cover.jpg",
+      "pattern": "^(?!.{256,})(?!(aux|clock\\$|con|nul|prn|com[1-9]|lpt[1-9])(?:$|\\.))[^ ][ \\.\\w-$()+=[\\];#@~,&amp;']+[^\\. ]$"
+    },
+    "_environmentName": {
+      "type": "string",
+      "title": "Environment Name",
+      "examples": [
+        "DefaultEnvironment",
+        "Origins",
+        "TriangleEnvironment",
+        "BigMirrorEnvironment",
+        "NiceEnvironment",
+        "KDAEnvironment",
+        "MonstercatEnvironment",
+        "DragonsEnvironment",
+        "CrabRaveEnvironment",
+        "PanicEnvironment",
+        "RocketEnvironment",
+        "GreenDayEnvironment",
+        "GreenDayGrenadeEnvironment",
+        "TimbalandEnvironment",
+        "FitBeatEnvironment",
+        "LinkinParkEnvironment",
+        "BTSEnvironment"
+      ]
+    },
+    "_allDirectionsEnvironmentName": {
+      "type": "string",
+      "title": "All Directions Environment Name",
+      "examples": [
+        "GlassDesertEnvironment"
+      ]
+    },
+    "_customData": {
+      "type": "object",
+      "title": "Custom Data",
+      "description": "Top-level custom data",
+      "additionalProperties": true,
+      "properties": {
+        "_contributors": {
+          "type": "array",
+          "title": "Array of Beatmap Contributors",
+          "items": {
+            "$ref": "#/definitions/contributor"
+          }
+        },
+        "_customEnvironment": {
+          "type": "string",
+          "title": "Custom Environment Name",
+          "pattern": "^(.+)$"
+        },
+        "_customEnvironmentHash": {
+          "type": "string",
+          "title": "Custom Environment Hash",
+          "description": "Used to match platforms on modelsaber.com",
+          "pattern": "^[a-f0-9]{32}$"
+        }
+      }
+    },
+    "_difficultyBeatmapSets": {
+      "type": "array",
+      "title": "Array of Beatmap Sets",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/beatmapSet"
+      }
+    }
+  },
+  "definitions": {
+    "color": {
+      "type": "object",
+      "title": "RGB Color",
+      "description": "Color values are 0-1, not 0-255",
+      "additionalProperties": false,
+      "required": [
+        "r",
+        "g",
+        "b"
+      ],
+      "properties": {
+        "r": {
+          "type": "number",
+          "minimum": 0
+        },
+        "g": {
+          "type": "number",
+          "minimum": 0
+        },
+        "b": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "contributor": {
+      "type": "object",
+      "title": "Beatmap Contributors",
+      "additionalProperties": false,
+      "required": [
+        "_role",
+        "_name"
+      ],
+      "properties": {
+        "_role": {
+          "type": "string",
+          "title": "Contributor Role",
+          "examples": [
+            "Mapper",
+            "Lighter"
+          ]
+        },
+        "_name": {
+          "type": "string",
+          "title": "Contributor Name",
+          "pattern": "^(.+)$"
+        },
+        "_iconPath": {
+          "type": "string",
+          "title": "Contributor Icon Path",
+          "pattern": "^(?!.{256,})(?!(aux|clock\\$|con|nul|prn|com[1-9]|lpt[1-9])(?:$|\\.))[^ ][ \\.\\w-$()+=[\\];#@~,&amp;']+[^\\. ]$"
+        }
+      }
+    },
+    "beatmapSet": {
+      "type": "object",
+      "title": "Beatmap Set",
+      "additionalProperties": false,
+      "required": [
+        "_beatmapCharacteristicName",
+        "_difficultyBeatmaps"
+      ],
+      "properties": {
+        "_beatmapCharacteristicName": {
+          "type": "string",
+          "title": "Beatmap Characteristic Name",
+          "default": "Standard",
+          "examples": [
+            "Standard",
+            "OneSaber",
+            "NoArrows",
+            "Lightshow",
+            "Lawless",
+            "360Degree",
+            "90Degree"
+          ],
+          "pattern": "^(.+)$"
+        },
+        "_difficultyBeatmaps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/beatmap"
+          }
+        }
+      }
+    },
+    "beatmap": {
+      "type": "object",
+      "title": "Beatmap",
+      "additionalProperties": false,
+      "required": [
+        "_difficulty",
+        "_difficultyRank",
+        "_beatmapFilename",
+        "_noteJumpMovementSpeed",
+        "_noteJumpStartBeatOffset"
+      ],
+      "if": {
+        "properties": {
+          "_difficultyRank": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "_difficulty": {
+            "const": "Easy"
+          }
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "_difficultyRank": {
+              "const": 3
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "_difficulty": {
+              "const": "Normal"
+            }
+          }
+        },
+        "else": {
+          "if": {
+            "properties": {
+              "_difficultyRank": {
+                "const": 5
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "_difficulty": {
+                "const": "Hard"
+              }
+            }
+          },
+          "else": {
+            "if": {
+              "properties": {
+                "_difficultyRank": {
+                  "const": 7
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "_difficulty": {
+                  "const": "Expert"
+                }
+              }
+            },
+            "else": {
+              "if": {
+                "properties": {
+                  "_difficultyRank": {
+                    "const": 9
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "_difficulty": {
+                    "const": "ExpertPlus"
+                  }
+                }
+              },
+              "else": true
+            }
+          }
+        }
+      },
+      "properties": {
+        "_difficulty": {
+          "type": "string",
+          "title": "Difficulty",
+          "enum": [
+            "Easy",
+            "Normal",
+            "Hard",
+            "Expert",
+            "ExpertPlus"
+          ]
+        },
+        "_difficultyRank": {
+          "type": "integer",
+          "title": "Difficulty Rank",
+          "enum": [
+            1,
+            3,
+            5,
+            7,
+            9
+          ]
+        },
+        "_beatmapFilename": {
+          "type": "string",
+          "title": "Beatmap Filename",
+          "pattern": "^(?!.{256,})(?!(aux|clock\\$|con|nul|prn|com[1-9]|lpt[1-9])(?:$|\\.))[^ ][ \\.\\w-$()+=[\\];#@~,&amp;']+[^\\. ]\\.dat$"
+        },
+        "_noteJumpMovementSpeed": {
+          "type": "number",
+          "title": "Note Jump Movement Speed",
+          "description": "Beatmap Note Jump Speed (NJS)"
+        },
+        "_noteJumpStartBeatOffset": {
+          "type": "number",
+          "title": "Note Jump Start Beat Offset"
+        },
+        "_customData": {
+          "type": "object",
+          "title": "Custom Data",
+          "description": "Custom data scoped to a single difficulty",
+          "additionalProperties": true,
+          "properties": {
+            "_colorLeft": {
+              "$ref": "#/definitions/color"
+            },
+            "_colorRight": {
+              "$ref": "#/definitions/color"
+            },
+            "_envColorLeft": {
+              "$ref": "#/definitions/color"
+            },
+            "_envColorRight": {
+              "$ref": "#/definitions/color"
+            },
+            "_obstacleColor": {
+              "$ref": "#/definitions/color"
+            },
+            "_difficultyLabel": {
+              "type": "string",
+              "title": "Difficulty Label",
+              "description": "Custom label for this difficulty",
+              "pattern": "^(.+)$"
+            },
+            "_warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "_information": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "_suggestions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "_requirements": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
