@@ -138,7 +138,6 @@ class DataGeneration:
                     directory_path = f"data/{song[0]}"
                     info_dat_file = next((filename for filename in os.listdir(
                         directory_path) if filename.lower() == 'info.dat'), None)
-
                     if info_dat_file is not None:
                         info_dat_file_path = os.path.join(
                             directory_path, info_dat_file)
@@ -149,12 +148,17 @@ class DataGeneration:
                             if 'version' in song_info:
                                 versions.append(
                                     song_info['version'])
+
+                                print(
+                                    f"{song[0]} info version {song_info['version']}\n")
                                 self.terminal_file.write(
                                     f"{song[0]} info version {song_info['version']}\n")
                                 self.terminal_file.flush()
                             elif '_version' in song_info:
                                 versions.append(
                                     song_info['_version'])
+                                print(
+                                    f"{song[0]} info version {song_info['_version']}\n")
                                 self.terminal_file.write(
                                     f"{song[0]} info version {song_info['_version']}\n")
                                 self.terminal_file.flush()
