@@ -10,3 +10,4 @@ def print_scripts():
     print("Zips work: 5")
     print("Save song info: 6")
     print("Get song versions: 7")
+    print("Get song info versions: 8")

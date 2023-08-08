@@ -129,3 +129,73 @@ class DataGeneration:
         print(message)
         self.terminal_file.write(f"{message}\n")
         self.terminal_file.flush()
+
+    def get_song_info_versions(self):
+        versions = []
+        for song in self.map_csv:
+            try:
+                if song[0] in os.listdir('data'):
+                    directory_path = f"data/{song[0]}"
+                    info_dat_file = next((filename for filename in os.listdir(
+                        directory_path) if filename.lower() == 'info.dat'), None)
+                    print(song[0], "versions")
+                    self.terminal_file.write(f"{song[0]} versions\n")
+                    self.terminal_file.flush()
+
+                    if info_dat_file is not None:
+                        info_dat_file_path = os.path.join(
+                            directory_path, info_dat_file)
+                        try:
+                            with open(info_dat_file_path, 'r') as f:
+                                song_info = json.load(f)
+
+                            if 'version' in song_info:
+                                versions.append(
+                                    song_info['version'])
+                            elif '_version' in song_info:
+                                versions.append(
+                                    song_info['_version'])
+                            else:
+                                message = f"'version' or '_version' not found in {info_dat_file}"
+                                print(song[0], message)
+                                self.terminal_file.write(
+                                    f"{song[0]} {message}\n")
+                                self.terminal_file.flush()
+                        except OSError as e:
+                            message = f"Error opening 'Info.dat' file: {e}"
+                            print(message)
+                            self.terminal_file.write(f"{message}\n")
+                            self.terminal_file.flush()
+                            continue
+                        except json.JSONDecodeError as e:
+                            message = f"Error loading JSON data from 'Info.dat' file: {e}"
+                            print(message)
+                            self.terminal_file.write(f"{message}\n")
+                            self.terminal_file.flush()
+                            continue
+                    else:
+                        message = "'Info.dat' file not found in directory."
+                        print(song[0], message)
+                        print(os.listdir(directory_path))
+                        print('-------------------')
+                        self.terminal_file.write(f"{song[0]} {message}\n")
+                        self.terminal_file.write(
+                            f"{os.listdir(directory_path)}\n")
+                        self.terminal_file.write("-------------------\n")
+                        self.terminal_file.flush()
+                else:
+                    message = "not found"
+                    print(song[0], message)
+                    self.terminal_file.write(f"{song[0]} {message}\n")
+                    self.terminal_file.flush()
+            except Exception as e:
+                message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
+                print(message)
+                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.flush()
+                continue
+
+        message = f"Versions: {Counter(versions)}"
+        print(message)
+        self.terminal_file.write(f"{message}\n")
+        self.terminal_file.flush()

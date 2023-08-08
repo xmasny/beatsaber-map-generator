@@ -63,6 +63,10 @@ try:
             file.write(f"get_song_versions Start time: {start_date()}\n")
             generation.get_song_versions()
 
+        if script_no == "8":
+            file.write(f"get_song_info_versions Start time: {start_date()}\n")
+            generation.get_song_info_versions()
+
     end_time = time.time()
     runtime = end_time - start_time
 
