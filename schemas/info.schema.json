@@ -73,7 +73,8 @@
     "_songSubName": {
       "type": "string",
       "title": "Song Subname",
-      "pattern": "^(.*)$"
+      "pattern": "^(.*)$",
+      "default": ""
     },
     "_songAuthorName": {
       "type": "string",
@@ -89,36 +90,42 @@
     "_beatsPerMinute": {
       "type": "number",
       "title": "Beatmap BPM",
-      "minimum": 0
+      "minimum": 0,
+      "default": 120
     },
     "_songTimeOffset": {
       "type": "number",
       "title": "Song Offset",
-      "description": "Offset between beatmap and audio (seconds)"
+      "description": "Offset between beatmap and audio (seconds)",
+      "default": 0
     },
     "_shuffle": {
       "type": "number",
       "title": "Shuffle",
       "description": "Time (in beats) of how much a note should shift when shuffled",
-      "minimum": 0
+      "minimum": 0,
+      "default": 0.0
     },
     "_shufflePeriod": {
       "type": "number",
       "title": "Shuffle Period",
       "description": "Time (in beats) of how often a note should shift",
-      "minimum": 0
+      "minimum": 0,
+      "default": 0.5
     },
     "_previewStartTime": {
       "type": "number",
       "title": "Preview Start Time",
       "description": "How long (in seconds) into beatmap audio the level preview will start",
-      "minimum": 0
+      "minimum": 0,
+      "default": 12
     },
     "_previewDuration": {
       "type": "number",
       "title": "Preview Duration",
       "description": "Duration (in seconds) of level audio preview",
-      "minimum": 0
+      "minimum": 0,
+      "default": 10
     },
     "_songFilename": {
       "type": "string",
@@ -135,9 +142,11 @@
     "_environmentName": {
       "type": "string",
       "title": "Environment Name",
-      "examples": [
+      "description": "Name of the environment this Beatmap is set in",
+      "default": "DefaultEnvironment",
+      "enum": [
         "DefaultEnvironment",
-        "Origins",
+        "OriginsEnvironment",
         "TriangleEnvironment",
         "BigMirrorEnvironment",
         "NiceEnvironment",
@@ -152,15 +161,110 @@
         "TimbalandEnvironment",
         "FitBeatEnvironment",
         "LinkinParkEnvironment",
-        "BTSEnvironment"
+        "BTSEnvironment",
+        "KaleidoscopeEnvironment",
+        "InterscopeEnvironment",
+        "SkrillexEnvironment",
+        "BillieEnvironment",
+        "HalloweenEnvironment",
+        "GagaEnvironment",
+        "WeaveEnvironment",
+        "PyroEnvironment",
+        "EDMEnvironment",
+        "TheSecondEnvironment",
+        "LizzoEnvironment",
+        "TheWeekndEnvironment",
+        "RockMixtapeEnvironment",
+        "Dragons2Environment",
+        "Panic2Environment",
+        "QueenEnvironment"
       ]
     },
     "_allDirectionsEnvironmentName": {
       "type": "string",
       "title": "All Directions Environment Name",
-      "examples": [
-        "GlassDesertEnvironment"
+      "description": "Name of the environment this Beatmap is set in when playing in 360/90 mode",
+      "default": "DefaultEnvironment",
+      "enum": [
+        "DefaultEnvironment",
+        "OriginsEnvironment",
+        "TriangleEnvironment",
+        "BigMirrorEnvironment",
+        "NiceEnvironment",
+        "KDAEnvironment",
+        "MonstercatEnvironment",
+        "DragonsEnvironment",
+        "CrabRaveEnvironment",
+        "PanicEnvironment",
+        "RocketEnvironment",
+        "GreenDayEnvironment",
+        "GreenDayGrenadeEnvironment",
+        "TimbalandEnvironment",
+        "FitBeatEnvironment",
+        "LinkinParkEnvironment",
+        "BTSEnvironment",
+        "KaleidoscopeEnvironment",
+        "InterscopeEnvironment",
+        "SkrillexEnvironment",
+        "BillieEnvironment",
+        "HalloweenEnvironment",
+        "GagaEnvironment",
+        "WeaveEnvironment",
+        "PyroEnvironment",
+        "EDMEnvironment",
+        "TheSecondEnvironment",
+        "LizzoEnvironment",
+        "TheWeekndEnvironment",
+        "RockMixtapeEnvironment",
+        "Dragons2Environment",
+        "Panic2Environment",
+        "QueenEnvironment"
       ]
+    },
+    "_environmentNames": {
+      "type": "array",
+      "title": "Environment Names",
+      "description": "Array of environment names",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DefaultEnvironment",
+          "OriginsEnvironment",
+          "TriangleEnvironment",
+          "BigMirrorEnvironment",
+          "NiceEnvironment",
+          "KDAEnvironment",
+          "MonstercatEnvironment",
+          "DragonsEnvironment",
+          "CrabRaveEnvironment",
+          "PanicEnvironment",
+          "RocketEnvironment",
+          "GreenDayEnvironment",
+          "GreenDayGrenadeEnvironment",
+          "TimbalandEnvironment",
+          "FitBeatEnvironment",
+          "LinkinParkEnvironment",
+          "BTSEnvironment",
+          "KaleidoscopeEnvironment",
+          "InterscopeEnvironment",
+          "SkrillexEnvironment",
+          "BillieEnvironment",
+          "HalloweenEnvironment",
+          "GagaEnvironment",
+          "WeaveEnvironment",
+          "PyroEnvironment",
+          "EDMEnvironment",
+          "TheSecondEnvironment",
+          "LizzoEnvironment",
+          "TheWeekndEnvironment",
+          "RockMixtapeEnvironment",
+          "Dragons2Environment",
+          "Panic2Environment",
+          "QueenEnvironment"
+        ],
+        "uniqueItems": true,
+        "minItems": 0
+      }
     },
     "_customData": {
       "type": "object",
@@ -272,9 +376,9 @@
             "Lightshow",
             "Lawless",
             "360Degree",
-            "90Degree"
-          ],
-          "pattern": "^(.+)$"
+            "90Degree",
+            "Legacy"
+          ]
         },
         "_difficultyBeatmaps": {
           "type": "array",

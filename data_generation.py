@@ -150,7 +150,7 @@ class DataGeneration:
                                     song_info['version'])
 
                                 print(
-                                    f"{song[0]} info version {song_info['version']}\n")
+                                    f"{song[0]} info version {song_info['version']}")
                                 self.terminal_file.write(
                                     f"{song[0]} info version {song_info['version']}\n")
                                 self.terminal_file.flush()
@@ -158,7 +158,7 @@ class DataGeneration:
                                 versions.append(
                                     song_info['_version'])
                                 print(
-                                    f"{song[0]} info version {song_info['_version']}\n")
+                                    f"{song[0]} info version {song_info['_version']}")
                                 self.terminal_file.write(
                                     f"{song[0]} info version {song_info['_version']}\n")
                                 self.terminal_file.flush()
