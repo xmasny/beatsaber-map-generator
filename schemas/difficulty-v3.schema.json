@@ -1,111 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "Difficulty": {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "string",
-          "default": "3.2.0",
-          "pattern": "^([2-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
-          "description": "his field describes the version of the map format we are using."
-        },
-        "bpmEvents": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BpmEvents"
-          },
-          "description": "This is an array of BPM Event objects for the map."
-        },
-        "rotationEvents": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/RotationEvents"
-          },
-          "description": "This is an array of Rotation Event objects for the map."
-        },
-        "colorNotes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ColorNotes"
-          },
-          "description": "This is an array of Color Note objects for the map."
-        },
-        "bombNotes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BombNotes"
-          },
-          "description": "This is an array of Bomb Note objects for the map."
-        },
-        "obstacles": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Obstacles"
-          },
-          "description": "This is an array of Obstacle objects for the map."
-        },
-        "sliders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Sliders"
-          },
-          "description": "This is an array of Slider objects for the map."
-        },
-        "burstSliders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BurstSliders"
-          },
-          "description": "This is an array of Burst Slider objects for the map."
-        },
-        "basicBeatmapEvents": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/BasicBeatmapEvents"
-          },
-          "description": "This is an array of Basic Event objects for the map."
-        },
-        "colorBoostBeatmapEvents": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ColorBoostBeatmapEvents"
-          },
-          "description": "This is an array of Boost Event objects for the map."
-        },
-        "lightColorEventBoxGroups": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/LightColorEventBoxGroups"
-          },
-          "description": "This is an array of Light Color Box Group Event objects for the map."
-        },
-        "lightRotationEventBoxGroups": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/LightRotationEventBoxGroups"
-          },
-          "description": "This is an array of Light Rotation Box Group Event objects for the map."
-        },
-        "lightTranslationEventBoxGroups": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/LightTranslationEventBoxGroups"
-          },
-          "description": "This is an array of Light Translation Box Group Event objects for the map."
-        },
-        "useNormalEventsAsCompatibleEvents": {
-          "type": "boolean",
-          "description": "This is a boolean which determines if basicBeatmapEvents and colorBoostBeatmapEvents apply to v2 environments when using environment override."
-        }
-      },
-      "required": [
-        "version",
-        "bpmEvents",
-        "colorNotes",
-        "useNormalEventsAsCompatibleEvents"
-      ]
-    },
     "BpmEvents": {
       "type": "object",
       "properties": {
@@ -436,7 +331,18 @@
         "et": {
           "type": "integer",
           "description": "Equivalent to _type",
-          "minimum": 0
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            8,
+            9,
+            10,
+            12,
+            13
+          ]
         },
         "i": {
           "type": "integer",
@@ -446,6 +352,7 @@
         "f": {
           "type": "number",
           "description": "Equivalent to _floatValue",
+          "default": 1,
           "minimum": 0
         }
       },
@@ -934,65 +841,105 @@
   },
   "type": "object",
   "properties": {
-    "difficulty": {
-      "$ref": "#/definitions/Difficulty"
+    "version": {
+      "type": "string",
+      "default": "3.2.0",
+      "pattern": "^([2-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "description": "his field describes the version of the map format we are using."
     },
     "bpmEvents": {
-      "$ref": "#/definitions/BpmEvents"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BpmEvents"
+      },
+      "description": "This is an array of BPM Event objects for the map."
     },
     "rotationEvents": {
-      "$ref": "#/definitions/RotationEvents"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RotationEvents"
+      },
+      "description": "This is an array of Rotation Event objects for the map."
     },
     "colorNotes": {
-      "$ref": "#/definitions/ColorNotes"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ColorNotes"
+      },
+      "description": "This is an array of Color Note objects for the map."
     },
     "bombNotes": {
-      "$ref": "#/definitions/BombNotes"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BombNotes"
+      },
+      "description": "This is an array of Bomb Note objects for the map."
     },
     "obstacles": {
-      "$ref": "#/definitions/Obstacles"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Obstacles"
+      },
+      "description": "This is an array of Obstacle objects for the map."
     },
     "sliders": {
-      "$ref": "#/definitions/Sliders"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Sliders"
+      },
+      "description": "This is an array of Slider objects for the map."
     },
     "burstSliders": {
-      "$ref": "#/definitions/BurstSliders"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BurstSliders"
+      },
+      "description": "This is an array of Burst Slider objects for the map."
     },
     "basicBeatmapEvents": {
-      "$ref": "#/definitions/BasicBeatmapEvents"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BasicBeatmapEvents"
+      },
+      "description": "This is an array of Basic Event objects for the map."
     },
     "colorBoostBeatmapEvents": {
-      "$ref": "#/definitions/ColorBoostBeatmapEvents"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ColorBoostBeatmapEvents"
+      },
+      "description": "This is an array of Boost Event objects for the map."
     },
     "lightColorEventBoxGroups": {
-      "$ref": "#/definitions/LightColorEventBoxGroups"
-    },
-    "lightColorEventBoxGroupsOuter": {
-      "$ref": "#/definitions/LightColorEventBoxGroupsOuter"
-    },
-    "lightColorEventBoxGroupsInner": {
-      "$ref": "#/definitions/LightColorEventBoxGroupsInner"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LightColorEventBoxGroups"
+      },
+      "description": "This is an array of Light Color Box Group Event objects for the map."
     },
     "lightRotationEventBoxGroups": {
-      "$ref": "#/definitions/LightRotationEventBoxGroups"
-    },
-    "lightRotationEventBoxGroupOuter": {
-      "$ref": "#/definitions/LightRotationEventBoxGroupOuter"
-    },
-    "lightRotationEventBoxGroupInner": {
-      "$ref": "#/definitions/LightRotationEventBoxGroupInner"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LightRotationEventBoxGroups"
+      },
+      "description": "This is an array of Light Rotation Box Group Event objects for the map."
     },
     "lightTranslationEventBoxGroups": {
-      "$ref": "#/definitions/LightTranslationEventBoxGroups"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LightTranslationEventBoxGroups"
+      },
+      "description": "This is an array of Light Translation Box Group Event objects for the map."
     },
-    "lightTranslationEventBoxGroupOuter": {
-      "$ref": "#/definitions/LightTranslationEventBoxGroupOuter"
-    },
-    "lightTranslationEventBoxGroupInner": {
-      "$ref": "#/definitions/LightTranslationEventBoxGroupInner"
-    },
-    "filterObject": {
-      "$ref": "#/definitions/FilterObject"
+    "useNormalEventsAsCompatibleEvents": {
+      "type": "boolean",
+      "description": "This is a boolean which determines if basicBeatmapEvents and colorBoostBeatmapEvents apply to v2 environments when using environment override."
     }
-  }
+  },
+  "required": [
+    "version",
+    "bpmEvents",
+    "colorNotes",
+    "useNormalEventsAsCompatibleEvents"
+  ]
 }
