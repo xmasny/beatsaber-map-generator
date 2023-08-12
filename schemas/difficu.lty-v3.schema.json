@@ -1,0 +1,843 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Difficulty": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "default": "3.2.0",
+          "pattern": "^([2-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "his field describes the version of the map format we are using."
+        },
+        "bpmEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BpmEvents"
+          },
+          "description": "This is an array of BPM Event objects for the map."
+        },
+        "rotationEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RotationEvents"
+          },
+          "description": "This is an array of Rotation Event objects for the map."
+        },
+        "colorNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ColorNotes"
+          },
+          "description": "This is an array of Color Note objects for the map."
+        },
+        "bombNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BombNotes"
+          },
+          "description": "This is an array of Bomb Note objects for the map."
+        },
+        "obstacles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Obstacles"
+          },
+          "description": "This is an array of Obstacle objects for the map."
+        },
+        "sliders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Sliders"
+          },
+          "description": "This is an array of Slider objects for the map."
+        },
+        "burstSliders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BurstSliders"
+          },
+          "description": "This is an array of Burst Slider objects for the map."
+        },
+        "basicBeatmapEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BasicBeatmapEvents"
+          },
+          "description": "This is an array of Basic Event objects for the map."
+        },
+        "colorBoostBeatmapEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ColorBoostBeatmapEvents"
+          },
+          "description": "This is an array of Boost Event objects for the map."
+        },
+        "lightColorEventBoxGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightColorEventBoxGroups"
+          },
+          "description": "This is an array of Light Color Box Group Event objects for the map."
+        },
+        "lightRotationEventBoxGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightRotationEventBoxGroups"
+          },
+          "description": "This is an array of Light Rotation Box Group Event objects for the map."
+        },
+        "lightTranslationEventBoxGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightTranslationEventBoxGroups"
+          },
+          "description": "This is an array of Light Translation Box Group Event objects for the map."
+        },
+        "useNormalEventsAsCompatibleEvents": {
+          "type": "boolean",
+          "description": "This is a boolean which determines if basicBeatmapEvents and colorBoostBeatmapEvents apply to v2 environments when using environment override."
+        }
+      },
+      "required": [
+        "version",
+        "bpmEvents",
+        "colorNotes",
+        "useNormalEventsAsCompatibleEvents"
+      ]
+    },
+    "BpmEvents": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number"
+        },
+        "m": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "b",
+        "m"
+      ]
+    },
+    "RotationEvents": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "e": {
+          "type": "integer",
+          "description": "Event type"
+        },
+        "r": {
+          "type": "number",
+          "description": "Rotation"
+        }
+      },
+      "required": [
+        "b",
+        "e",
+        "r"
+      ]
+    },
+    "ColorNotes": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "x": {
+          "type": "integer",
+          "description": "X position"
+        },
+        "y": {
+          "type": "integer",
+          "description": "Y position"
+        },
+        "c": {
+          "type": "integer",
+          "description": "Color"
+        },
+        "d": {
+          "type": "integer",
+          "description": "Direction"
+        },
+        "a": {
+          "type": "integer",
+          "description": "Angle offset"
+        }
+      },
+      "required": [
+        "b",
+        "x",
+        "y",
+        "c",
+        "d",
+        "a"
+      ]
+    },
+    "BombNotes": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "x": {
+          "type": "integer",
+          "description": "X position"
+        },
+        "y": {
+          "type": "integer",
+          "description": "Y position"
+        }
+      },
+      "required": [
+        "b",
+        "x",
+        "y"
+      ]
+    },
+    "Obstacles": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "x": {
+          "type": "integer",
+          "description": "X position"
+        },
+        "y": {
+          "type": "integer",
+          "description": "Y position"
+        },
+        "d": {
+          "type": "number",
+          "description": "Duration"
+        },
+        "w": {
+          "type": "integer",
+          "description": "Width"
+        },
+        "h": {
+          "type": "integer",
+          "description": "Height"
+        }
+      },
+      "required": [
+        "b",
+        "x",
+        "y",
+        "d",
+        "w",
+        "h"
+      ]
+    },
+    "Sliders": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Head Beat"
+        },
+        "c": {
+          "type": "integer",
+          "description": "Color"
+        },
+        "x": {
+          "type": "integer",
+          "description": "Head x"
+        },
+        "y": {
+          "type": "integer",
+          "description": "Head y"
+        },
+        "d": {
+          "type": "integer",
+          "description": "Head direction"
+        },
+        "mu": {
+          "type": "number",
+          "description": "Head multiplier"
+        },
+        "tb": {
+          "type": "number",
+          "description": "Tail Beat"
+        },
+        "tx": {
+          "type": "integer",
+          "description": "Tail x"
+        },
+        "ty": {
+          "type": "integer",
+          "description": "Tail y"
+        },
+        "tc": {
+          "type": "integer",
+          "description": "Tail direction"
+        },
+        "tmu": {
+          "type": "number",
+          "description": "Tail Multiplier"
+        },
+        "m": {
+          "type": "integer",
+          "description": "Mid-anchor mode"
+        }
+      },
+      "required": [
+        "b",
+        "c",
+        "x",
+        "y",
+        "d",
+        "mu",
+        "tb",
+        "tx",
+        "ty",
+        "tc",
+        "tmu",
+        "m"
+      ]
+    },
+    "BurstSliders": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number"
+        },
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "c": {
+          "type": "integer"
+        },
+        "d": {
+          "type": "integer"
+        },
+        "tb": {
+          "type": "number"
+        },
+        "tx": {
+          "type": "integer"
+        },
+        "ty": {
+          "type": "integer"
+        },
+        "sc": {
+          "type": "integer"
+        },
+        "s": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "b",
+        "x",
+        "y",
+        "c",
+        "d",
+        "tb",
+        "tx",
+        "ty",
+        "sc",
+        "s"
+      ]
+    },
+    "BasicBeatmapEvents": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Equivalent to _time"
+        },
+        "et": {
+          "type": "integer",
+          "description": "Equivalent to _type"
+        },
+        "i": {
+          "type": "integer",
+          "description": "Equivalent to _value"
+        },
+        "f": {
+          "type": "number",
+          "description": "Equivalent to _floatValue"
+        }
+      },
+      "required": [
+        "b",
+        "et",
+        "i",
+        "f"
+      ]
+    },
+    "ColorBoostBeatmapEvents": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "The time, in beats, where this object reaches the player."
+        },
+        "o": {
+          "type": "boolean",
+          "description": "A boolean which determines whether boost lighting is on or off."
+        }
+      },
+      "required": [
+        "b",
+        "o"
+      ]
+    },
+    "LightColorEventBoxGroups": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "g": {
+          "type": "integer",
+          "description": "Group "
+        },
+        "e": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightColorEventBoxGroupsOuter"
+          },
+          "description": "Event Box Group"
+        }
+      },
+      "required": [
+        "b",
+        "g"
+      ]
+    },
+    "LightColorEventBoxGroupsOuter": {
+      "type": "object",
+      "properties": {
+        "f": {
+          "$ref": "#/definitions/FilterObject"
+        },
+        "w": {
+          "type": "number",
+          "description": "Beat distribution"
+        },
+        "d": {
+          "type": "integer",
+          "description": "Beat distribution type"
+        },
+        "r": {
+          "type": "number",
+          "description": "Brightness distribution"
+        },
+        "t": {
+          "type": "integer",
+          "description": "Brightness distribution type"
+        },
+        "b": {
+          "type": "integer",
+          "description": "Brightness distribution affects first event"
+        },
+        "i": {
+          "type": "integer",
+          "description": "Brightness distribution easing"
+        },
+        "e": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightColorEventBoxGroupsInner"
+          },
+          "description": "Event Data"
+        }
+      },
+      "required": [
+        "w",
+        "d",
+        "r",
+        "t",
+        "b",
+        "i"
+      ]
+    },
+    "LightColorEventBoxGroupsInner": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number"
+        },
+        "i": {
+          "type": "integer"
+        },
+        "c": {
+          "type": "integer"
+        },
+        "s": {
+          "type": "number"
+        },
+        "f": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "b",
+        "i",
+        "c",
+        "s",
+        "f"
+      ]
+    },
+    "LightRotationEventBoxGroups": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "g": {
+          "type": "integer",
+          "description": "Group "
+        },
+        "e": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightRotationEventBoxGroupOuter"
+          },
+          "description": "Event Box Group"
+        }
+      },
+      "required": [
+        "b",
+        "g"
+      ]
+    },
+    "LightRotationEventBoxGroupOuter": {
+      "type": "object",
+      "properties": {
+        "f": {
+          "$ref": "#/definitions/FilterObject"
+        },
+        "w": {
+          "type": "number",
+          "description": "Beat distribution"
+        },
+        "d": {
+          "type": "integer",
+          "description": "Beat distribution type"
+        },
+        "s": {
+          "type": "number",
+          "description": "Rotation distribution"
+        },
+        "t": {
+          "type": "integer",
+          "description": "Rotation distribution type"
+        },
+        "b": {
+          "type": "integer",
+          "description": "Rotation distribution affects first event"
+        },
+        "i": {
+          "type": "integer",
+          "description": "Rotation distribution easing"
+        },
+        "a": {
+          "type": "integer",
+          "description": "Axis"
+        },
+        "r": {
+          "type": "integer",
+          "description": "Reverse rotation"
+        },
+        "l": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightRotationEventBoxGroupInner"
+          },
+          "description": "Event Data"
+        }
+      },
+      "required": [
+        "w",
+        "d",
+        "s",
+        "t",
+        "b",
+        "i",
+        "a",
+        "r"
+      ]
+    },
+    "LightRotationEventBoxGroupInner": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Add beat time"
+        },
+        "p": {
+          "type": "integer",
+          "description": "Transition from previous event rotation behaviour"
+        },
+        "e": {
+          "type": "integer",
+          "description": "Ease type"
+        },
+        "l": {
+          "type": "integer",
+          "description": "Additional loops"
+        },
+        "r": {
+          "type": "number",
+          "description": "Rotation value"
+        },
+        "o": {
+          "type": "integer",
+          "description": "Rotation direction"
+        }
+      },
+      "required": [
+        "b",
+        "p",
+        "e",
+        "l",
+        "r",
+        "o"
+      ]
+    },
+    "LightTranslationEventBoxGroups": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Beat"
+        },
+        "g": {
+          "type": "integer",
+          "description": "Group "
+        },
+        "e": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightTranslationEventBoxGroupOuter"
+          },
+          "description": "Event Box Group"
+        }
+      },
+      "required": [
+        "b",
+        "g"
+      ]
+    },
+    "LightTranslationEventBoxGroupOuter": {
+      "type": "object",
+      "properties": {
+        "f": {
+          "$ref": "#/definitions/FilterObject"
+        },
+        "w": {
+          "type": "number",
+          "description": "Beat distribution"
+        },
+        "d": {
+          "type": "integer",
+          "description": "Beat distribution type"
+        },
+        "s": {
+          "type": "number",
+          "description": "Translation distribution"
+        },
+        "t": {
+          "type": "integer",
+          "description": "Translation distribution type"
+        },
+        "b": {
+          "type": "integer",
+          "description": "Translation distribution affects first event"
+        },
+        "i": {
+          "type": "integer",
+          "description": "Translation distribution easing"
+        },
+        "a": {
+          "type": "integer",
+          "description": "Axis"
+        },
+        "r": {
+          "type": "integer",
+          "description": "Reverse rotation"
+        },
+        "l": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LightTranslationEventBoxGroupInner"
+          },
+          "description": "Event Data"
+        }
+      },
+      "required": [
+        "w",
+        "d",
+        "s",
+        "t",
+        "b",
+        "i",
+        "a",
+        "r"
+      ]
+    },
+    "LightTranslationEventBoxGroupInner": {
+      "type": "object",
+      "properties": {
+        "b": {
+          "type": "number",
+          "description": "Add beat time"
+        },
+        "p": {
+          "type": "integer",
+          "description": "Transition from previous event rotation behaviour"
+        },
+        "e": {
+          "type": "integer",
+          "description": "Ease type"
+        },
+        "t": {
+          "type": "number",
+          "description": "Translation value"
+        }
+      },
+      "required": [
+        "b",
+        "p",
+        "e",
+        "t"
+      ]
+    },
+    "FilterObject": {
+      "type": "object",
+      "properties": {
+        "c": {
+          "type": "integer",
+          "description": "Chunks"
+        },
+        "f": {
+          "type": "integer",
+          "description": "Filter type"
+        },
+        "p": {
+          "type": "integer",
+          "description": "Parameter 0"
+        },
+        "t": {
+          "type": "integer",
+          "description": "Parameter 1"
+        },
+        "r": {
+          "type": "integer",
+          "description": "Reverse"
+        },
+        "n": {
+          "type": "integer",
+          "description": "Random behaviour"
+        },
+        "s": {
+          "type": "integer",
+          "description": "Random seed"
+        },
+        "l": {
+          "type": "number",
+          "description": "Limit percentage"
+        },
+        "d": {
+          "type": "integer",
+          "description": "Limit behaviour"
+        }
+      },
+      "required": [
+        "c",
+        "f",
+        "p",
+        "t",
+        "r",
+        "n",
+        "s",
+        "l",
+        "d"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "difficulty": {
+      "$ref": "#/definitions/Difficulty"
+    },
+    "bpmEvents": {
+      "$ref": "#/definitions/BpmEvents"
+    },
+    "rotationEvents": {
+      "$ref": "#/definitions/RotationEvents"
+    },
+    "colorNotes": {
+      "$ref": "#/definitions/ColorNotes"
+    },
+    "bombNotes": {
+      "$ref": "#/definitions/BombNotes"
+    },
+    "obstacles": {
+      "$ref": "#/definitions/Obstacles"
+    },
+    "sliders": {
+      "$ref": "#/definitions/Sliders"
+    },
+    "burstSliders": {
+      "$ref": "#/definitions/BurstSliders"
+    },
+    "waypoints": {
+      "$ref": "#/definitions/Waypoints"
+    },
+    "basicBeatmapEvents": {
+      "$ref": "#/definitions/BasicBeatmapEvents"
+    },
+    "colorBoostBeatmapEvents": {
+      "$ref": "#/definitions/ColorBoostBeatmapEvents"
+    },
+    "lightColorEventBoxGroups": {
+      "$ref": "#/definitions/LightColorEventBoxGroups"
+    },
+    "lightColorEventBoxGroupsOuter": {
+      "$ref": "#/definitions/LightColorEventBoxGroupsOuter"
+    },
+    "lightColorEventBoxGroupsInner": {
+      "$ref": "#/definitions/LightColorEventBoxGroupsInner"
+    },
+    "lightRotationEventBoxGroups": {
+      "$ref": "#/definitions/LightRotationEventBoxGroups"
+    },
+    "lightRotationEventBoxGroupOuter": {
+      "$ref": "#/definitions/LightRotationEventBoxGroupOuter"
+    },
+    "lightRotationEventBoxGroupInner": {
+      "$ref": "#/definitions/LightRotationEventBoxGroupInner"
+    },
+    "lightTranslationEventBoxGroups": {
+      "$ref": "#/definitions/LightTranslationEventBoxGroups"
+    },
+    "lightTranslationEventBoxGroupOuter": {
+      "$ref": "#/definitions/LightTranslationEventBoxGroupOuter"
+    },
+    "lightTranslationEventBoxGroupInner": {
+      "$ref": "#/definitions/LightTranslationEventBoxGroupInner"
+    },
+    "filterObject": {
+      "$ref": "#/definitions/FilterObject"
+    }
+  }
+}
