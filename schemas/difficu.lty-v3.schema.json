@@ -110,10 +110,12 @@
       "type": "object",
       "properties": {
         "b": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "m": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
@@ -126,15 +128,19 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "e": {
           "type": "integer",
-          "description": "Event type"
+          "description": "Event type",
+          "minimum": 0,
+          "maximum": 1
         },
         "r": {
           "type": "number",
-          "description": "Rotation"
+          "description": "Rotation",
+          "minimum": 0
         }
       },
       "required": [
@@ -148,27 +154,37 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "x": {
           "type": "integer",
-          "description": "X position"
+          "description": "X position",
+          "minimum": 0,
+          "maximum": 3
         },
         "y": {
           "type": "integer",
-          "description": "Y position"
+          "description": "Y position",
+          "minimum": 0,
+          "maximum": 2
         },
         "c": {
           "type": "integer",
-          "description": "Color"
+          "description": "Color",
+          "minimum": 0,
+          "maximum": 1
         },
         "d": {
           "type": "integer",
-          "description": "Direction"
+          "description": "Direction",
+          "minimum": 0,
+          "maximum": 8
         },
         "a": {
           "type": "integer",
-          "description": "Angle offset"
+          "description": "Angle offset",
+          "minimum": 0
         }
       },
       "required": [
@@ -185,15 +201,20 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "x": {
           "type": "integer",
-          "description": "X position"
+          "description": "X position",
+          "minimum": 0,
+          "maximum": 3
         },
         "y": {
           "type": "integer",
-          "description": "Y position"
+          "description": "Y position",
+          "minimum": 0,
+          "maximum": 2
         }
       },
       "required": [
@@ -207,27 +228,32 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "x": {
           "type": "integer",
-          "description": "X position"
+          "description": "X position",
+          "minimum": 0,
+          "maximum": 3
         },
         "y": {
           "type": "integer",
-          "description": "Y position"
+          "description": "Y position",
+          "minimum": 0,
+          "maximum": 2
         },
         "d": {
           "type": "number",
-          "description": "Duration"
+          "description": "Duration - can go into negative numbers, be aware that this has some unintended effects"
         },
         "w": {
           "type": "integer",
-          "description": "Width"
+          "description": "Width - can go into negative numbers, be aware that this has some unintended effects"
         },
         "h": {
           "type": "integer",
-          "description": "Height"
+          "description": "Height - can go into negative numbers, be aware that this has some unintended effects"
         }
       },
       "required": [
@@ -244,51 +270,71 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Head Beat"
+          "description": "Head Beat",
+          "minimum": 0
         },
         "c": {
           "type": "integer",
-          "description": "Color"
+          "description": "Color",
+          "minimum": 0,
+          "maximum": 1
         },
         "x": {
           "type": "integer",
-          "description": "Head x"
+          "description": "Head x",
+          "minimum": 0,
+          "maximum": 3
         },
         "y": {
           "type": "integer",
-          "description": "Head y"
+          "description": "Head y",
+          "minimum": 0,
+          "maximum": 2
         },
         "d": {
           "type": "integer",
-          "description": "Head direction"
+          "description": "Head direction",
+          "minimum": 0,
+          "maximum": 8
         },
         "mu": {
           "type": "number",
-          "description": "Head multiplier"
+          "description": "Head multiplier - If head direction is a dot, this does nothing.",
+          "minimum": 0
         },
         "tb": {
           "type": "number",
-          "description": "Tail Beat"
+          "description": "Tail Beat",
+          "minimum": 0
         },
         "tx": {
           "type": "integer",
-          "description": "Tail x"
+          "description": "Tail x",
+          "minimum": 0,
+          "maximum": 3
         },
         "ty": {
           "type": "integer",
-          "description": "Tail y"
+          "description": "Tail y",
+          "minimum": 0,
+          "maximum": 2
         },
         "tc": {
           "type": "integer",
-          "description": "Tail direction"
+          "description": "Tail direction",
+          "minimum": 0,
+          "maximum": 8
         },
         "tmu": {
           "type": "number",
-          "description": "Tail Multiplier"
+          "description": "Tail Multiplier - If tail direction is a dot, this does nothing.",
+          "minimum": 0
         },
         "m": {
           "type": "integer",
-          "description": "Mid-anchor mode"
+          "description": "Mid-anchor mode",
+          "minimum": 0,
+          "maximum": 2
         }
       },
       "required": [
@@ -310,34 +356,60 @@
       "type": "object",
       "properties": {
         "b": {
-          "type": "number"
+          "type": "number",
+          "description": "Head Beat",
+          "minimum": 0
         },
         "x": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Head x",
+          "minimum": 0,
+          "maximum": 3
         },
         "y": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Head y",
+          "minimum": 0,
+          "maximum": 2
         },
         "c": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Color",
+          "minimum": 0,
+          "maximum": 1
         },
         "d": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Head direction",
+          "minimum": 0,
+          "maximum": 8
         },
         "tb": {
-          "type": "number"
+          "type": "number",
+          "description": "Tail Beat",
+          "minimum": 0
         },
         "tx": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Tail x",
+          "minimum": 0,
+          "maximum": 3
         },
         "ty": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Tail y",
+          "minimum": 0,
+          "maximum": 2
         },
         "sc": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Segment count",
+          "exclusiveMinimum": 0
         },
         "s": {
-          "type": "number"
+          "type": "number",
+          "description": "Squish factor",
+          "exclusiveMinimum": 0
         }
       },
       "required": [
@@ -358,19 +430,23 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Equivalent to _time"
+          "description": "Equivalent to _time",
+          "minimum": 0
         },
         "et": {
           "type": "integer",
-          "description": "Equivalent to _type"
+          "description": "Equivalent to _type",
+          "minimum": 0
         },
         "i": {
           "type": "integer",
-          "description": "Equivalent to _value"
+          "description": "Equivalent to _value",
+          "minimum": 0
         },
         "f": {
           "type": "number",
-          "description": "Equivalent to _floatValue"
+          "description": "Equivalent to _floatValue",
+          "minimum": 0
         }
       },
       "required": [
@@ -385,11 +461,13 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "The time, in beats, where this object reaches the player."
+          "description": "The time, in beats, where this object reaches the player.",
+          "minimum": 0
         },
         "o": {
           "type": "boolean",
-          "description": "A boolean which determines whether boost lighting is on or off."
+          "description": "A boolean which determines whether boost lighting is on or off.",
+          "default": true
         }
       },
       "required": [
@@ -402,14 +480,17 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "g": {
           "type": "integer",
-          "description": "Group "
+          "description": "Group",
+          "minimum": 0
         },
         "e": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "$ref": "#/definitions/LightColorEventBoxGroupsOuter"
           },
@@ -429,27 +510,37 @@
         },
         "w": {
           "type": "number",
-          "description": "Beat distribution"
+          "description": "Beat distribution",
+          "minimum": 0
         },
         "d": {
           "type": "integer",
-          "description": "Beat distribution type"
+          "description": "Beat distribution type",
+          "minimum": 1,
+          "maximum": 2
         },
         "r": {
           "type": "number",
-          "description": "Brightness distribution"
+          "description": "Brightness distribution",
+          "minimum": 0
         },
         "t": {
           "type": "integer",
-          "description": "Brightness distribution type"
+          "description": "Brightness distribution type",
+          "minimum": 1,
+          "maximum": 2
         },
         "b": {
           "type": "integer",
-          "description": "Brightness distribution affects first event"
+          "description": "Brightness distribution affects first event",
+          "minimum": 0,
+          "maximum": 1
         },
         "i": {
           "type": "integer",
-          "description": "Brightness distribution easing"
+          "description": "Brightness distribution easing",
+          "minimum": 0,
+          "maximum": 3
         },
         "e": {
           "type": "array",
@@ -472,19 +563,27 @@
       "type": "object",
       "properties": {
         "b": {
-          "type": "number"
+          "type": "number",
+          "description": "Added beat",
+          "minimum": 0
         },
         "i": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
         },
         "c": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
         },
         "s": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "f": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0
         }
       },
       "required": [
@@ -500,11 +599,13 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "g": {
           "type": "integer",
-          "description": "Group "
+          "description": "Group",
+          "minimum": 0
         },
         "e": {
           "type": "array",
@@ -527,35 +628,49 @@
         },
         "w": {
           "type": "number",
-          "description": "Beat distribution"
+          "description": "Beat distribution",
+          "minimum": 0
         },
         "d": {
           "type": "integer",
-          "description": "Beat distribution type"
+          "description": "Beat distribution type",
+          "minimum": 1,
+          "maximum": 2
         },
         "s": {
           "type": "number",
-          "description": "Rotation distribution"
+          "description": "Rotation distribution",
+          "minimum": 0
         },
         "t": {
           "type": "integer",
-          "description": "Rotation distribution type"
+          "description": "Rotation distribution type",
+          "minimum": 1,
+          "maximum": 2
         },
         "b": {
           "type": "integer",
-          "description": "Rotation distribution affects first event"
+          "description": "Rotation distribution affects first event",
+          "minimum": 0,
+          "maximum": 1
         },
         "i": {
           "type": "integer",
-          "description": "Rotation distribution easing"
+          "description": "Rotation distribution easing",
+          "minimum": 0,
+          "maximum": 3
         },
         "a": {
           "type": "integer",
-          "description": "Axis"
+          "description": "Axis",
+          "minimum": 0,
+          "maximum": 2
         },
         "r": {
           "type": "integer",
-          "description": "Reverse rotation"
+          "description": "Reverse rotation",
+          "minimum": 0,
+          "maximum": 1
         },
         "l": {
           "type": "array",
@@ -581,27 +696,36 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Add beat time"
+          "description": "Add beat time",
+          "minimum": 0
         },
         "p": {
           "type": "integer",
-          "description": "Transition from previous event rotation behaviour"
+          "description": "Transition from previous event rotation behaviour",
+          "minimum": 0,
+          "maximum": 1
         },
         "e": {
           "type": "integer",
-          "description": "Ease type"
+          "description": "Ease type",
+          "minimum": -1,
+          "maximum": 3
         },
         "l": {
           "type": "integer",
-          "description": "Additional loops"
+          "description": "Additional loops",
+          "minimum": 0
         },
         "r": {
           "type": "number",
-          "description": "Rotation value"
+          "description": "Rotation value",
+          "minimum": 0
         },
         "o": {
           "type": "integer",
-          "description": "Rotation direction"
+          "description": "Rotation direction",
+          "minimum": 0,
+          "maximum": 2
         }
       },
       "required": [
@@ -618,11 +742,13 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Beat"
+          "description": "Beat",
+          "minimum": 0
         },
         "g": {
           "type": "integer",
-          "description": "Group "
+          "description": "Group",
+          "minimum": 0
         },
         "e": {
           "type": "array",
@@ -645,35 +771,49 @@
         },
         "w": {
           "type": "number",
-          "description": "Beat distribution"
+          "description": "Beat distribution",
+          "minimum": 0
         },
         "d": {
           "type": "integer",
-          "description": "Beat distribution type"
+          "description": "Beat distribution type",
+          "minimum": 1,
+          "maximum": 2
         },
         "s": {
           "type": "number",
-          "description": "Translation distribution"
+          "description": "Translation distribution",
+          "minimum": 0
         },
         "t": {
           "type": "integer",
-          "description": "Translation distribution type"
+          "description": "Translation distribution type",
+          "minimum": 1,
+          "maximum": 2
         },
         "b": {
           "type": "integer",
-          "description": "Translation distribution affects first event"
+          "description": "Translation distribution affects first event",
+          "minimum": 0,
+          "maximum": 1
         },
         "i": {
           "type": "integer",
-          "description": "Translation distribution easing"
+          "description": "Translation distribution easing",
+          "minimum": 0,
+          "maximum": 3
         },
         "a": {
           "type": "integer",
-          "description": "Axis"
+          "description": "Axis",
+          "minimum": 0,
+          "maximum": 2
         },
         "r": {
           "type": "integer",
-          "description": "Reverse rotation"
+          "description": "Reverse rotation",
+          "minimum": 0,
+          "maximum": 1
         },
         "l": {
           "type": "array",
@@ -699,19 +839,25 @@
       "properties": {
         "b": {
           "type": "number",
-          "description": "Add beat time"
+          "description": "Add beat time",
+          "minimum": 0
         },
         "p": {
           "type": "integer",
-          "description": "Transition from previous event rotation behaviour"
+          "description": "Transition from previous event rotation behaviour",
+          "minimum": 0,
+          "maximum": 1
         },
         "e": {
           "type": "integer",
-          "description": "Ease type"
+          "description": "Ease type",
+          "minimum": -1,
+          "maximum": 3
         },
         "t": {
           "type": "number",
-          "description": "Translation value"
+          "description": "Translation value",
+          "minimum": 0
         }
       },
       "required": [
@@ -726,39 +872,51 @@
       "properties": {
         "c": {
           "type": "integer",
-          "description": "Chunks"
+          "description": "Chunks",
+          "minimum": 1
         },
         "f": {
           "type": "integer",
-          "description": "Filter type"
+          "description": "Filter type",
+          "minimum": 1,
+          "maximum": 2
         },
         "p": {
           "type": "integer",
-          "description": "Parameter 0"
+          "description": "Parameter 0 - determines how many sections in each chunk the light group is split into or; determines which light in each chunk to start from",
+          "minimum": 0
         },
         "t": {
           "type": "integer",
-          "description": "Parameter 1"
+          "description": "Parameter 1 - determines which section to use or; determines how many lights to skip"
         },
         "r": {
           "type": "integer",
-          "description": "Reverse"
+          "description": "Reverse",
+          "minimum": 0,
+          "maximum": 1
         },
         "n": {
           "type": "integer",
-          "description": "Random behaviour"
+          "description": "Random behaviour",
+          "minimum": 0,
+          "maximum": 3
         },
         "s": {
           "type": "integer",
-          "description": "Random seed"
+          "description": "Random seed",
+          "minimum": 0
         },
         "l": {
           "type": "number",
-          "description": "Limit percentage"
+          "description": "Limit percentage",
+          "minimum": 0
         },
         "d": {
           "type": "integer",
-          "description": "Limit behaviour"
+          "description": "Limit behaviour",
+          "minimum": 0,
+          "maximum": 3
         }
       },
       "required": [
@@ -799,9 +957,6 @@
     },
     "burstSliders": {
       "$ref": "#/definitions/BurstSliders"
-    },
-    "waypoints": {
-      "$ref": "#/definitions/Waypoints"
     },
     "basicBeatmapEvents": {
       "$ref": "#/definitions/BasicBeatmapEvents"
