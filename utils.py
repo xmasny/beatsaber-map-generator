@@ -11,3 +11,4 @@ def print_scripts():
     print("Save song info: 6")
     print("Get song versions: 7")
     print("Get song info versions: 8")
+    print("Generate v3 beatmap: 9")

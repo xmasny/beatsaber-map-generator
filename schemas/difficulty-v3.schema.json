@@ -330,19 +330,7 @@
         },
         "et": {
           "type": "integer",
-          "description": "Equivalent to _type",
-          "enum": [
-            0,
-            1,
-            2,
-            3,
-            4,
-            8,
-            9,
-            10,
-            12,
-            13
-          ]
+          "description": "Equivalent to _type"
         },
         "i": {
           "type": "integer",

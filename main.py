@@ -67,6 +67,10 @@ try:
             file.write(f"get_song_info_versions Start time: {start_date()}\n")
             generation.get_song_info_versions()
 
+        if script_no == "9":
+            file.write(f"generate_v3_beatmap Start time: {start_date()}\n")
+            generation.generate_v3_beatmap()
+
     end_time = time.time()
     runtime = end_time - start_time
 
