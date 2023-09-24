@@ -71,6 +71,10 @@ try:
             file.write(f"generate_v3_beatmap Start time: {start_date()}\n")
             generation.generate_v3_beatmap()
 
+        if script_no == "10":
+            file.write(f"mel_gen_and_save Start time: {start_date()}\n")
+            generation.mel_gen_and_save()
+
     end_time = time.time()
     runtime = end_time - start_time
 

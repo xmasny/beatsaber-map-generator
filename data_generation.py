@@ -7,6 +7,8 @@ import traceback
 import jsonschema
 import requests
 from jsonschema import validate
+import librosa
+import numpy as np
 
 
 class DataGeneration:
@@ -228,44 +230,73 @@ class DataGeneration:
         }
 
         incorrect_versions = []
+        for song in self.map_csv:
+            try:
+                if song[0] in os.listdir('data'):
+                    directory_path = f"data/{song[0]}/"
 
-        try:
-            if 'song7' in os.listdir('data'):
-                directory_path = f"data/song7"
+                    song_beatmaps = [filename for filename in os.listdir(
+                        directory_path) if filename.endswith('.dat') and filename.lower() != 'info.dat']
 
-                song_beatmaps = [filename for filename in os.listdir(
-                    directory_path) if filename.endswith('.dat') and filename.lower() != 'info.dat']
+                    for difficulty in song_beatmaps:
+                        with open(os.path.join(directory_path, difficulty), 'r') as f:
+                            difficulty_data = json.load(f)
 
-                for difficulty in song_beatmaps:
-                    with open(os.path.join(directory_path, difficulty), 'r') as f:
-                        difficulty_data = json.load(f)
+                            if '_version' in difficulty_data and difficulty_data['_version'][0] == '2':
+                                message = f"{directory_path}/{difficulty} version {difficulty_data['_version']}"
+                                print(message)
+                                transfer_to_v3(
+                                    difficulty_beatmap.copy(), difficulty_data)
+                                self.terminal_file.write(f"{message}\n")
+                                self.terminal_file.flush()
+                            elif 'version' in difficulty_data and difficulty_data['_version'][0] == '3':
+                                message = f"{directory_path}/{difficulty} version {difficulty_data['version']}"
+                                print(message)
+                                self.terminal_file.write(f"{message}\n")
+                                self.terminal_file.flush()
+                            else:
+                                message = f"{directory_path}/{difficulty} incorrect version"
+                                print(message)
+                                incorrect_versions.append(
+                                    f"{directory_path}/{difficulty}")
+                                self.terminal_file.write(f"{message}\n")
+                                self.terminal_file.flush()
+                with open(os.path('incorrect_versions.json'), 'w',) as f:
+                    f.write(json.dumps(incorrect_versions))
+            except Exception as e:
+                message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
+                print(message)
+                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.flush()
 
-                        if '_version' in difficulty_data and difficulty_data['_version'][0] == '2':
-                            message = f"{directory_path}/{difficulty} version {difficulty_data['_version']}"
-                            print(message)
-                            transfer_to_v3(
-                                difficulty_beatmap.copy(), difficulty_data)
-                            self.terminal_file.write(f"{message}\n")
-                            self.terminal_file.flush()
-                        elif 'version' in difficulty_data and difficulty_data['_version'][0] == '3':
-                            message = f"{directory_path}/{difficulty} version {difficulty_data['version']}"
-                            print(message)
-                            self.terminal_file.write(f"{message}\n")
-                            self.terminal_file.flush()
-                        else:
-                            message = f"{directory_path}/{difficulty} incorrect version"
-                            print(message)
-                            incorrect_versions.append(
-                                f"{directory_path}/{difficulty}")
-                            self.terminal_file.write(f"{message}\n")
-                            self.terminal_file.flush()
-            with open(os.path('incorrect_versions.json'), 'w',) as f:
-                f.write(json.dumps(incorrect_versions))
-        except Exception as e:
-            message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
-            print(message)
-            self.terminal_file.write(f"{message}\n")
-            self.terminal_file.flush()
+    def mel_gen_and_save(self):
+        for song in self.map_csv:
+            try:
+                if song[0] in os.listdir('data'):
+                    directory_path = f"data/{song[0]}/"
+
+                    song_file = [filename for filename in os.listdir(
+                        directory_path) if filename.endswith('.egg')][0]
+                    audio_data, sample_rate = librosa.load(
+                        directory_path + song_file)
+
+                    # Compute the Mel spectrogram
+                    mel_spectrogram = librosa.feature.melspectrogram(
+                        y=audio_data, sr=sample_rate)
+                    np.save(f'{directory_path}generated/song_mel.npy',
+                            mel_spectrogram)
+
+                    message = f'Mel spectrogram were generated for song file in {song[0]}'
+
+                    print(message)
+                    self.terminal_file.write(f"{message}\n")
+                    self.terminal_file.flush()
+
+            except Exception as e:
+                message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
+                print(message)
+                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.flush()
 
 
 def transfer_to_v3(difficulty_beatmap, difficulty_data, directory_path, difficulty):
