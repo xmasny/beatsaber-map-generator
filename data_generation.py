@@ -3,18 +3,16 @@ import json
 import os
 import traceback
 from collections import Counter
-from io import TextIOWrapper
 
 import jsonschema
+import librosa
 import numpy as np
 import requests
-import torchaudio
-import torchaudio.transforms as T
 from jsonschema import validate
 
 
 class DataGeneration:
-	def __init__(self, file: TextIOWrapper):
+	def __init__(self, file):
 		self.terminal_file = file
 
 		with open('saved_data/map_info.json', 'r', encoding='utf-8') as f:
@@ -271,66 +269,42 @@ class DataGeneration:
 				self.terminal_file.write(f"{message}\n")
 				self.terminal_file.flush()
 
-	def mel_gen_and_save(self):
-		for song in self.map_csv:
-			try:
-				if song[0] in os.listdir('data'):
-					directory_path = f'data/{song[0]}/'
 
-					song_files = [filename for filename in os.listdir(directory_path) if filename.endswith('.egg')]
+def mel_gen_and_save(self):
+	for song in self.map_csv:
+		try:
+			if song[0] in os.listdir('data'):
+				directory_path = f"data/{song[0]}/"
 
-					# Assuming there's one audio file in the directory
-					if song_files:
-						song_file = song_files[0]
+				song_file = [filename for filename in os.listdir(
+					directory_path) if filename.endswith('.egg')][0]
+				audio_data, sample_rate = librosa.load(
+					directory_path + song_file)
 
-						# Load the audio data and sample rate using Torchaudio
-						waveform, sample_rate = torchaudio.load(directory_path + song_file)
+				# Compute the Mel spectrogram
+				mel_spectrogram = librosa.feature.melspectrogram(
+					y=audio_data, sr=sample_rate)
+				np.save(f'{directory_path}generated/song_mel.npy',
+				        mel_spectrogram)
 
-						# Create a Mel spectrogram transform
-						mel_transform = T.MelSpectrogram(
-							sample_rate=sample_rate,
-							n_fft=400,  # Set your desired values for n_fft, hop_length, etc.
-							hop_length=160,
-							n_mels=128  # Number of Mel filterbanks
-						)
+				message = f'Mel spectrogram were generated for song file in {song[0]}'
 
-						# Apply the transform to the waveform
-						mel_spectrogram = mel_transform(waveform)
-
-						# Convert the Mel spectrogram to a NumPy array
-						mel_spectrogram_np = mel_spectrogram.numpy()
-
-						# Save the Mel spectrogram as a NumPy file
-						np.save(f'{directory_path}generated/song_mel.npy', mel_spectrogram_np)
-
-						message = f'Mel spectrogram was generated for song file in {song[0]}'
-						print(message)
-						self.terminal_file.write(f"{message}\n")
-						self.terminal_file.flush()
-					else:
-						message = 'No audio files found in the directory.'
-						print(message)
-						self.terminal_file.write(f"{message}\n")
-						self.terminal_file.flush()
-				else:
-					message = f'Directory {song[0]} does not exist in the data directory.'
-					print(message)
-					self.terminal_file.write(f"{message}\n")
-					self.terminal_file.flush()
-			except Exception as e:
-				message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
 				print(message)
 				self.terminal_file.write(f"{message}\n")
 				self.terminal_file.flush()
-			break
+
+		except Exception as e:
+			message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
+			print(message)
+			self.terminal_file.write(f"{message}\n")
+			self.terminal_file.flush()
 
 	def save_tensors(self):
 		for song in self.map_csv:
 			try:
 				if song[0] in os.listdir('data'):
 					directory_path = f"data/{song[0]}/"
-					song_beatmaps = [filename for filename in os.listdir(
-						directory_path) if
+					song_beatmaps = [filename for filename in os.listdir(directory_path) if
 					                 filename.endswith('.dat') and filename.lower() not in ['info.dat', 'songinfo.dat']]
 
 					for difficulty in song_beatmaps:
