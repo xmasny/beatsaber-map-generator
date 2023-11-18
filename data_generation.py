@@ -323,7 +323,9 @@ class DataGeneration:
             for song in song_folders:
                 if "song_mel.npy" in os.listdir(f"data/{song}/generated"):
                     copy_song_folders.remove(song)
-
+            with open(f"saved_data/{filename}.json", "w") as file:
+                file.write(json.dumps(copy_song_folders))
+                print(f"{filename} saved")
             song_folders = copy_song_folders.copy()
 
         print("Generating mel spectrograms for", len(song_folders), "songs")
