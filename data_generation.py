@@ -1,6 +1,7 @@
 import csv
 from io import TextIOWrapper
 import json
+from msilib.schema import File
 import os
 import traceback
 from collections import Counter
