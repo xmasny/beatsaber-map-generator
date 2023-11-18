@@ -372,7 +372,7 @@ class DataGeneration:
             except Exception as e:
                 message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
                 print(message)
-                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.write(f"Error opening audio file: {song}\n")
                 self.terminal_file.flush()
                 continue
 
