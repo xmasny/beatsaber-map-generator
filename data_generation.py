@@ -11,6 +11,7 @@ from matplotlib.pylab import f
 import numpy as np
 import requests
 from jsonschema import validate
+from soundfile import LibsndfileError
 
 from utils import create_all_data_dirs_json
 
@@ -358,6 +359,12 @@ class DataGeneration:
                         f.write(json.dumps(copy_song_folders))
             except IndexError as e:
                 message = f"File not found: {song}"
+                print(message)
+                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.flush()
+                continue
+            except LibsndfileError as e:
+                message = f"Error opening audio file: {e}"
                 print(message)
                 self.terminal_file.write(f"{message}\n")
                 self.terminal_file.flush()
