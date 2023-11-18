@@ -11,7 +11,7 @@ from matplotlib.pylab import f
 import numpy as np
 import requests
 from jsonschema import validate
-from soundfile import LibsndfileError
+from librosa import LibrosaError
 
 from utils import create_all_data_dirs_json
 
@@ -363,8 +363,8 @@ class DataGeneration:
                 self.terminal_file.write(f"{message}\n")
                 self.terminal_file.flush()
                 continue
-            except LibsndfileError as e:
-                message = f"Error opening audio file: {e}"
+            except LibrosaError as e:
+                message = f"Error opening audio file: {song} {e}"
                 print(message)
                 self.terminal_file.write(f"{message}\n")
                 self.terminal_file.flush()
