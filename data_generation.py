@@ -12,6 +12,8 @@ import numpy as np
 import requests
 from jsonschema import validate
 
+from utils import create_all_data_dirs_json
+
 
 class DataGeneration:
     def __init__(self, file: TextIOWrapper):
@@ -306,16 +308,28 @@ class DataGeneration:
                 self.terminal_file.flush()
 
     def mel_gen_and_save(self):
-        for song in self.map_csv:
+        filename = "mel_gen_dirs"
+        if f"{filename}.json" not in os.listdir("saved_data"):
+            create_all_data_dirs_json(filename)
+
+        with open(f"saved_data/{filename}.json", "r") as f:
+            song_folders: list = json.load(f)
+
+        copy_song_folders = song_folders.copy()
+        
+        answer = input("Do you want to clean up json? (y/n): ")
+
+        if answer.lower() == "y":
+            for song in song_folders:
+                if "song_mel.npy" in os.listdir(f"data/{song}/generated"):
+                    copy_song_folders.remove(song)
+
+            song_folders = copy_song_folders.copy()
+
+        for song in song_folders:
             try:
-                if song[0] in os.listdir("data"):
-                    # if int(song[0][4:]):
-                    #     message = f"Skipping {song[0]}"
-                    #     print(message)
-                    #     self.terminal_file.write(f"{message}\n")
-                    #     self.terminal_file.flush()
-                    #     continue
-                    directory_path = f"data/{song[0]}/"
+                if song in os.listdir("data"):
+                    directory_path = f"data/{song}/"
 
                     song_file = [
                         filename
@@ -330,24 +344,26 @@ class DataGeneration:
                     )
                     np.save(f"{directory_path}generated/song_mel.npy", mel_spectrogram)
 
-                    message = (
-                        f"Mel spectrogram were generated for song file in {song[0]}"
-                    )
+                    message = f"Mel spectrogram were generated for song file in {song}"
 
                     print(message)
                     self.terminal_file.write(f"{message}\n")
                     self.terminal_file.flush()
-                else:
-                    message = f"{song[0]} not found"
-                    print(message)
-                    self.terminal_file.write(f"{message}\n")
-                    self.terminal_file.flush()
-
+                    copy_song_folders.remove(song)
+                    with open(f"saved_data/{filename}.json", "w") as f:
+                        f.write(json.dumps(copy_song_folders))
+            except IndexError as e:
+                message = f"File not found: {song}"
+                print(message)
+                self.terminal_file.write(f"{message}\n")
+                self.terminal_file.flush()
+                continue
             except Exception as e:
                 message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
                 print(message)
                 self.terminal_file.write(f"{message}\n")
                 self.terminal_file.flush()
+                continue
 
     def save_tensors(self):
         for song in self.map_csv:
