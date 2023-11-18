@@ -316,7 +316,7 @@ class DataGeneration:
             song_folders: list = json.load(f)
 
         copy_song_folders = song_folders.copy()
-        
+
         answer = input("Do you want to clean up json? (y/n): ")
 
         if answer.lower() == "y":
@@ -325,6 +325,8 @@ class DataGeneration:
                     copy_song_folders.remove(song)
 
             song_folders = copy_song_folders.copy()
+
+        print("Generating mel spectrograms for", len(song_folders), "songs")
 
         for song in song_folders:
             try:
