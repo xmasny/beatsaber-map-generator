@@ -310,6 +310,12 @@ class DataGeneration:
         for song in self.map_csv:
             try:
                 if song[0] in os.listdir("data"):
+                    if int(song[0][4:]) < 38816:
+                        message = f"Skipping {song[0]}"
+                        print(message)
+                        self.terminal_file.write(f"{message}\n")
+                        self.terminal_file.flush()
+                        continue
                     directory_path = f"data/{song[0]}/"
 
                     song_file = [
@@ -329,6 +335,11 @@ class DataGeneration:
                         f"Mel spectrogram were generated for song file in {song[0]}"
                     )
 
+                    print(message)
+                    self.terminal_file.write(f"{message}\n")
+                    self.terminal_file.flush()
+                else:
+                    message = f"{song[0]} not found"
                     print(message)
                     self.terminal_file.write(f"{message}\n")
                     self.terminal_file.flush()
