@@ -15,6 +15,7 @@ def print_scripts():
     print("Get song info versions: 8")
     print("Generate v3 beatmap: 9")
     print("Generate & save mel spectrogram: 10")
+    print("Remove pics: 11")
 
 
 def create_all_data_dirs_json(filename):
@@ -30,3 +31,15 @@ def create_all_data_dirs_json(filename):
 
 def extract_number(song):
     return int("".join(filter(str.isdigit, song)))
+
+
+def remove_pics():
+    print("Removing pngs...")
+    folders = os.listdir("data")
+    for folder in folders:
+        for file in os.listdir(f"data/{folder}"):
+            if file.lower().endswith((".png", ".jpg", ".jpeg")):
+                os.remove(f"data/{folder}/{file}")
+
+        if extract_number(folder) % 100 == 0:
+            print(f"Removed pics from {folder}")
