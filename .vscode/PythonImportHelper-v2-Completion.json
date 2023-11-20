@@ -1,0 +1,601 @@
+[
+    {
+        "label": "csv",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "csv",
+        "description": "csv",
+        "detail": "csv",
+        "documentation": {}
+    },
+    {
+        "label": "TextIOWrapper",
+        "importPath": "io",
+        "description": "io",
+        "isExtraImport": true,
+        "detail": "io",
+        "documentation": {}
+    },
+    {
+        "label": "TextIOWrapper",
+        "importPath": "io",
+        "description": "io",
+        "isExtraImport": true,
+        "detail": "io",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "traceback",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "traceback",
+        "description": "traceback",
+        "detail": "traceback",
+        "documentation": {}
+    },
+    {
+        "label": "Counter",
+        "importPath": "collections",
+        "description": "collections",
+        "isExtraImport": true,
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
+        "label": "jsonschema",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "jsonschema",
+        "description": "jsonschema",
+        "detail": "jsonschema",
+        "documentation": {}
+    },
+    {
+        "label": "validate",
+        "importPath": "jsonschema",
+        "description": "jsonschema",
+        "isExtraImport": true,
+        "detail": "jsonschema",
+        "documentation": {}
+    },
+    {
+        "label": "librosa",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "librosa",
+        "description": "librosa",
+        "detail": "librosa",
+        "documentation": {}
+    },
+    {
+        "label": "LibrosaError",
+        "importPath": "librosa",
+        "description": "librosa",
+        "isExtraImport": true,
+        "detail": "librosa",
+        "documentation": {}
+    },
+    {
+        "label": "f",
+        "importPath": "matplotlib.pylab",
+        "description": "matplotlib.pylab",
+        "isExtraImport": true,
+        "detail": "matplotlib.pylab",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "requests",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "requests",
+        "description": "requests",
+        "detail": "requests",
+        "documentation": {}
+    },
+    {
+        "label": "create_all_data_dirs_json",
+        "importPath": "utils",
+        "description": "utils",
+        "isExtraImport": true,
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "*",
+        "importPath": "utils",
+        "description": "utils",
+        "isExtraImport": true,
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "math",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "math",
+        "description": "math",
+        "detail": "math",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "zipfile",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "zipfile",
+        "description": "zipfile",
+        "detail": "zipfile",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "datetime",
+        "description": "datetime",
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "*",
+        "importPath": "data_generation",
+        "description": "data_generation",
+        "isExtraImport": true,
+        "detail": "data_generation",
+        "documentation": {}
+    },
+    {
+        "label": "DownloadScript",
+        "importPath": "download_script",
+        "description": "download_script",
+        "isExtraImport": true,
+        "detail": "download_script",
+        "documentation": {}
+    },
+    {
+        "label": "matplotlib.pyplot",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "matplotlib.pyplot",
+        "description": "matplotlib.pyplot",
+        "detail": "matplotlib.pyplot",
+        "documentation": {}
+    },
+    {
+        "label": "pandas",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pandas",
+        "description": "pandas",
+        "detail": "pandas",
+        "documentation": {}
+    },
+    {
+        "label": "get_tokenizer",
+        "importPath": "torchtext.data",
+        "description": "torchtext.data",
+        "isExtraImport": true,
+        "detail": "torchtext.data",
+        "documentation": {}
+    },
+    {
+        "label": "torch",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch",
+        "description": "torch",
+        "detail": "torch",
+        "documentation": {}
+    },
+    {
+        "label": "IMDB",
+        "importPath": "torchtext.datasets",
+        "description": "torchtext.datasets",
+        "isExtraImport": true,
+        "detail": "torchtext.datasets",
+        "documentation": {}
+    },
+    {
+        "label": "data",
+        "importPath": "torchtext",
+        "description": "torchtext",
+        "isExtraImport": true,
+        "detail": "torchtext",
+        "documentation": {}
+    },
+    {
+        "label": "wandb",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "wandb",
+        "description": "wandb",
+        "detail": "wandb",
+        "documentation": {}
+    },
+    {
+        "label": "random",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "random",
+        "description": "random",
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "torchvision",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torchvision",
+        "description": "torchvision",
+        "detail": "torchvision",
+        "documentation": {}
+    },
+    {
+        "label": "torch.nn",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch.nn",
+        "description": "torch.nn",
+        "detail": "torch.nn",
+        "documentation": {}
+    },
+    {
+        "label": "torchvision.transforms",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torchvision.transforms",
+        "description": "torchvision.transforms",
+        "detail": "torchvision.transforms",
+        "documentation": {}
+    },
+    {
+        "label": "DataGeneration",
+        "kind": 6,
+        "importPath": "data_generation",
+        "description": "data_generation",
+        "peekOfCode": "class DataGeneration:\n    def __init__(self, file: TextIOWrapper):\n        self.terminal_file = file\n        with open(\"saved_data/map_info.json\", \"r\", encoding=\"utf-8\") as f:\n            self.map_info = json.load(f)\n        with open(\"saved_data/map_zips.csv\", \"r\", encoding=\"utf-8\") as f:\n            reader = csv.reader(f)\n            self.map_csv = list(reader)\n    def save_song_info(self):\n        for song in self.map_csv:",
+        "detail": "data_generation",
+        "documentation": {}
+    },
+    {
+        "label": "generate_tensor",
+        "kind": 2,
+        "importPath": "data_generation",
+        "description": "data_generation",
+        "peekOfCode": "def generate_tensor(difficulty_data):\n    return NotImplemented\ndef transfer_to_v3(difficulty_beatmap, difficulty_data, directory_path, difficulty):\n    print(\"generating v3 beatmap for\", difficulty, \"in\", directory_path)\n    for note in difficulty_data[\"_notes\"]:\n        if note[\"_type\"] == 0 or note[\"_type\"] == 1:\n            difficulty_beatmap[\"colorNotes\"].append(\n                {\n                    \"b\": note[\"_time\"],\n                    \"x\": note[\"_lineIndex\"],",
+        "detail": "data_generation",
+        "documentation": {}
+    },
+    {
+        "label": "transfer_to_v3",
+        "kind": 2,
+        "importPath": "data_generation",
+        "description": "data_generation",
+        "peekOfCode": "def transfer_to_v3(difficulty_beatmap, difficulty_data, directory_path, difficulty):\n    print(\"generating v3 beatmap for\", difficulty, \"in\", directory_path)\n    for note in difficulty_data[\"_notes\"]:\n        if note[\"_type\"] == 0 or note[\"_type\"] == 1:\n            difficulty_beatmap[\"colorNotes\"].append(\n                {\n                    \"b\": note[\"_time\"],\n                    \"x\": note[\"_lineIndex\"],\n                    \"y\": note[\"_lineLayer\"],\n                    \"c\": note[\"_type\"],",
+        "detail": "data_generation",
+        "documentation": {}
+    },
+    {
+        "label": "DownloadScript",
+        "kind": 6,
+        "importPath": "download_script",
+        "description": "download_script",
+        "peekOfCode": "class DownloadScript:\n    def __init__(self, file: TextIOWrapper):\n        self.terminal_file = file\n        self.song_folder = \"data\"\n        self.zip_files = []\n        self.map_info = []\n        self.maps_ids = []\n    def get_all_users(self, start=0, end=20000):\n        # get all users in range of pages\n        all_users_json = []",
+        "detail": "download_script",
+        "documentation": {}
+    },
+    {
+        "label": "start_date",
+        "kind": 2,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "def start_date():\n    date = datetime.datetime.now().strftime(\"%d/%m/%Y %H:%M:%S\")\n    return date\nprint(\"Start time:\", start_date)\ntry:\n    with open(f\"terminal/{start_time}.txt\", \"a\") as file:\n        download = DownloadScript(file)\n        generation = DataGeneration(file)\n        if script_no == \"1\":\n            file.write(f\"get_all_users Start time: {start_date()}\\n\")",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "folders",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "folders = [\"data\", \"terminal\", \"saved_data\"]\nfor folder in folders:\n    if not os.path.exists(folder):\n        os.makedirs(folder)\nprint_scripts()\nscript_no = input(\"Choose script: \")\nstart_time = time.time()\ndef start_date():\n    date = datetime.datetime.now().strftime(\"%d/%m/%Y %H:%M:%S\")\n    return date",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "script_no",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "script_no = input(\"Choose script: \")\nstart_time = time.time()\ndef start_date():\n    date = datetime.datetime.now().strftime(\"%d/%m/%Y %H:%M:%S\")\n    return date\nprint(\"Start time:\", start_date)\ntry:\n    with open(f\"terminal/{start_time}.txt\", \"a\") as file:\n        download = DownloadScript(file)\n        generation = DataGeneration(file)",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "start_time",
+        "kind": 5,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "start_time = time.time()\ndef start_date():\n    date = datetime.datetime.now().strftime(\"%d/%m/%Y %H:%M:%S\")\n    return date\nprint(\"Start time:\", start_date)\ntry:\n    with open(f\"terminal/{start_time}.txt\", \"a\") as file:\n        download = DownloadScript(file)\n        generation = DataGeneration(file)\n        if script_no == \"1\":",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "audio_file_path",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "audio_file_path = \"data/song0/song.egg\"\ny, sr = librosa.load(audio_file_path)\nn_fft = 2048\nhop_length = 512\nn_mels = 128\nmel_spectrogram = librosa.feature.melspectrogram(\n    y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)\nmel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)\nspectrogram_data = mel_spectrogram_db\n# waveform_data = y",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "n_fft",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "n_fft = 2048\nhop_length = 512\nn_mels = 128\nmel_spectrogram = librosa.feature.melspectrogram(\n    y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)\nmel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)\nspectrogram_data = mel_spectrogram_db\n# waveform_data = y\nfig, ax = plt.subplots(figsize=(15, 7.5))\nlibrosa.display.specshow(",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "hop_length",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "hop_length = 512\nn_mels = 128\nmel_spectrogram = librosa.feature.melspectrogram(\n    y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)\nmel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)\nspectrogram_data = mel_spectrogram_db\n# waveform_data = y\nfig, ax = plt.subplots(figsize=(15, 7.5))\nlibrosa.display.specshow(\n    mel_spectrogram_db, y_axis='mel', x_axis='time', sr=sr)",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "n_mels",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "n_mels = 128\nmel_spectrogram = librosa.feature.melspectrogram(\n    y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)\nmel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)\nspectrogram_data = mel_spectrogram_db\n# waveform_data = y\nfig, ax = plt.subplots(figsize=(15, 7.5))\nlibrosa.display.specshow(\n    mel_spectrogram_db, y_axis='mel', x_axis='time', sr=sr)\n# plt.savefig(f\"{audio_file_path[:-4]}melspec.png\", dpi=300,",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "mel_spectrogram",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "mel_spectrogram = librosa.feature.melspectrogram(\n    y=y, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)\nmel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)\nspectrogram_data = mel_spectrogram_db\n# waveform_data = y\nfig, ax = plt.subplots(figsize=(15, 7.5))\nlibrosa.display.specshow(\n    mel_spectrogram_db, y_axis='mel', x_axis='time', sr=sr)\n# plt.savefig(f\"{audio_file_path[:-4]}melspec.png\", dpi=300,\n#             bbox_inches='tight', pad_inches=0)",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "mel_spectrogram_db",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "mel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)\nspectrogram_data = mel_spectrogram_db\n# waveform_data = y\nfig, ax = plt.subplots(figsize=(15, 7.5))\nlibrosa.display.specshow(\n    mel_spectrogram_db, y_axis='mel', x_axis='time', sr=sr)\n# plt.savefig(f\"{audio_file_path[:-4]}melspec.png\", dpi=300,\n#             bbox_inches='tight', pad_inches=0)\n# fig, ax = plt.subplots(figsize=(15, 5))\n# librosa.display.waveshow(y, sr=sr)",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "spectrogram_data",
+        "kind": 5,
+        "importPath": "mel_spectrogram",
+        "description": "mel_spectrogram",
+        "peekOfCode": "spectrogram_data = mel_spectrogram_db\n# waveform_data = y\nfig, ax = plt.subplots(figsize=(15, 7.5))\nlibrosa.display.specshow(\n    mel_spectrogram_db, y_axis='mel', x_axis='time', sr=sr)\n# plt.savefig(f\"{audio_file_path[:-4]}melspec.png\", dpi=300,\n#             bbox_inches='tight', pad_inches=0)\n# fig, ax = plt.subplots(figsize=(15, 5))\n# librosa.display.waveshow(y, sr=sr)\n# plt.savefig(f\"{audio_file_path[:-4]}waveform.png\", dpi=300,",
+        "detail": "mel_spectrogram",
+        "documentation": {}
+    },
+    {
+        "label": "start_time",
+        "kind": 5,
+        "importPath": "tempo_estimation",
+        "description": "tempo_estimation",
+        "peekOfCode": "start_time = time.time()\ntempo_compare = []\nfor i in range(20):\n    song_folder = f\"data\\song{i}\\\\\"\n    info_json = json.load(open(song_folder + \"info.dat\", \"r\"))\n    original_tempo = info_json[\"_beatsPerMinute\"]\n    audio_file_path = song_folder + info_json[\"_songFilename\"]\n    y, sr = librosa.load(audio_file_path)\n    n_fft = 2048\n    hop_length = 512",
+        "detail": "tempo_estimation",
+        "documentation": {}
+    },
+    {
+        "label": "tempo_compare",
+        "kind": 5,
+        "importPath": "tempo_estimation",
+        "description": "tempo_estimation",
+        "peekOfCode": "tempo_compare = []\nfor i in range(20):\n    song_folder = f\"data\\song{i}\\\\\"\n    info_json = json.load(open(song_folder + \"info.dat\", \"r\"))\n    original_tempo = info_json[\"_beatsPerMinute\"]\n    audio_file_path = song_folder + info_json[\"_songFilename\"]\n    y, sr = librosa.load(audio_file_path)\n    n_fft = 2048\n    hop_length = 512\n    n_mels = 128",
+        "detail": "tempo_estimation",
+        "documentation": {}
+    },
+    {
+        "label": "end_time",
+        "kind": 5,
+        "importPath": "tempo_estimation",
+        "description": "tempo_estimation",
+        "peekOfCode": "end_time = time.time()\nruntime = end_time - start_time\nprint(\"Runtime:\", runtime, \"seconds\")",
+        "detail": "tempo_estimation",
+        "documentation": {}
+    },
+    {
+        "label": "runtime",
+        "kind": 5,
+        "importPath": "tempo_estimation",
+        "description": "tempo_estimation",
+        "peekOfCode": "runtime = end_time - start_time\nprint(\"Runtime:\", runtime, \"seconds\")",
+        "detail": "tempo_estimation",
+        "documentation": {}
+    },
+    {
+        "label": "data",
+        "kind": 5,
+        "importPath": "test",
+        "description": "test",
+        "peekOfCode": "data = {\n    \"person\": {\n        \"name\": \"John Doe\",\n        \"age\": 30,\n        \"address\": {\n            \"street\": \"123 Main St\",\n            \"city\": \"Anytown\",\n            \"state\": \"CA\",\n            \"zip\": \"12345\",\n        },",
+        "detail": "test",
+        "documentation": {}
+    },
+    {
+        "label": "a",
+        "kind": 5,
+        "importPath": "torch_t",
+        "description": "torch_t",
+        "peekOfCode": "a = torch.tensor([1.0, 2.0, 3.0])\nb = torch.tensor([4.0, 5.0, 6.0])\nc = a + b\nprint(\"Tensor Operations Test:\")\nprint(f\"a: {a}\")\nprint(f\"b: {b}\")\nprint(f\"a + b: {c}\")\nfrom torchtext.datasets import IMDB\nfrom torchtext import data\ntokenizer = get_tokenizer(\"basic_english\")",
+        "detail": "torch_t",
+        "documentation": {}
+    },
+    {
+        "label": "b",
+        "kind": 5,
+        "importPath": "torch_t",
+        "description": "torch_t",
+        "peekOfCode": "b = torch.tensor([4.0, 5.0, 6.0])\nc = a + b\nprint(\"Tensor Operations Test:\")\nprint(f\"a: {a}\")\nprint(f\"b: {b}\")\nprint(f\"a + b: {c}\")\nfrom torchtext.datasets import IMDB\nfrom torchtext import data\ntokenizer = get_tokenizer(\"basic_english\")\ntokens = tokenizer(\"You can now install TorchText using pip!\")",
+        "detail": "torch_t",
+        "documentation": {}
+    },
+    {
+        "label": "c",
+        "kind": 5,
+        "importPath": "torch_t",
+        "description": "torch_t",
+        "peekOfCode": "c = a + b\nprint(\"Tensor Operations Test:\")\nprint(f\"a: {a}\")\nprint(f\"b: {b}\")\nprint(f\"a + b: {c}\")\nfrom torchtext.datasets import IMDB\nfrom torchtext import data\ntokenizer = get_tokenizer(\"basic_english\")\ntokens = tokenizer(\"You can now install TorchText using pip!\")\nprint(tokens)",
+        "detail": "torch_t",
+        "documentation": {}
+    },
+    {
+        "label": "tokenizer",
+        "kind": 5,
+        "importPath": "torch_t",
+        "description": "torch_t",
+        "peekOfCode": "tokenizer = get_tokenizer(\"basic_english\")\ntokens = tokenizer(\"You can now install TorchText using pip!\")\nprint(tokens)",
+        "detail": "torch_t",
+        "documentation": {}
+    },
+    {
+        "label": "tokens",
+        "kind": 5,
+        "importPath": "torch_t",
+        "description": "torch_t",
+        "peekOfCode": "tokens = tokenizer(\"You can now install TorchText using pip!\")\nprint(tokens)",
+        "detail": "torch_t",
+        "documentation": {}
+    },
+    {
+        "label": "print_scripts",
+        "kind": 2,
+        "importPath": "utils",
+        "description": "utils",
+        "peekOfCode": "def print_scripts():\n    print(\"All scripts: \")\n    print(\"--------------------\")\n    print(\"Get all users: 1\")\n    print(\"Get all maps: 2\")\n    print(\"Get all maps urls: 3\")\n    print(\"Get all maps from user: 4\")\n    print(\"Zips work: 5\")\n    print(\"Save song info: 6\")\n    print(\"Get song versions: 7\")",
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "create_all_data_dirs_json",
+        "kind": 2,
+        "importPath": "utils",
+        "description": "utils",
+        "peekOfCode": "def create_all_data_dirs_json(filename):\n    print(\"Creating all_data_dirs.json...\")\n    files = os.listdir(\"data\")\n    sorted_songs = sorted(files, key=extract_number)\n    with open(f\"saved_data/{filename}.json\", \"w\") as file:\n        file.write(json.dumps(sorted_songs))\n        print(f\"{filename} saved\")\ndef extract_number(song):\n    return int(\"\".join(filter(str.isdigit, song)))\ndef remove_pics():",
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "extract_number",
+        "kind": 2,
+        "importPath": "utils",
+        "description": "utils",
+        "peekOfCode": "def extract_number(song):\n    return int(\"\".join(filter(str.isdigit, song)))\ndef remove_pics():\n    print(\"Removing pngs...\")\n    folders = os.listdir(\"data\")\n    for folder in folders:\n        for file in os.listdir(f\"data/{folder}\"):\n            if file.lower().endswith((\".png\", \".jpg\", \".jpeg\")):\n                os.remove(f\"data/{folder}/{file}\")\n        if extract_number(folder) % 100 == 0:",
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "remove_pics",
+        "kind": 2,
+        "importPath": "utils",
+        "description": "utils",
+        "peekOfCode": "def remove_pics():\n    print(\"Removing pngs...\")\n    folders = os.listdir(\"data\")\n    for folder in folders:\n        for file in os.listdir(f\"data/{folder}\"):\n            if file.lower().endswith((\".png\", \".jpg\", \".jpeg\")):\n                os.remove(f\"data/{folder}/{file}\")\n        if extract_number(folder) % 100 == 0:\n            print(f\"Removed pics from {folder}\")",
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_dataloader",
+        "kind": 2,
+        "importPath": "wandb_test",
+        "description": "wandb_test",
+        "peekOfCode": "def get_dataloader(is_train, batch_size, slice=5):\n    \"Get a training dataloader\"\n    full_dataset = torchvision.datasets.MNIST(\n        root=\".\", train=is_train, transform=T.ToTensor(), download=True)\n    sub_dataset = torch.utils.data.Subset(\n        full_dataset, indices=range(0, len(full_dataset), slice))\n    loader = torch.utils.data.DataLoader(dataset=sub_dataset,\n                                         batch_size=batch_size,\n                                         shuffle=True if is_train else False,\n                                         pin_memory=True, num_workers=2)",
+        "detail": "wandb_test",
+        "documentation": {}
+    },
+    {
+        "label": "get_model",
+        "kind": 2,
+        "importPath": "wandb_test",
+        "description": "wandb_test",
+        "peekOfCode": "def get_model(dropout):\n    \"A simple model\"\n    model = nn.Sequential(nn.Flatten(),\n                          nn.Linear(28*28, 256),\n                          nn.BatchNorm1d(256),\n                          nn.ReLU(),\n                          nn.Dropout(dropout),\n                          nn.Linear(256, 10)).to(device)\n    return model\ndef validate_model(model, valid_dl, loss_func, log_images=False, batch_idx=0):",
+        "detail": "wandb_test",
+        "documentation": {}
+    },
+    {
+        "label": "validate_model",
+        "kind": 2,
+        "importPath": "wandb_test",
+        "description": "wandb_test",
+        "peekOfCode": "def validate_model(model, valid_dl, loss_func, log_images=False, batch_idx=0):\n    \"Compute performance of the model on the validation dataset and log a wandb.Table\"\n    model.eval()\n    val_loss = 0.\n    with torch.inference_mode():\n        correct = 0\n        for i, (images, labels) in enumerate(valid_dl):\n            images, labels = images.to(device), labels.to(device)\n            # Forward pass ➡\n            outputs = model(images)",
+        "detail": "wandb_test",
+        "documentation": {}
+    },
+    {
+        "label": "log_image_table",
+        "kind": 2,
+        "importPath": "wandb_test",
+        "description": "wandb_test",
+        "peekOfCode": "def log_image_table(images, predicted, labels, probs):\n    \"Log a wandb.Table with (img, pred, target, scores)\"\n    # 🐝 Create a wandb Table to log images, labels and predictions to\n    table = wandb.Table(\n        columns=[\"image\", \"pred\", \"target\"]+[f\"score_{i}\" for i in range(10)])\n    for img, pred, targ, prob in zip(images.to(\"cpu\"), predicted.to(\"cpu\"), labels.to(\"cpu\"), probs.to(\"cpu\")):\n        table.add_data(wandb.Image(\n            img[0].numpy()*255), pred, targ, *prob.numpy())\n    wandb.log({\"predictions_table\": table}, commit=False)\n# Launch 5 experiments, trying different dropout rates",
+        "detail": "wandb_test",
+        "documentation": {}
+    },
+    {
+        "label": "total_runs",
+        "kind": 5,
+        "importPath": "wandb_test",
+        "description": "wandb_test",
+        "peekOfCode": "total_runs = 5\nfor run in range(total_runs):\n    # 🐝 1️⃣ Start a new run to track this script\n    wandb.init(\n        # Set the project where this run will be logged\n        project=\"basic-intro\",\n        # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)\n        name=f\"experiment_{run}\",\n        # Track hyperparameters and run metadata\n        config={",
+        "detail": "wandb_test",
+        "documentation": {}
+    },
+    {
+        "label": "device",
+        "kind": 5,
+        "importPath": "wandb_test",
+        "description": "wandb_test",
+        "peekOfCode": "device = \"cuda:0\" if torch.cuda.is_available() else \"cpu\"\ndef get_dataloader(is_train, batch_size, slice=5):\n    \"Get a training dataloader\"\n    full_dataset = torchvision.datasets.MNIST(\n        root=\".\", train=is_train, transform=T.ToTensor(), download=True)\n    sub_dataset = torch.utils.data.Subset(\n        full_dataset, indices=range(0, len(full_dataset), slice))\n    loader = torch.utils.data.DataLoader(dataset=sub_dataset,\n                                         batch_size=batch_size,\n                                         shuffle=True if is_train else False,",
+        "detail": "wandb_test",
+        "documentation": {}
+    }
+]
