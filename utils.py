@@ -16,6 +16,7 @@ def print_scripts():
     print("Generate v3 beatmap: 9")
     print("Generate & save mel spectrogram: 10")
     print("Remove pics: 11")
+    print("Folders to zip: 12")
 
 
 def create_all_data_dirs_json(filename):

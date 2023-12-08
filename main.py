@@ -76,6 +76,10 @@ try:
             file.write(f"remove_pngs Start time: {start_date()}\n")
             remove_pics()
 
+        if script_no == "12":
+            file.write(f"create_all_data_dirs_json Start time: {start_date()}\n")
+            generation.zip_to_download()
+
     end_time = time.time()
     runtime = end_time - start_time
 

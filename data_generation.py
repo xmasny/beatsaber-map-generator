@@ -4,10 +4,10 @@ import json
 import os
 import traceback
 from collections import Counter
+import zipfile
 
 import jsonschema
 import librosa
-from matplotlib.pylab import f
 import numpy as np
 import requests
 from jsonschema import validate
@@ -376,47 +376,34 @@ class DataGeneration:
                 self.terminal_file.flush()
                 continue
 
-    def save_tensors(self):
-        for song in self.map_csv:
-            try:
-                if song[0] in os.listdir("data"):
-                    directory_path = f"data/{song[0]}/"
-                    song_beatmaps = [
-                        filename
-                        for filename in os.listdir(directory_path)
-                        if filename.endswith(".dat")
-                        and filename.lower() not in ["info.dat", "songinfo.dat"]
-                    ]
+    def zip_to_download(self):
+        prefix = "data/"
+        zip_filename = "songs.zip"
+        create_all_data_dirs_json("zip_to_download")
 
-                    for difficulty in song_beatmaps:
-                        difficulty_data = None
-                        with open(os.path.join(directory_path, difficulty), "r") as f:
-                            difficulty_data = json.load(f)
+        with open(f"saved_data/zip_to_download.json", "r") as f:
+            song_folders: list = json.load(f)
 
-                        if (
-                            "version" in difficulty_data
-                            and difficulty_data["version"][0] == "3"
-                        ):
-                            generate_tensor(difficulty_data)
+        song_folders_to_zip = song_folders[:10]
 
-                        else:
-                            with open(
-                                os.path.join(directory_path, "generated", difficulty),
-                                "r",
-                            ) as f:
-                                difficulty_data = json.load(f)
+        modified_list = [prefix + x for x in song_folders_to_zip]
+        song_folders_to_zip = modified_list
 
-                            generate_tensor(difficulty_data)
+        print("Zipping", len(song_folders_to_zip), "songs")
 
-            except Exception as e:
-                message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
-                print(message)
-                self.terminal_file.write(f"{message}\n")
-                self.terminal_file.flush()
+        zip_folders(zip_filename, *song_folders_to_zip)
 
 
-def generate_tensor(difficulty_data):
-    return NotImplemented
+def zip_folders(zip_filename, *folders):
+    with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for folder in folders:
+            # Walk through the folder and add all files to the zip file
+            for foldername, subfolders, filenames in os.walk(folder):
+                for filename in filenames:
+                    # Create the full filepath by using os module.
+                    file_path = os.path.join(foldername, filename)
+                    # Add file to zip
+                    zip_file.write(file_path)
 
 
 def transfer_to_v3(difficulty_beatmap, difficulty_data, directory_path, difficulty):

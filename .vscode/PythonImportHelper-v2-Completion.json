@@ -60,6 +60,15 @@
         "documentation": {}
     },
     {
+        "label": "zipfile",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "zipfile",
+        "description": "zipfile",
+        "detail": "zipfile",
+        "documentation": {}
+    },
+    {
         "label": "jsonschema",
         "kind": 6,
         "isExtraImport": true,
@@ -91,14 +100,6 @@
         "description": "librosa",
         "isExtraImport": true,
         "detail": "librosa",
-        "documentation": {}
-    },
-    {
-        "label": "f",
-        "importPath": "matplotlib.pylab",
-        "description": "matplotlib.pylab",
-        "isExtraImport": true,
-        "detail": "matplotlib.pylab",
         "documentation": {}
     },
     {
@@ -151,15 +152,6 @@
         "importPath": "time",
         "description": "time",
         "detail": "time",
-        "documentation": {}
-    },
-    {
-        "label": "zipfile",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "zipfile",
-        "description": "zipfile",
-        "detail": "zipfile",
         "documentation": {}
     },
     {
@@ -293,11 +285,11 @@
         "documentation": {}
     },
     {
-        "label": "generate_tensor",
+        "label": "zip_folders",
         "kind": 2,
         "importPath": "data_generation",
         "description": "data_generation",
-        "peekOfCode": "def generate_tensor(difficulty_data):\n    return NotImplemented\ndef transfer_to_v3(difficulty_beatmap, difficulty_data, directory_path, difficulty):\n    print(\"generating v3 beatmap for\", difficulty, \"in\", directory_path)\n    for note in difficulty_data[\"_notes\"]:\n        if note[\"_type\"] == 0 or note[\"_type\"] == 1:\n            difficulty_beatmap[\"colorNotes\"].append(\n                {\n                    \"b\": note[\"_time\"],\n                    \"x\": note[\"_lineIndex\"],",
+        "peekOfCode": "def zip_folders(zip_filename, *folders):\n    with zipfile.ZipFile(zip_filename, \"w\", zipfile.ZIP_DEFLATED) as zip_file:\n        for folder in folders:\n            # Walk through the folder and add all files to the zip file\n            for foldername, subfolders, filenames in os.walk(folder):\n                for filename in filenames:\n                    # Create the full filepath by using os module.\n                    file_path = os.path.join(foldername, filename)\n                    # Add file to zip\n                    zip_file.write(file_path)",
         "detail": "data_generation",
         "documentation": {}
     },
