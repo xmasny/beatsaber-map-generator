@@ -1,5 +1,6 @@
 import json
 import os
+import collections
 
 
 def print_scripts():
@@ -17,6 +18,7 @@ def print_scripts():
     print("Generate & save mel spectrogram: 10")
     print("Remove pics: 11")
     print("Folders to zip: 12")
+    print("Save filenames to json: 13")
 
 
 def create_all_data_dirs_json(filename):
@@ -44,3 +46,29 @@ def remove_pics():
 
         if extract_number(folder) % 100 == 0:
             print(f"Removed pics from {folder}")
+
+
+def get_all_filenames(directory):
+    all_filenames = []
+
+    for foldername, subfolders, filenames in os.walk(directory):
+        for filename in filenames:
+            full_path = os.path.join(foldername, filename)
+            # Extract only the filename from the full path
+            file_only = os.path.basename(full_path)
+            all_filenames.append(file_only)
+
+    return all_filenames
+
+
+def save_filenames_to_json():
+    directory_path = "data"
+    filenames = get_all_filenames(directory_path)
+    filenames = collections.Counter(filenames)
+
+    # Save the filenames to a JSON file
+    json_filename = "saved_data/filenames.json"
+    with open(json_filename, "w") as json_file:
+        json.dump(filenames, json_file)
+
+    print(f"Filenames saved to {json_filename}")

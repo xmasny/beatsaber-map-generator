@@ -80,6 +80,10 @@ try:
             file.write(f"create_all_data_dirs_json Start time: {start_date()}\n")
             generation.zip_to_download()
 
+        if script_no == "13":
+            file.write(f"save_filenames_to_json Start time: {start_date()}\n")
+            save_filenames_to_json()
+
     end_time = time.time()
     runtime = end_time - start_time
 
