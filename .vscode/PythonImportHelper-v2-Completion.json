@@ -52,6 +52,15 @@
         "documentation": {}
     },
     {
+        "label": "collections",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "collections",
+        "description": "collections",
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
         "label": "Counter",
         "importPath": "collections",
         "description": "collections",
@@ -532,7 +541,25 @@
         "kind": 2,
         "importPath": "utils",
         "description": "utils",
-        "peekOfCode": "def remove_pics():\n    print(\"Removing pngs...\")\n    folders = os.listdir(\"data\")\n    for folder in folders:\n        for file in os.listdir(f\"data/{folder}\"):\n            if file.lower().endswith((\".png\", \".jpg\", \".jpeg\")):\n                os.remove(f\"data/{folder}/{file}\")\n        if extract_number(folder) % 100 == 0:\n            print(f\"Removed pics from {folder}\")",
+        "peekOfCode": "def remove_pics():\n    print(\"Removing pngs...\")\n    folders = os.listdir(\"data\")\n    for folder in folders:\n        for file in os.listdir(f\"data/{folder}\"):\n            if file.lower().endswith((\".png\", \".jpg\", \".jpeg\")):\n                os.remove(f\"data/{folder}/{file}\")\n        if extract_number(folder) % 100 == 0:\n            print(f\"Removed pics from {folder}\")\ndef get_all_filenames(directory=\"data\"):",
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_all_filenames",
+        "kind": 2,
+        "importPath": "utils",
+        "description": "utils",
+        "peekOfCode": "def get_all_filenames(directory=\"data\"):\n    all_filenames = []\n    for foldername, subfolders, filenames in os.walk(directory):\n        for filename in filenames:\n            full_path = os.path.join(foldername, filename)\n            # Extract only the filename from the full path\n            file_only = os.path.basename(full_path)\n            all_filenames.append(file_only)\n    filenames = collections.Counter(all_filenames)\n    # Save the filenames to a JSON file",
+        "detail": "utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_all_filenames_full_route",
+        "kind": 2,
+        "importPath": "utils",
+        "description": "utils",
+        "peekOfCode": "def get_all_filenames_full_route(directory=\"data\"):\n    all_filenames = []\n    for foldername, subfolders, filenames in os.walk(directory):\n        for filename in filenames:\n            full_path = os.path.join(foldername, filename)\n            all_filenames.append(full_path)\n    # Save the filenames to a JSON file as an array\n    json_filename = \"saved_data/filenamesfullroute.json\"\n    with open(json_filename, \"w\") as json_file:\n        json.dump(all_filenames, json_file, indent=2)",
         "detail": "utils",
         "documentation": {}
     },

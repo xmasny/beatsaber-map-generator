@@ -82,7 +82,11 @@ try:
 
         if script_no == "13":
             file.write(f"save_filenames_to_json Start time: {start_date()}\n")
-            save_filenames_to_json()
+            get_all_filenames()
+
+        if script_no == "14":
+            file.write(f"save_all_full_filenames_to_json Start time: {start_date()}\n")
+            get_all_filenames_full_route()
 
     end_time = time.time()
     runtime = end_time - start_time

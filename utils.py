@@ -19,6 +19,7 @@ def print_scripts():
     print("Remove pics: 11")
     print("Folders to zip: 12")
     print("Save filenames to json: 13")
+    print("Save all full filenames to json: 14")
 
 
 def create_all_data_dirs_json(filename):
@@ -48,7 +49,7 @@ def remove_pics():
             print(f"Removed pics from {folder}")
 
 
-def get_all_filenames(directory):
+def get_all_filenames(directory="data"):
     all_filenames = []
 
     for foldername, subfolders, filenames in os.walk(directory):
@@ -58,17 +59,27 @@ def get_all_filenames(directory):
             file_only = os.path.basename(full_path)
             all_filenames.append(file_only)
 
-    return all_filenames
-
-
-def save_filenames_to_json():
-    directory_path = "data"
-    filenames = get_all_filenames(directory_path)
-    filenames = collections.Counter(filenames)
+    filenames = collections.Counter(all_filenames)
 
     # Save the filenames to a JSON file
     json_filename = "saved_data/filenames.json"
     with open(json_filename, "w") as json_file:
-        json.dump(filenames, json_file)
+        json.dump(all_filenames, json_file)
+
+    print(f"Filenames saved to {json_filename}")
+
+
+def get_all_filenames_full_route(directory="data"):
+    all_filenames = []
+
+    for foldername, subfolders, filenames in os.walk(directory):
+        for filename in filenames:
+            full_path = os.path.join(foldername, filename)
+            all_filenames.append(full_path)
+
+    # Save the filenames to a JSON file as an array
+    json_filename = "saved_data/filenamesfullroute.json"
+    with open(json_filename, "w") as json_file:
+        json.dump(all_filenames, json_file, indent=2)
 
     print(f"Filenames saved to {json_filename}")
