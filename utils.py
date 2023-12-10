@@ -54,6 +54,8 @@ def get_all_filenames(directory="data"):
 
     for foldername, subfolders, filenames in os.walk(directory):
         for filename in filenames:
+            if not filename.endswith((".dat", ".json", ".txt")):
+                continue
             full_path = os.path.join(foldername, filename)
             # Extract only the filename from the full path
             file_only = os.path.basename(full_path)
@@ -74,6 +76,8 @@ def get_all_filenames_full_route(directory="data"):
 
     for foldername, subfolders, filenames in os.walk(directory):
         for filename in filenames:
+            if not filename.endswith((".dat", ".json", ".txt")):
+                continue
             full_path = os.path.join(foldername, filename)
             all_filenames.append(full_path)
 
