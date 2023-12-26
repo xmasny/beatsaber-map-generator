@@ -94,6 +94,7 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
     song_levels = {}    
 
     for foldername, _, filenames in os.walk(directory):
+        print(f"Song {foldername[5:]} added to song_levels")
         for filename in filenames:
             if "info" in filename.lower() and not filename.endswith(("BPMInfo.dat", "SongInfo.dat")):
                 with open(os.path.join(foldername, filename), "r") as file:
@@ -116,7 +117,6 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
                                 difficulty_name = difficulty["_difficulty"]
                                 
                                 song_levels[foldername[5:]]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
-                                print(f"Song {foldername[5:]} added to song_levels")
     
     sorted_song_levels = dict(sorted(song_levels.items(), key=lambda x: int(x[0][4:])))
     
