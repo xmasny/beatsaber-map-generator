@@ -116,6 +116,7 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
                                 difficulty_name = difficulty["_difficulty"]
                                 
                                 song_levels[foldername[5:]]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
+                                print(f"Song {foldername[5:]} added to song_levels")
     
     sorted_song_levels = dict(sorted(song_levels.items(), key=lambda x: int(x[0][4:])))
     
