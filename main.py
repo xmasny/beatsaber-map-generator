@@ -88,6 +88,12 @@ try:
             file.write(f"save_all_full_filenames_to_json Start time: {start_date()}\n")
             get_all_filenames_full_route()
 
+        if script_no == "15":
+            file.write(
+                f"get_maps_by_characteristic_and_difficuly Start time: {start_date()}\n"
+            )
+            get_maps_by_characteristic_and_difficulty()
+
     end_time = time.time()
     runtime = end_time - start_time
 

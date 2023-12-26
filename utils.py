@@ -2,7 +2,6 @@ import json
 import os
 import collections
 
-
 def print_scripts():
     print("All scripts: ")
     print("--------------------")
@@ -20,6 +19,7 @@ def print_scripts():
     print("Folders to zip: 12")
     print("Save filenames to json: 13")
     print("Save all full filenames to json: 14")
+    print("Get maps by characteristic and difficuly: 15")
 
 
 def create_all_data_dirs_json(filename):
@@ -32,10 +32,8 @@ def create_all_data_dirs_json(filename):
         file.write(json.dumps(sorted_songs))
         print(f"{filename} saved")
 
-
 def extract_number(song):
     return int("".join(filter(str.isdigit, song)))
-
 
 def remove_pics():
     print("Removing pngs...")
@@ -54,7 +52,11 @@ def get_all_filenames(directory="data"):
 
     for foldername, subfolders, filenames in os.walk(directory):
         for filename in filenames:
-            if not filename.endswith((".dat", ".json", ".txt")):
+            if not filename.endswith(
+                (".dat", ".json", ".txt")
+            ) or filename.lower().endswith(
+                ("info.json", "info.dat", "info - copy.dat")
+            ):
                 continue
             full_path = os.path.join(foldername, filename)
             # Extract only the filename from the full path
@@ -87,3 +89,36 @@ def get_all_filenames_full_route(directory="data"):
         json.dump(all_filenames, json_file, indent=2)
 
     print(f"Filenames saved to {json_filename}")
+
+def get_maps_by_characteristic_and_difficulty(directory="data"):
+    song_levels = {}    
+
+    for foldername, _, filenames in os.walk(directory):
+        for filename in filenames:
+            if "info" in filename.lower() and not filename.endswith(("BPMInfo.dat", "SongInfo.dat")):
+                with open(os.path.join(foldername, filename), "r") as file:
+                    song_info = json.load(file)
+                    
+                    with open(os.path.join(foldername,"generated", "SongInfo.dat"), "r") as file:
+                        song_info_extra = json.load(file)
+                    
+                    if song_info.get("_difficultyBeatmapSets"):
+                        song_levels[foldername[5:]] = {}
+                        song_levels[foldername[5:]]["songFilename"] = song_info["_songFilename"]
+                        song_levels[foldername[5:]]["songId"] = song_info_extra["id"]
+                        song_levels[foldername[5:]]["difficultySet"] = {}
+                        
+                        for beatmap_set in song_info["_difficultyBeatmapSets"]:
+                            characteristic_name = beatmap_set["_beatmapCharacteristicName"]
+                            song_levels[foldername[5:]]["difficultySet"][characteristic_name] = {}
+
+                            for difficulty in beatmap_set["_difficultyBeatmaps"]:
+                                difficulty_name = difficulty["_difficulty"]
+                                
+                                song_levels[foldername[5:]]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
+    
+    sorted_song_levels = dict(sorted(song_levels.items(), key=lambda x: int(x[0][4:])))
+    
+    output_path = "saved_data/song_levels.json"
+    with open(output_path, "w") as file:
+        json.dump(sorted_song_levels, file, indent=2)
