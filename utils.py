@@ -97,27 +97,31 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
         print(f"Song {foldername[5:]} added to song_levels")
         for filename in filenames:
             if "info" in filename.lower() and not filename.endswith(("BPMInfo.dat", "SongInfo.dat")):
-                with open(os.path.join(foldername, filename), "r") as file:
-                    song_info = json.load(file)
-                    
+                try:
+                    with open(os.path.join(foldername, filename), "r") as file:
+                        song_info = json.load(file)
+                        
                     with open(os.path.join(foldername,"generated", "SongInfo.dat"), "r") as file:
                         song_info_extra = json.load(file)
-                    
-                    if song_info.get("_difficultyBeatmapSets"):
-                        song_levels[foldername[5:]] = {}
-                        song_levels[foldername[5:]]["songFilename"] = song_info["_songFilename"]
-                        song_levels[foldername[5:]]["songId"] = song_info_extra["id"]
-                        song_levels[foldername[5:]]["difficultySet"] = {}
                         
-                        for beatmap_set in song_info["_difficultyBeatmapSets"]:
-                            characteristic_name = beatmap_set["_beatmapCharacteristicName"]
-                            song_levels[foldername[5:]]["difficultySet"][characteristic_name] = {}
+                        if song_info.get("_difficultyBeatmapSets"):
+                            song_levels[foldername[5:]] = {}
+                            song_levels[foldername[5:]]["songFilename"] = song_info["_songFilename"]
+                            song_levels[foldername[5:]]["songId"] = song_info_extra["id"]
+                            song_levels[foldername[5:]]["difficultySet"] = {}
+                            
+                            for beatmap_set in song_info["_difficultyBeatmapSets"]:
+                                characteristic_name = beatmap_set["_beatmapCharacteristicName"]
+                                song_levels[foldername[5:]]["difficultySet"][characteristic_name] = {}
 
-                            for difficulty in beatmap_set["_difficultyBeatmaps"]:
-                                difficulty_name = difficulty["_difficulty"]
-                                
-                                song_levels[foldername[5:]]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
-    
+                                for difficulty in beatmap_set["_difficultyBeatmaps"]:
+                                    difficulty_name = difficulty["_difficulty"]
+                                    
+                                    song_levels[foldername[5:]]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
+                except Exception as e:
+                    print(e)
+                    print(f"Song {foldername[5:]} not added to song_levels")
+                    continue
     sorted_song_levels = dict(sorted(song_levels.items(), key=lambda x: int(x[0][4:])))
     
     output_path = "saved_data/song_levels.json"
