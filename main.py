@@ -97,7 +97,7 @@ try:
     end_time = time.time()
     runtime = end_time - start_time
 
-    print("Runtime:", runtime, "seconds")
+    print("Runtime:", (runtime / 60), "minutes")
 
 except Exception as e:
     runtime_exception = time.time() - start_time

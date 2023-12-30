@@ -1,6 +1,8 @@
 import json
 import os
 import collections
+from matplotlib.pylab import f
+from tqdm import tqdm
 
 def print_scripts():
     print("All scripts: ")
@@ -33,7 +35,7 @@ def create_all_data_dirs_json(filename):
         print(f"{filename} saved")
 
 def extract_number(song):
-    return int("".join(filter(str.isdigit, song)))
+    return int(song[0][4:])
 
 def remove_pics():
     print("Removing pngs...")
@@ -89,40 +91,44 @@ def get_all_filenames_full_route(directory="data"):
         json.dump(all_filenames, json_file, indent=2)
 
     print(f"Filenames saved to {json_filename}")
+    
 
 def get_maps_by_characteristic_and_difficulty(directory="data"):
-    song_levels = {}    
+    song_levels = {}  
+    
+    progress_bar = tqdm(os.listdir(directory))
 
-    for foldername, _, filenames in os.walk(directory):
-        print(f"Song {foldername[5:]} added to song_levels")
-        for filename in filenames:
+    for foldername in os.listdir(directory):
+        for filename in os.listdir(os.path.join(directory, foldername)):
             if "info" in filename.lower() and not filename.endswith(("BPMInfo.dat", "SongInfo.dat")):
                 try:
-                    with open(os.path.join(foldername, filename), "r") as file:
+                    with open(os.path.join(directory, foldername, filename), "r") as file:
                         song_info = json.load(file)
                         
-                    with open(os.path.join(foldername,"generated", "SongInfo.dat"), "r") as file:
+                    with open(os.path.join(directory, foldername,"generated", "SongInfo.dat"), "r") as file:
                         song_info_extra = json.load(file)
                         
                         if song_info.get("_difficultyBeatmapSets"):
-                            song_levels[foldername[5:]] = {}
-                            song_levels[foldername[5:]]["songFilename"] = song_info["_songFilename"]
-                            song_levels[foldername[5:]]["songId"] = song_info_extra["id"]
-                            song_levels[foldername[5:]]["difficultySet"] = {}
+                            song_levels[foldername] = {}
+                            song_levels[foldername]["songFilename"] = song_info["_songFilename"]
+                            song_levels[foldername]["songId"] = song_info_extra["id"]
+                            song_levels[foldername]["difficultySet"] = {}
                             
                             for beatmap_set in song_info["_difficultyBeatmapSets"]:
                                 characteristic_name = beatmap_set["_beatmapCharacteristicName"]
-                                song_levels[foldername[5:]]["difficultySet"][characteristic_name] = {}
+                                song_levels[foldername]["difficultySet"][characteristic_name] = {}
 
                                 for difficulty in beatmap_set["_difficultyBeatmaps"]:
                                     difficulty_name = difficulty["_difficulty"]
                                     
-                                    song_levels[foldername[5:]]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
+                                    song_levels[foldername]["difficultySet"][characteristic_name][difficulty_name] = difficulty["_beatmapFilename"]
+                            progress_bar.update(1)
+                            break
                 except Exception as e:
                     print(e)
-                    print(f"Song {foldername[5:]} not added to song_levels")
+                    progress_bar.update(1)
                     continue
-    sorted_song_levels = dict(sorted(song_levels.items(), key=lambda x: int(x[0][4:])))
+    sorted_song_levels = dict(sorted(song_levels.items(), key=extract_number))
     
     output_path = "saved_data/song_levels.json"
     with open(output_path, "w") as file:
