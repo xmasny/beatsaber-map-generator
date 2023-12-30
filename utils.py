@@ -126,6 +126,7 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
                             break
                 except Exception as e:
                     print(e)
+                    print(foldername + filename)
                     progress_bar.update(1)
                     continue
     sorted_song_levels = dict(sorted(song_levels.items(), key=extract_number))
