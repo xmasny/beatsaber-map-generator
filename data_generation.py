@@ -332,9 +332,9 @@ class DataGeneration:
                 print(e)
                 continue
             
-            if errored and errored != []:
-                with open(f"saved_data/errored_songs.json", "w") as file:
-                    file.write(json.dumps(errored))
+        if errored and errored != []:
+            with open(f"saved_data/errored_songs.json", "w") as file:
+                file.write(json.dumps(errored))
 
     def zip_to_download(self):
         prefix = "data/"
