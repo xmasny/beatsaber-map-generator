@@ -139,3 +139,4 @@ shell_commands.txt
 generator
 .idea/
 .vscode
+wandb
