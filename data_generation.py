@@ -309,12 +309,13 @@ class DataGeneration:
                 self.terminal_file.flush()
 
     def mel_gen_and_save(self):
+        errored = []
         with open("saved_data/song_files.json", "r") as file:
             song_files = json.load(file)
         
         progresbar = tqdm(song_files)
         
-        for song in progresbar:
+        for index, song in enumerate(progresbar):
             try:
                 if "song_mel.npy" in os.listdir(f"data/{song[0]}/generated") and not os.path.exists(f"dataset/songs/{song[0]}_{song[2]}.npy"):
                     os.rename(f"data/{song[0]}/generated/song_mel.npy", f"dataset/songs/{song[0]}_{song[2]}.npy")
@@ -327,11 +328,15 @@ class DataGeneration:
                     np.save(f"dataset/songs/{song[0]}_{song[2]}.npy", mel_spectrogram)
 
             except Exception as e:
+                errored.append(song)
                 print(f"Error generating mel spectrogram for {song[0]}")
                 print(e)
                 continue
-        
-        
+            
+            if errored and errored != []:
+                with open(f"saved_data/errored_songs.json", "w") as file:
+                    file.write(json.dumps(errored))
+
     def zip_to_download(self):
         prefix = "data/"
         zip_filename = "songs.zip"
