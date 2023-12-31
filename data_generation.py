@@ -5,13 +5,13 @@ import os
 import traceback
 from collections import Counter
 import zipfile
+from tqdm import tqdm
 
 import jsonschema
 import librosa
 import numpy as np
 import requests
 from jsonschema import validate
-from librosa import LibrosaError
 
 from utils import create_all_data_dirs_json
 
@@ -309,73 +309,29 @@ class DataGeneration:
                 self.terminal_file.flush()
 
     def mel_gen_and_save(self):
-        filename = "mel_gen_dirs"
-        if f"{filename}.json" not in os.listdir("saved_data"):
-            create_all_data_dirs_json(filename)
-
-        with open(f"saved_data/{filename}.json", "r") as f:
-            song_folders: list = json.load(f)
-
-        copy_song_folders = song_folders.copy()
-
-        answer = input("Do you want to clean up json? (y/n): ")
-
-        if answer.lower() == "y":
-            for song in song_folders:
-                if "song_mel.npy" in os.listdir(f"data/{song}/generated"):
-                    copy_song_folders.remove(song)
-            with open(f"saved_data/{filename}.json", "w") as file:
-                file.write(json.dumps(copy_song_folders))
-                print(f"{filename} saved")
-            song_folders = copy_song_folders.copy()
-
-        print("Generating mel spectrograms for", len(song_folders), "songs")
-
-        for song in song_folders:
+        with open("saved_data/song_files.json", "r") as file:
+            song_files = json.load(file)
+        
+        progresbar = tqdm(song_files)
+        
+        for song in progresbar:
             try:
-                if song in os.listdir("data"):
-                    directory_path = f"data/{song}/"
-
-                    song_file = [
-                        filename
-                        for filename in os.listdir(directory_path)
-                        if filename.endswith(".egg")
-                    ][0]
-                    audio_data, sample_rate = librosa.load(directory_path + song_file)
+                if "song_mel.npy" in os.listdir(f"data/{song[0]}/generated") and not os.path.exists(f"dataset/songs/{song[0]}_{song[2]}.npy"):
+                    os.rename(f"data/{song[0]}/generated/song_mel.npy", f"dataset/songs/{song[0]}_{song[2]}.npy")
+                    continue
+                else:
+                    audio_data, sample_rate = librosa.load(f"data/{song[0]}/{song[1]}")
 
                     # Compute the Mel spectrogram
-                    mel_spectrogram = librosa.feature.melspectrogram(
-                        y=audio_data, sr=sample_rate
-                    )
-                    np.save(f"{directory_path}generated/song_mel.npy", mel_spectrogram)
+                    mel_spectrogram = librosa.feature.melspectrogram(y=audio_data, sr=sample_rate)
+                    np.save(f"dataset/songs/{song[0]}_{song[2]}.npy", mel_spectrogram)
 
-                    message = f"Mel spectrogram were generated for song file in {song}"
-
-                    print(message)
-                    self.terminal_file.write(f"{message}\n")
-                    self.terminal_file.flush()
-                    copy_song_folders.remove(song)
-                    with open(f"saved_data/{filename}.json", "w") as f:
-                        f.write(json.dumps(copy_song_folders))
-            except IndexError as e:
-                message = f"File not found: {song}"
-                print(message)
-                self.terminal_file.write(f"{message}\n")
-                self.terminal_file.flush()
-                continue
-            except LibrosaError as e:
-                message = f"Error opening audio file: {song} {e}"
-                print(message)
-                self.terminal_file.write(f"{message}\n")
-                self.terminal_file.flush()
-                continue
             except Exception as e:
-                message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
-                print(message)
-                self.terminal_file.write(f"Error opening audio file: {song}\n")
-                self.terminal_file.flush()
+                print(f"Error generating mel spectrogram for {song[0]}")
+                print(e)
                 continue
-
+        
+        
     def zip_to_download(self):
         prefix = "data/"
         zip_filename = "songs.zip"

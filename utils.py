@@ -1,9 +1,6 @@
 import json
 import os
-import collections
-from matplotlib.pylab import f
 from tqdm import tqdm
-
 def print_scripts():
     print("All scripts: ")
     print("--------------------")
@@ -17,11 +14,9 @@ def print_scripts():
     print("Get song info versions: 8")
     print("Generate v3 beatmap: 9")
     print("Generate & save mel spectrogram: 10")
-    print("Remove pics: 11")
-    print("Folders to zip: 12")
-    print("Save filenames to json: 13")
-    print("Save all full filenames to json: 14")
-    print("Get maps by characteristic and difficuly: 15")
+    print("Folders to zip: 11")
+    print("Get maps by characteristic and difficuly: 12")
+    print("Get all song files: 13")
 
 
 def create_all_data_dirs_json(filename):
@@ -37,61 +32,6 @@ def create_all_data_dirs_json(filename):
 def extract_number(song):
     return int(song[0][4:])
 
-def remove_pics():
-    print("Removing pngs...")
-    folders = os.listdir("data")
-    for folder in folders:
-        for file in os.listdir(f"data/{folder}"):
-            if file.lower().endswith((".png", ".jpg", ".jpeg")):
-                os.remove(f"data/{folder}/{file}")
-
-        if extract_number(folder) % 100 == 0:
-            print(f"Removed pics from {folder}")
-
-
-def get_all_filenames(directory="data"):
-    all_filenames = []
-
-    for foldername, subfolders, filenames in os.walk(directory):
-        for filename in filenames:
-            if not filename.endswith(
-                (".dat", ".json", ".txt")
-            ) or filename.lower().endswith(
-                ("info.json", "info.dat", "info - copy.dat")
-            ):
-                continue
-            full_path = os.path.join(foldername, filename)
-            # Extract only the filename from the full path
-            file_only = os.path.basename(full_path)
-            all_filenames.append(file_only)
-
-    filenames = collections.Counter(all_filenames)
-
-    # Save the filenames to a JSON file
-    json_filename = "saved_data/filenames.json"
-    with open(json_filename, "w") as json_file:
-        json.dump(all_filenames, json_file)
-
-    print(f"Filenames saved to {json_filename}")
-
-
-def get_all_filenames_full_route(directory="data"):
-    all_filenames = []
-
-    for foldername, subfolders, filenames in os.walk(directory):
-        for filename in filenames:
-            if not filename.endswith((".dat", ".json", ".txt")):
-                continue
-            full_path = os.path.join(foldername, filename)
-            all_filenames.append(full_path)
-
-    # Save the filenames to a JSON file as an array
-    json_filename = "saved_data/filenamesfullroute.json"
-    with open(json_filename, "w") as json_file:
-        json.dump(all_filenames, json_file, indent=2)
-
-    print(f"Filenames saved to {json_filename}")
-    
 
 def get_maps_by_characteristic_and_difficulty(directory="data"):
     song_levels = {}  
@@ -134,3 +74,14 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
     output_path = "saved_data/song_levels.json"
     with open(output_path, "w") as file:
         json.dump(sorted_song_levels, file, indent=2)
+        
+def get_all_song_files(directory="data"):
+    song_files = []
+    with open("saved_data/song_levels.json", "r") as file:
+        song_levels = json.load(file)
+    
+    for song in song_levels:
+        song_files.append((song, song_levels[song]["songFilename"], song_levels[song]["songId"]))
+    
+    with open("saved_data/song_files.json", "w") as file:
+        json.dump(song_files, file)

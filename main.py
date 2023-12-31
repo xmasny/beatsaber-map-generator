@@ -1,11 +1,14 @@
 import datetime
 import time
+import wandb
 
 from data_generation import *
 from download_script import DownloadScript
 from utils import *
 
-folders = ["data", "terminal", "saved_data"]
+wandb.init(project="beat-saber-map-generator")
+
+folders = ["data", "terminal", "saved_data", "dataset", "dataset/beatmaps", "dataset/songs"]
 
 for folder in folders:
     if not os.path.exists(folder):
@@ -73,31 +76,27 @@ try:
             generation.mel_gen_and_save()
 
         if script_no == "11":
-            file.write(f"remove_pngs Start time: {start_date()}\n")
-            remove_pics()
-
-        if script_no == "12":
             file.write(f"create_all_data_dirs_json Start time: {start_date()}\n")
             generation.zip_to_download()
 
-        if script_no == "13":
-            file.write(f"save_filenames_to_json Start time: {start_date()}\n")
-            get_all_filenames()
-
-        if script_no == "14":
-            file.write(f"save_all_full_filenames_to_json Start time: {start_date()}\n")
-            get_all_filenames_full_route()
-
-        if script_no == "15":
+        if script_no == "12":
             file.write(
                 f"get_maps_by_characteristic_and_difficuly Start time: {start_date()}\n"
             )
             get_maps_by_characteristic_and_difficulty()
+        
+        if script_no == "13":
+            file.write(
+                f"get_all_song_files Start time: {start_date()}\n"
+            )
+            get_all_song_files()
 
     end_time = time.time()
     runtime = end_time - start_time
 
     print("Runtime:", (runtime / 60), "minutes")
+
+    wandb.finish()
 
 except Exception as e:
     runtime_exception = time.time() - start_time
@@ -107,4 +106,5 @@ except Exception as e:
         file.write(f"Error time: {start_date()}\n")
         file.write(f"Error: {e}\n")
         file.write(f"Runtime: {runtime_exception} seconds\n")
+    wandb.finish()
     exit()
