@@ -317,8 +317,7 @@ class DataGeneration:
         
         for index, song in enumerate(progresbar):
             try:
-                if "song_mel.npy" in os.listdir(f"data/{song[0]}/generated") and not os.path.exists(f"dataset/songs/{song[0]}_{song[2]}.npy"):
-                    os.rename(f"data/{song[0]}/generated/song_mel.npy", f"dataset/songs/{song[0]}_{song[2]}.npy")
+                if os.path.exists(f"dataset/songs/{song[0]}_{song[2]}.npy"):
                     continue
                 else:
                     audio_data, sample_rate = librosa.load(f"data/{song[0]}/{song[1]}")
