@@ -284,77 +284,78 @@ class DataGeneration:
         count_missing = 0
 
         for song in progress_bar:
-            for level in song_levels[song]['difficultySet']['Standard']:
-                count_all += 1
-                
-                color_notes = None
-                bomb_notes = None
-                obstacles = None
+            if 'Standard' in song_levels[song]['difficultySet']:
+                for level in song_levels[song]['difficultySet']['Standard']:
+                    count_all += 1
                     
-                diffic = song_levels[song]['difficultySet']['Standard'][level]
-                with open(f"data/{song}/{diffic}", "r") as f:
-                    data = json.load(f)
-                if all(key in data for key in ('colorNotes', 'bombNotes', 'obstacles')):
-                    color_notes = data['colorNotes']
-                    bomb_notes = data['bombNotes']
-                    obstacles = data['obstacles']
+                    color_notes = None
+                    bomb_notes = None
+                    obstacles = None
+                        
+                    diffic = song_levels[song]['difficultySet']['Standard'][level]
+                    with open(f"data/{song}/{diffic}", "r") as f:
+                        data = json.load(f)
+                    if all(key in data for key in ('colorNotes', 'bombNotes', 'obstacles')):
+                        color_notes = data['colorNotes']
+                        bomb_notes = data['bombNotes']
+                        obstacles = data['obstacles']
 
-                elif all(key in data for key in ('_notes', '_obstacles')):
-                    color_notes = []
-                    bomb_notes = []
-                    obstacles = []
-                    for obstacle in data["_obstacles"]:
-                        obstacles.append(
-                            {
-                                "b": obstacle["_time"],
-                                "d": obstacle["_duration"],
-                                "x": obstacle["_lineIndex"],
-                                "w": obstacle["_width"],
-                                "y": 0 if obstacle["_type"] == 0 else 2,
-                                "h": 5 if obstacle["_type"] == 0 else 3,
-                            }
-                        )
-
-                    for note in data["_notes"]:
-                        if note["_type"] == 0 or note["_type"] == 1:
-                            color_notes.append(
+                    elif all(key in data for key in ('_notes', '_obstacles')):
+                        color_notes = []
+                        bomb_notes = []
+                        obstacles = []
+                        for obstacle in data["_obstacles"]:
+                            obstacles.append(
                                 {
-                                    "b": note["_time"],
-                                    "x": note["_lineIndex"],
-                                    "y": note["_lineLayer"],
-                                    "c": note["_type"],
-                                    "d": note["_cutDirection"],
-                                    "a": 0,
+                                    "b": obstacle["_time"],
+                                    "d": obstacle["_duration"],
+                                    "x": obstacle["_lineIndex"],
+                                    "w": obstacle["_width"],
+                                    "y": 0 if obstacle["_type"] == 0 else 2,
+                                    "h": 5 if obstacle["_type"] == 0 else 3,
                                 }
                             )
 
-                        elif note["_type"] == 3:
-                            bomb_notes.append(
-                                {
-                                    "b": note["_time"],
-                                    "x": note["_lineIndex"],
-                                    "y": note["_lineLayer"],
-                                }
-                            )
-                else:
-                    print(f"Skipping {song} - {level} due to missing valid keys")
-                    count_missing += 1
-                    continue
-                
-                if color_notes == [] and bomb_notes == [] and obstacles == []:
-                    count_missing += 1
-                    continue
-                
-                if color_notes:
-                    ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in color_notes]
-                    np.save(f"dataset/beatmaps/color_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                        for note in data["_notes"]:
+                            if note["_type"] == 0 or note["_type"] == 1:
+                                color_notes.append(
+                                    {
+                                        "b": note["_time"],
+                                        "x": note["_lineIndex"],
+                                        "y": note["_lineLayer"],
+                                        "c": note["_type"],
+                                        "d": note["_cutDirection"],
+                                        "a": 0,
+                                    }
+                                )
 
-                if bomb_notes:
-                    ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in bomb_notes]
-                    np.save(f"dataset/beatmaps/bomb_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
-                if obstacles:
-                    ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in obstacles]
-                    np.save(f"dataset/beatmaps/obstacles/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                            elif note["_type"] == 3:
+                                bomb_notes.append(
+                                    {
+                                        "b": note["_time"],
+                                        "x": note["_lineIndex"],
+                                        "y": note["_lineLayer"],
+                                    }
+                                )
+                    else:
+                        print(f"Skipping {song} - {level} due to missing valid keys")
+                        count_missing += 1
+                        continue
+                    
+                    if color_notes == [] and bomb_notes == [] and obstacles == []:
+                        count_missing += 1
+                        continue
+                    
+                    if color_notes:
+                        ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in color_notes]
+                        np.save(f"dataset/beatmaps/color_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+
+                    if bomb_notes:
+                        ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in bomb_notes]
+                        np.save(f"dataset/beatmaps/bomb_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                    if obstacles:
+                        ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in obstacles]
+                        np.save(f"dataset/beatmaps/obstacles/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
 
         print(f"Total number of beatmaps: {count_all}")
         print(f"Number of beatmaps with missing data: {count_missing}")
