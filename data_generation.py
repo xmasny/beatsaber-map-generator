@@ -7,11 +7,8 @@ from collections import Counter
 import zipfile
 from tqdm import tqdm
 
-import jsonschema
 import librosa
 import numpy as np
-import requests
-from jsonschema import validate
 
 from utils import create_all_data_dirs_json
 
@@ -232,90 +229,14 @@ class DataGeneration:
         self.terminal_file.write(f"{message}\n")
         self.terminal_file.flush()
 
-    def generate_v3_beatmap(self):
-        difficulty_beatmap = {
-            "version": "3.2.0",
-            "bpmEvents": [],
-            "rotationEvents": [],
-            "colorNotes": [],
-            "bombNotes": [],
-            "obstacles": [],
-            "sliders": [],
-            "basicBeatmapEvents": [],
-            "colorBoostBeatmapEvents": [],
-            "lightColorEventBoxGroups": [],
-            "lightRotationEventBoxGroups": [],
-            "lightTranslationEventBoxGroups": [],
-            "useNormalEventsAsCompatibleEvents": True,
-        }
-
-        incorrect_versions = []
-        for song in self.map_csv:
-            try:
-                if song[0] in os.listdir("data"):
-                    directory_path = f"data/{song[0]}/"
-
-                    song_beatmaps = [
-                        filename
-                        for filename in os.listdir(directory_path)
-                        if filename.endswith(".dat")
-                        and not filename.lower().endswith("info.dat")
-                    ]
-
-                    for difficulty in song_beatmaps:
-                        with open(os.path.join(directory_path, difficulty), "r") as f:
-                            difficulty_data = json.load(f)
-
-                            if (
-                                "_version" in difficulty_data
-                                and difficulty_data["_version"][0] == "2"
-                            ):
-                                message = f"{directory_path}/{difficulty} version {difficulty_data['_version']}"
-                                print(message)
-                                transfer_to_v3(
-                                    difficulty_beatmap.copy(),
-                                    difficulty_data,
-                                    directory_path,
-                                    difficulty,
-                                )
-                                self.terminal_file.write(f"{message}\n")
-                                self.terminal_file.flush()
-                            elif (
-                                "version" in difficulty_data
-                                and difficulty_data["version"][0] == "3"
-                            ):
-                                message = f"{directory_path}/{difficulty} version {difficulty_data['version']}"
-                                print(message)
-                                self.terminal_file.write(f"{message}\n")
-                                self.terminal_file.flush()
-                            else:
-                                message = (
-                                    f"{directory_path}/{difficulty} incorrect version"
-                                )
-                                print(message)
-                                incorrect_versions.append(
-                                    f"{directory_path}/{difficulty}"
-                                )
-                                self.terminal_file.write(f"{message}\n")
-                                self.terminal_file.flush()
-                                with open(
-                                    os.path.join("incorrect_versions.json"), "w"
-                                ) as file:
-                                    file.write(json.dumps(incorrect_versions))
-            except Exception as e:
-                message = f"Unexpected error occurred: {e}\n{traceback.format_exc()}"
-                print(message)
-                self.terminal_file.write(f"{message}\n")
-                self.terminal_file.flush()
-
     def mel_gen_and_save(self):
         errored = []
         with open("saved_data/song_files.json", "r") as file:
             song_files = json.load(file)
         
-        progresbar = tqdm(song_files)
+        progressbar = tqdm(song_files)
         
-        for index, song in enumerate(progresbar):
+        for index, song in enumerate(progressbar):
             try:
                 if os.path.exists(f"dataset/songs/{song[0]}_{song[2]}.npy"):
                     continue
@@ -353,73 +274,106 @@ class DataGeneration:
 
         zip_folders(zip_filename, *song_folders_to_zip)
 
+    def create_beatmap_arrays_and_save(self):
+        with open(f"saved_data/song_levels.json", "r") as f:
+            song_levels = json.load(f)
+            
+        progress_bar = tqdm(song_levels, desc="Parsing songs")
+
+        count_all = 0
+        count_missing = 0
+
+        for song in progress_bar:
+            for level in song_levels[song]['difficultySet']['Standard']:
+                count_all += 1
+                
+                color_notes = None
+                bomb_notes = None
+                obstacles = None
+                    
+                diffic = song_levels[song]['difficultySet']['Standard'][level]
+                with open(f"data/{song}/{diffic}", "r") as f:
+                    data = json.load(f)
+                if all(key in data for key in ('colorNotes', 'bombNotes', 'obstacles')):
+                    color_notes = data['colorNotes']
+                    bomb_notes = data['bombNotes']
+                    obstacles = data['obstacles']
+
+                elif all(key in data for key in ('_notes', '_obstacles')):
+                    color_notes = []
+                    bomb_notes = []
+                    obstacles = []
+                    for obstacle in data["_obstacles"]:
+                        obstacles.append(
+                            {
+                                "b": obstacle["_time"],
+                                "d": obstacle["_duration"],
+                                "x": obstacle["_lineIndex"],
+                                "w": obstacle["_width"],
+                                "y": 0 if obstacle["_type"] == 0 else 2,
+                                "h": 5 if obstacle["_type"] == 0 else 3,
+                            }
+                        )
+
+                    for note in data["_notes"]:
+                        if note["_type"] == 0 or note["_type"] == 1:
+                            color_notes.append(
+                                {
+                                    "b": note["_time"],
+                                    "x": note["_lineIndex"],
+                                    "y": note["_lineLayer"],
+                                    "c": note["_type"],
+                                    "d": note["_cutDirection"],
+                                    "a": 0,
+                                }
+                            )
+
+                        elif note["_type"] == 3:
+                            bomb_notes.append(
+                                {
+                                    "b": note["_time"],
+                                    "x": note["_lineIndex"],
+                                    "y": note["_lineLayer"],
+                                }
+                            )
+                else:
+                    print(f"Skipping {song} - {level} due to missing valid keys")
+                    count_missing += 1
+                    continue
+                
+                if color_notes == [] and bomb_notes == [] and obstacles == []:
+                    count_missing += 1
+                    continue
+                
+                if color_notes:
+                    ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in color_notes]
+                    np.save(f"dataset/beatmaps/color_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+
+                if bomb_notes:
+                    ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in bomb_notes]
+                    np.save(f"dataset/beatmaps/bomb_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                if obstacles:
+                    ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in obstacles]
+                    np.save(f"dataset/beatmaps/obstacles/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+
+        print(f"Total number of beatmaps: {count_all}")
+        print(f"Number of beatmaps with missing data: {count_missing}")
+
+        count_validation = count_all - count_missing
+
+        print(f"Number of beatmaps successfully parsed: {count_validation}")
+        dir_len = len(os.listdir("dataset/beatmaps/color_notes"))
+
+        if count_validation == dir_len:
+            print("All beatmaps have been successfully parsed")
 
 def zip_folders(zip_filename, *folders):
     with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for folder in folders:
             # Walk through the folder and add all files to the zip file
-            for foldername, subfolders, filenames in os.walk(folder):
+            for foldername, _, filenames in os.walk(folder):
                 for filename in filenames:
                     # Create the full filepath by using os module.
                     file_path = os.path.join(foldername, filename)
                     # Add file to zip
                     zip_file.write(file_path)
-
-
-def transfer_to_v3(difficulty_beatmap, difficulty_data, directory_path, difficulty):
-    print("generating v3 beatmap for", difficulty, "in", directory_path)
-    for note in difficulty_data["_notes"]:
-        if note["_type"] == 0 or note["_type"] == 1:
-            difficulty_beatmap["colorNotes"].append(
-                {
-                    "b": note["_time"],
-                    "x": note["_lineIndex"],
-                    "y": note["_lineLayer"],
-                    "c": note["_type"],
-                    "d": note["_cutDirection"],
-                    "a": 0,
-                }
-            )
-
-        elif note["_type"] == 3:
-            difficulty_beatmap["bombNotes"].append(
-                {
-                    "b": note["_time"],
-                    "x": note["_lineIndex"],
-                    "y": note["_lineLayer"],
-                }
-            )
-
-    for obstacle in difficulty_data["_obstacles"]:
-        difficulty_beatmap["obstacles"].append(
-            {
-                "b": obstacle["_time"],
-                "d": obstacle["_duration"],
-                "x": obstacle["_lineIndex"],
-                "w": obstacle["_width"],
-                "y": 0 if obstacle["_type"] == 0 else 2,
-                "h": 5 if obstacle["_type"] == 0 else 3,
-            }
-        )
-    os.makedirs(f"{directory_path}/generated/maps_v2_to_v3", exist_ok=True)
-    with open(f"{directory_path}/generated/maps_v2_to_v3/{difficulty}", "w") as f:
-        # URL of the JSON schema
-        schema_url = "https://raw.githubusercontent.com/xmasny/beatmap-schemas/master/schemas/difficulty-v3.schema.json"
-
-        # Fetch the schema from the URL
-        response = requests.get(schema_url)
-
-        # Check if the request was successful
-        if response.status_code == 200:
-            schema = response.json()
-        else:
-            print(f"Failed to fetch the schema from URL: {schema_url}")
-            exit(1)
-        try:
-            # Validate the data against the schema
-            validate(instance=difficulty_beatmap, schema=schema)
-            print("JSON data is valid.")
-            json.dump(difficulty_beatmap, f)
-        except jsonschema as e:
-            print("JSON data is invalid.")
-            print(e)

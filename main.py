@@ -8,11 +8,10 @@ from utils import *
 
 wandb.init(project="beat-saber-map-generator")
 
-folders = ["data", "terminal", "saved_data", "dataset", "dataset/beatmaps", "dataset/songs"]
+folders = ["data", "terminal", "saved_data", "dataset/songs", "dataset/beatmaps/color_notes", "dataset/beatmaps/bomb_notes", "dataset/beatmaps/obstacles"]
 
 for folder in folders:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    os.makedirs(folder, exist_ok=True)
 
 print_scripts()
 script_no = input("Choose script: ")
@@ -68,8 +67,8 @@ try:
             generation.get_song_info_versions()
 
         if script_no == "9":
-            file.write(f"generate_v3_beatmap Start time: {start_date()}\n")
-            generation.generate_v3_beatmap()
+            file.write(f"create_beatmap_arrays_and_save Start time: {start_date()}\n")
+            generation.create_beatmap_arrays_and_save()
 
         if script_no == "10":
             file.write(f"mel_gen_and_save Start time: {start_date()}\n")

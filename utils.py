@@ -12,10 +12,10 @@ def print_scripts():
     print("Save song info: 6")
     print("Get song versions: 7")
     print("Get song info versions: 8")
-    print("Generate v3 beatmap: 9")
+    print("Create beatmap arrays and save: 9")
     print("Generate & save mel spectrogram: 10")
     print("Folders to zip: 11")
-    print("Get maps by characteristic and difficuly: 12")
+    print("Get maps by characteristic and difficulty: 12")
     print("Get all song files: 13")
 
 
