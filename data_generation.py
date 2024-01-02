@@ -283,6 +283,8 @@ class DataGeneration:
         count_all = 0
         count_missing = 0
 
+        allowed_keys = ['b', 'x', 'y', 'c', 'd', 'a', 'w', 'h']
+
         for song in progress_bar:
             if 'Standard' in song_levels[song]['difficultySet']:
                 for level in song_levels[song]['difficultySet']['Standard']:
@@ -300,6 +302,24 @@ class DataGeneration:
                             color_notes = data['colorNotes']
                             bomb_notes = data['bombNotes']
                             obstacles = data['obstacles']
+
+                            for index, note in enumerate(color_notes):
+                                if len(note) != 6:
+                                    keys_to_remove = [key for key in note.keys() if key not in allowed_keys]
+                                    for key in keys_to_remove:
+                                        color_notes[index].pop(key)
+
+                            for index, note in enumerate(bomb_notes):
+                                if len(note) != 3:
+                                    keys_to_remove = [key for key in note.keys() if key not in allowed_keys]
+                                    for key in keys_to_remove:
+                                        bomb_notes[index].pop(key)
+
+                            for index, obstacle in enumerate(obstacles):
+                                if len(obstacle) != 6:
+                                    keys_to_remove = [key for key in obstacle.keys() if key not in allowed_keys]
+                                    for key in keys_to_remove:
+                                        obstacles[index].pop(key)
 
                         elif all(key in data for key in ('_notes', '_obstacles')):
                             color_notes = []
