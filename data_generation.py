@@ -231,7 +231,7 @@ class DataGeneration:
 
     def mel_gen_and_save(self):
         errored = []
-        with open("saved_data/song_files.json", "r") as file:
+        with open("dataset/song_files.json", "r") as file:
             song_files = json.load(file)
         
         progressbar = tqdm(song_files)
@@ -275,7 +275,7 @@ class DataGeneration:
         zip_folders(zip_filename, *song_folders_to_zip)
 
     def create_beatmap_arrays_and_save(self):
-        with open(f"saved_data/song_levels.json", "r") as f:
+        with open(f"dataset/song_levels.json", "r") as f:
             song_levels = json.load(f)
             
         progress_bar = tqdm(song_levels, desc="Parsing songs")
@@ -369,14 +369,14 @@ class DataGeneration:
                         
                         if color_notes:
                             ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in color_notes]
-                            np.save(f"dataset/beatmaps/color_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                            np.save(f"dataset/beatmaps/color_notes/{level}/{song}_{song_levels[song]['songId']}", ordered_list)
 
                         if bomb_notes:
                             ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in bomb_notes]
-                            np.save(f"dataset/beatmaps/bomb_notes/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                            np.save(f"dataset/beatmaps/bomb_notes/{level}/{song}_{song_levels[song]['songId']}", ordered_list)
                         if obstacles:
                             ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in obstacles]
-                            np.save(f"dataset/beatmaps/obstacles/{song}_{level}_{song_levels[song]['songId']}", ordered_list)
+                            np.save(f"dataset/beatmaps/obstacles/{level}/{song}_{song_levels[song]['songId']}", ordered_list)
                     except Exception as e:
                         print(f"Error parsing {song} - {level}: {e}")
                         continue

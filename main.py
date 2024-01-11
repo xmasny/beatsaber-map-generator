@@ -8,7 +8,27 @@ from utils import *
 
 wandb.init(project="beat-saber-map-generator")
 
-folders = ["data", "terminal", "saved_data", "dataset/songs", "dataset/beatmaps/color_notes", "dataset/beatmaps/bomb_notes", "dataset/beatmaps/obstacles"]
+folders = [
+    "data",
+    "terminal",
+    "saved_data",
+    "dataset/songs",
+    "dataset/beatmaps/color_notes/Easy",
+    "dataset/beatmaps/color_notes/Normal",
+    "dataset/beatmaps/color_notes/Hard",
+    "dataset/beatmaps/color_notes/Expert",
+    "dataset/beatmaps/color_notes/ExpertPlus",
+    "dataset/beatmaps/bomb_notes/Easy",
+    "dataset/beatmaps/bomb_notes/Normal",
+    "dataset/beatmaps/bomb_notes/Hard",
+    "dataset/beatmaps/bomb_notes/Expert",
+    "dataset/beatmaps/bomb_notes/ExpertPlus",
+    "dataset/beatmaps/obstacles/Easy",
+    "dataset/beatmaps/obstacles/Normal",
+    "dataset/beatmaps/obstacles/Hard",
+    "dataset/beatmaps/obstacles/Expert",
+    "dataset/beatmaps/obstacles/ExpertPlus",
+]
 
 for folder in folders:
     os.makedirs(folder, exist_ok=True)
@@ -83,11 +103,9 @@ try:
                 f"get_maps_by_characteristic_and_difficuly Start time: {start_date()}\n"
             )
             get_maps_by_characteristic_and_difficulty()
-        
+
         if script_no == "13":
-            file.write(
-                f"get_all_song_files Start time: {start_date()}\n"
-            )
+            file.write(f"get_all_song_files Start time: {start_date()}\n")
             get_all_song_files()
 
     end_time = time.time()

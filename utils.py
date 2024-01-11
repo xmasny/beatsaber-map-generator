@@ -51,6 +51,7 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
                         if song_info.get("_difficultyBeatmapSets"):
                             song_levels[foldername] = {}
                             song_levels[foldername]["songFilename"] = song_info["_songFilename"]
+                            song_levels[foldername]["bpm"] = song_info["_beatsPerMinute"]
                             song_levels[foldername]["songId"] = song_info_extra["id"]
                             song_levels[foldername]["difficultySet"] = {}
                             
@@ -71,7 +72,7 @@ def get_maps_by_characteristic_and_difficulty(directory="data"):
                     continue
     sorted_song_levels = dict(sorted(song_levels.items(), key=extract_number))
     
-    output_path = "saved_data/song_levels.json"
+    output_path = "dataset/song_levels.json"
     with open(output_path, "w") as file:
         json.dump(sorted_song_levels, file, indent=2)
         
