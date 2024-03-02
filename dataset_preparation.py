@@ -2,6 +2,7 @@ import os
 import shutil
 import zipfile
 from tqdm import tqdm
+import wandb
 
 all_difficulties = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
 
@@ -53,14 +54,19 @@ def zip_all_difficulties():
     for difficulty in all_difficulties:
         if not os.path.exists(f"dataset/beatmaps/{object_type}/{difficulty}/mels"):
             os.makedirs(f"dataset/beatmaps/{object_type}/{difficulty}/mels")
-        for filename in os.listdir(f"dataset/beatmaps/{object_type}/{difficulty}"):
+        for filename in tqdm(os.listdir(f"dataset/beatmaps/{object_type}/{difficulty}"), desc=f"Copying {object_type} {difficulty}"):
             if filename.endswith(".npy"):
                 shutil.copy(f"dataset/songs/{filename}", f"dataset/beatmaps/{object_type}/{difficulty}/mels/{filename}")
         zip_folder(object_type, difficulty)
     
 if __name__ == "__main__":
+    wandb.init(project="beat-saber-map-generator")
+
     select = input("Do you want to zip selected difficulties and objects? (y/n): ")
     if select == "y":
         zip_selected_type_difficulty()
     else:
         zip_all_difficulties()  
+    
+    print("Done zipping!")
+    wandb.finish()
