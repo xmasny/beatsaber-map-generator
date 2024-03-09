@@ -1,7 +1,11 @@
 import tarfile
 import os
 from tqdm import tqdm
+import wandb
 
+wandb.login()
+
+wandb.init(project="beat-saber-map-generator")
 
 # Function to pack files into tar files
 def pack_files_into_tar(files, tar_filename):
@@ -65,3 +69,5 @@ for folder in folders:
         files_for_this_tar = files[i : i + files_per_tar]
         # Pack files into tar file
         pack_files_into_tar(files_for_this_tar, tar_filename)
+
+wandb.finish()
