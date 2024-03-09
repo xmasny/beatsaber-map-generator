@@ -35,7 +35,7 @@ skip = 0
 
 while len(type) > skip:
     try:
-        """api.upload_folder(
+        api.upload_folder(
             folder_path=f"./dataset/{type[skip]}",
             path_in_repo=f"./dataset/{type[skip]}",
             repo_id="masny5/beatsaber_songs_and_metadata",
@@ -43,7 +43,7 @@ while len(type) > skip:
             commit_message="Add new songs and metadata",
             multi_commits=True,
             multi_commits_verbose=True,
-        )"""
+        )
 
         print("Upload successful for", type[skip])
         type.pop(skip)
