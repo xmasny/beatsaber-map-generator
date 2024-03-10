@@ -1,19 +1,16 @@
 import time
-from huggingface_hub import HfApi, login
+from huggingface_hub import HfApi
 from requests import HTTPError
 import wandb
 
 wandb.login()
 
 
-login()
-
 wandb.init(project="beat-saber-map-generator")
 
 api = HfApi()
 
 type = [
-    "songs",
     "beatmaps/color_notes/Easy",
     "beatmaps/color_notes/Normal",
     "beatmaps/color_notes/Hard",
@@ -33,22 +30,25 @@ type = [
 
 skip = 0
 
-while len(type) > skip:
+while  True: # len(type) > skip:   
     try:
         api.upload_folder(
-            folder_path=f"./dataset/{type[skip]}",
-            path_in_repo=f"./dataset/{type[skip]}",
+            folder_path=f"./dataset",
+            path_in_repo=f".",
             repo_id="masny5/beatsaber_songs_and_metadata",
             repo_type="dataset",
             commit_message="Add new songs and metadata",
+            token='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',
+            ignore_patterns=["*.npy", 'songs/*'],
             multi_commits=True,
             multi_commits_verbose=True,
         )
 
-        print("Upload successful for", type[skip])
-        type.pop(skip)
+        # print("Upload successful for", type[skip])
+        # type.pop(skip)
 
-        continue
+        # continue
+        break
 
     except HTTPError as e:
         if e.response.status_code == 429:
@@ -65,13 +65,13 @@ while len(type) > skip:
             print(e.response.status_code)
             print("Request Entity Too Large")
             skip += 1
-            continue
+            break
     except Exception as e:
         print(e)
         print("Upload failed")
         skip += 1
         continue
 
-print(skip, type)
+# print(skip, type)
 
 wandb.finish()
