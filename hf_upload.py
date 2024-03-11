@@ -18,14 +18,14 @@ type = [
     "beatmaps/color_notes/ExpertPlus",
     "beatmaps/bomb_notes/Easy",
     "beatmaps/bomb_notes/Normal",
-    "beatmaps/bomb_notes/Hard",
-    "beatmaps/bomb_notes/Expert",
-    "beatmaps/bomb_notes/ExpertPlus",
-    "beatmaps/obstacles/Easy",
-    "beatmaps/obstacles/Normal",
-    "beatmaps/obstacles/Hard",
-    "beatmaps/obstacles/Expert",
-    "beatmaps/obstacles/ExpertPlus",
+    #"beatmaps/bomb_notes/Hard",
+    #"beatmaps/bomb_notes/Expert",
+    #"beatmaps/bomb_notes/ExpertPlus",
+    #"beatmaps/obstacles/Easy",
+    #"beatmaps/obstacles/Normal",
+    #"beatmaps/obstacles/Hard",
+    #"beatmaps/obstacles/Expert",
+    #"beatmaps/obstacles/ExpertPlus",
 ]
 
 skip = 0
