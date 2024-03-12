@@ -37,7 +37,7 @@ while len(type) > skip:
             path_in_repo=f"./beatmaps/{type[skip]}",
             repo_id="masny5/beatsaber_songs_and_metadata",
             repo_type="dataset",
-            commit_message="Add new songs and metadata",
+            commit_message=f"Add new songs and metadata for {type[skip]} difficulty levels.",
             token='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',
             ignore_patterns=["*.npy", 'songs/*'],
             multi_commits=True,
