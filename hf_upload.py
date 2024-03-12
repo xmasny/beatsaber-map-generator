@@ -11,30 +11,30 @@ wandb.init(project="beat-saber-map-generator")
 api = HfApi()
 
 type = [
-    "beatmaps/color_notes/Easy",
-    "beatmaps/color_notes/Normal",
-    "beatmaps/color_notes/Hard",
-    "beatmaps/color_notes/Expert",
-    "beatmaps/color_notes/ExpertPlus",
-    "beatmaps/bomb_notes/Easy",
-    "beatmaps/bomb_notes/Normal",
-    #"beatmaps/bomb_notes/Hard",
-    #"beatmaps/bomb_notes/Expert",
-    #"beatmaps/bomb_notes/ExpertPlus",
-    #"beatmaps/obstacles/Easy",
-    #"beatmaps/obstacles/Normal",
-    #"beatmaps/obstacles/Hard",
-    #"beatmaps/obstacles/Expert",
-    #"beatmaps/obstacles/ExpertPlus",
+    # "beatmaps/color_notes/Easy",
+    # "beatmaps/color_notes/Normal",
+    # "beatmaps/color_notes/Hard",
+    # "beatmaps/color_notes/Expert",
+    # "beatmaps/color_notes/ExpertPlus",
+    # "beatmaps/bomb_notes/Easy",
+    # "beatmaps/bomb_notes/Normal",
+    "bomb_notes/Hard",
+    "bomb_notes/Expert",
+    "bomb_notes/ExpertPlus",
+    "obstacles/Easy",
+    "obstacles/Normal",
+    "obstacles/Hard",
+    "obstacles/Expert",
+    "obstacles/ExpertPlus",
 ]
 
 skip = 0
 
-while  True: # len(type) > skip:   
+while len(type) > skip:   
     try:
         api.upload_folder(
-            folder_path=f"./dataset",
-            path_in_repo=f".",
+            folder_path=f"./dataset/beatmaps/{type[skip]}",
+            path_in_repo=f"./beatmaps/{type[skip]}",
             repo_id="masny5/beatsaber_songs_and_metadata",
             repo_type="dataset",
             commit_message="Add new songs and metadata",
@@ -44,11 +44,10 @@ while  True: # len(type) > skip:
             multi_commits_verbose=True,
         )
 
-        # print("Upload successful for", type[skip])
-        # type.pop(skip)
+        print("Upload successful for", type[skip])
+        type.pop(skip)
 
-        # continue
-        break
+        continue
 
     except HTTPError as e:
         if e.response.status_code == 429:
@@ -65,13 +64,13 @@ while  True: # len(type) > skip:
             print(e.response.status_code)
             print("Request Entity Too Large")
             skip += 1
-            break
+            continue
     except Exception as e:
         print(e)
         print("Upload failed")
         skip += 1
         continue
 
-# print(skip, type)
+print(skip, type)
 
 wandb.finish()
