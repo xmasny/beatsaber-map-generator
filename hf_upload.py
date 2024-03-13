@@ -25,7 +25,7 @@ type = [
     "obstacles/Normal",
     "obstacles/Hard",
     "obstacles/Expert",
-    "obstacles/ExpertPlus",
+    # "obstacles/ExpertPlus",
 ]
 
 skip = 0
