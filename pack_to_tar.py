@@ -47,7 +47,7 @@ folders = [
     # "dataset/beatmaps/bomb_notes/Expert",
     # "dataset/beatmaps/bomb_notes/ExpertPlus",
     # "dataset/beatmaps/obstacles/Easy",
-    # "dataset/beatmaps/obstacles/Normal",
+    "dataset/beatmaps/obstacles/Normal",
     # "dataset/beatmaps/obstacles/Hard",
     # "dataset/beatmaps/obstacles/Expert",
     "dataset/beatmaps/obstacles/ExpertPlus",
