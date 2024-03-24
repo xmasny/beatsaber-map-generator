@@ -2,6 +2,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import wandb
+import csv
 
 wandb.init(project="beat-saber-map-generator", tags=["pack"])
 
@@ -21,13 +22,16 @@ def load_arrays_from_files(files, npz_filename):
         "beatmaps": {},
         "songs": {},
     }
-
-    with tqdm(total=len(files), desc=f"Packing {npz_filename}") as pbar:
-        for file in files:
-            array_name = os.path.basename(file)
-            arrays["songs"][array_name] = np.load("dataset/songs/" + array_name)
-            arrays["beatmaps"][array_name] = np.load(file)
-            pbar.update(1)
+    folder = os.path.dirname(npz_filename)
+    with open(f"{folder}.csv", "a", newline='') as csvf:
+        with tqdm(total=len(files), desc=f"Packing {npz_filename}") as pbar:
+            for file in files:
+                array_name = os.path.basename(file)
+                arrays["songs"][array_name] = np.load(songs_folder + array_name)
+                arrays["beatmaps"][array_name] = np.load(file)
+                writer = csv.writer(csvf, dialect='unix')
+                writer.writerow([array_name, npz_filename])
+                pbar.update(1)
     return arrays
 
 # Function to save arrays into an NPZ file
