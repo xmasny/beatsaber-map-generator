@@ -6,31 +6,29 @@ import wandb
 wandb.login()
 
 
-wandb.init(project="beat-saber-map-generator")
+wandb.init(project="beat-saber-map-generator", tags=["upload"])
 
 api = HfApi()
 
 type = [
-    # "beatmaps/color_notes/Easy",
-    # "beatmaps/color_notes/Normal",
-    # "beatmaps/color_notes/Hard",
-    # "beatmaps/color_notes/Expert",
-    # "beatmaps/color_notes/ExpertPlus",
+    "beatmaps/color_notes/Easy",
+    "beatmaps/color_notes/Normal",
+    "beatmaps/color_notes/Hard",
+    "beatmaps/color_notes/Expert",
+    "beatmaps/color_notes/ExpertPlus",
     # "beatmaps/bomb_notes/Easy",
     # "beatmaps/bomb_notes/Normal",
     # "bomb_notes/Hard",
     # "bomb_notes/Expert",
-    "bomb_notes/ExpertPlus",
+    # "bomb_notes/ExpertPlus",
     # "obstacles/Easy",
-    "obstacles/Normal",
+    # "obstacles/Normal",
     # "obstacles/Hard",
     # "obstacles/Expert",
-    "obstacles/ExpertPlus",
+    # "obstacles/ExpertPlus",
 ]
 
-# skip = 0
-
-while True: #len(type) > skip:   
+while True:
     try:
         api.upload_folder(
             folder_path=f"./dataset",
@@ -45,9 +43,6 @@ while True: #len(type) > skip:
         )
 
         print("Upload successful")
-        # type.pop(skip)
-
-        # continue
         break
 
     except HTTPError as e:
@@ -64,14 +59,10 @@ while True: #len(type) > skip:
         elif e.response.status_code == 413:
             print(e.response.status_code)
             print("Request Entity Too Large")
-            # skip += 1
             break
     except Exception as e:
         print(e)
         print("Upload failed")
-        # skip += 1
         break
-
-# print(skip, type)
 
 wandb.finish()
