@@ -10,24 +10,6 @@ wandb.init(project="beat-saber-map-generator", tags=["upload"])
 
 api = HfApi()
 
-type = [
-    # "color_notes/Easy",
-    # "color_notes/Normal",
-    # "color_notes/Hard",
-    # "color_notes/Expert",
-    # "color_notes/ExpertPlus",
-    "bomb_notes/Easy",
-    "bomb_notes/Normal",
-    "bomb_notes/Hard",
-    "bomb_notes/Expert",
-    "bomb_notes/ExpertPlus",
-    # "obstacles/Easy",
-    # "obstacles/Normal",
-    # "obstacles/Hard",
-    # "obstacles/Expert",
-    # "obstacles/ExpertPlus",
-]
-
 while True:
     try:
         api.upload_folder(
@@ -60,6 +42,11 @@ while True:
             print(e.response.status_code)
             print("Request Entity Too Large")
             break
+        
+        elif e.response.status_code == 500:
+            print(e.response.status_code)
+            print("Internal Server Error")
+            continue
     except Exception as e:
         print(e)
         print("Upload failed")
