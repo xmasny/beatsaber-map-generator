@@ -23,3 +23,11 @@ else
 fi
 
 echo "Both scripts executed successfully."
+
+find dataset -type f -name "*.npz" | wc -l 
+
+find dataset -type f -name "*.npz" -delete  -print
+
+find dataset -type f -name "*.npz" | wc -l 
+
+echo "All .npz files deleted successfully."
