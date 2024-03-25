@@ -11,16 +11,16 @@ wandb.init(project="beat-saber-map-generator", tags=["upload"])
 api = HfApi()
 
 type = [
-    "beatmaps/color_notes/Easy",
-    "beatmaps/color_notes/Normal",
-    "beatmaps/color_notes/Hard",
-    "beatmaps/color_notes/Expert",
-    "beatmaps/color_notes/ExpertPlus",
-    # "beatmaps/bomb_notes/Easy",
-    # "beatmaps/bomb_notes/Normal",
-    # "bomb_notes/Hard",
-    # "bomb_notes/Expert",
-    # "bomb_notes/ExpertPlus",
+    # "color_notes/Easy",
+    # "color_notes/Normal",
+    # "color_notes/Hard",
+    # "color_notes/Expert",
+    # "color_notes/ExpertPlus",
+    "bomb_notes/Easy",
+    "bomb_notes/Normal",
+    "bomb_notes/Hard",
+    "bomb_notes/Expert",
+    "bomb_notes/ExpertPlus",
     # "obstacles/Easy",
     # "obstacles/Normal",
     # "obstacles/Hard",
@@ -31,7 +31,7 @@ type = [
 while True:
     try:
         api.upload_folder(
-            folder_path=f"./dataset",
+            folder_path=f"./dataset/beatmaps",
             path_in_repo=f".",
             repo_id="masny5/beatsaber_songs_and_metadata",
             repo_type="dataset",
