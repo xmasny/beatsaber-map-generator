@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import pandas as pd
@@ -10,8 +11,12 @@ from tqdm import tqdm
 
 logging.basicConfig(filename="song_info_update.log", level=logging.ERROR)
 
-for path, folders, files in os.walk("dataset/beatmaps"):
-    for file in files:
+for type in ("color_notes", "bomb_notes", "obstacles"):
+
+    path = f"dataset/beatmaps/{type}"
+
+    for file in os.listdir(f"dataset/beatmaps/{type}"):
+
         if file.endswith(".csv"):
             with open(os.path.join(path, file)) as csvfile:
                 df = pd.read_csv(csvfile, header=None, names=["song", "npz file"])
@@ -21,6 +26,7 @@ for path, folders, files in os.walk("dataset/beatmaps"):
                 df["score"] = 0.0
                 df["bpm"] = 0.0
                 df["duration"] = 0
+                df["automapper"] = False
 
             for index, row in tqdm(
                 df.iterrows(), total=len(df), desc=f"Updating {file}"
@@ -35,11 +41,23 @@ for path, folders, files in os.walk("dataset/beatmaps"):
                     df.at[index, "score"] = data["stats"]["score"]
                     df.at[index, "bpm"] = data["metadata"]["bpm"]
                     df.at[index, "duration"] = data["metadata"]["duration"]
+                    df.at[index, "automapper"] = data["automapper"]
                 else:
                     logging.error(
                         f"Error: {response.status_code} - {response.text} - {df.at[index, 'song']}"
                     )
-
+                    try:
+                        with open(f"data/{split[0]}/generated/SongInfo.dat") as f:
+                            data = json.load(f)
+                        df.at[index, "upvotes"] = data["stats"]["upvotes"]
+                        df.at[index, "downvotes"] = data["stats"]["downvotes"]
+                        df.at[index, "score"] = data["stats"]["score"]
+                        df.at[index, "bpm"] = data["metadata"]["bpm"]
+                        df.at[index, "duration"] = data["metadata"]["duration"]
+                        df.at[index, "automapper"] = data["automapper"]
+                    except Exception as e:
+                        logging.error(f"Error: {e} - {df.at[index, 'song']}")
+                        continue
             df.to_csv(
                 os.path.join(path, file),
                 index=False,
