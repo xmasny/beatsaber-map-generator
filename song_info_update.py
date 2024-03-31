@@ -1,0 +1,48 @@
+import os
+import re
+import pandas as pd
+import requests
+import logging
+
+from csv import QUOTE_NONNUMERIC
+
+from tqdm import tqdm
+
+logging.basicConfig(filename="song_info_update.log", level=logging.ERROR)
+
+for path, folders, files in os.walk("dataset/beatmaps"):
+    for file in files:
+        if file.endswith(".csv"):
+            with open(os.path.join(path, file)) as csvfile:
+                df = pd.read_csv(csvfile, header=None, names=["song", "npz file"])
+
+                df["upvotes"] = 0
+                df["downvotes"] = 0
+                df["score"] = 0.0
+                df["bpm"] = 0.0
+                df["duration"] = 0
+
+            for index, row in tqdm(
+                df.iterrows(), total=len(df), desc=f"Updating {file}"
+            ):
+                split = re.split(r"_|\.", df.at[index, "song"])
+                response = requests.get(f"https://api.beatsaver.com/maps/id/{split[1]}")
+                if response.status_code == 200:
+                    data = response.json()
+
+                    df.at[index, "upvotes"] = data["stats"]["upvotes"]
+                    df.at[index, "downvotes"] = data["stats"]["downvotes"]
+                    df.at[index, "score"] = data["stats"]["score"]
+                    df.at[index, "bpm"] = data["metadata"]["bpm"]
+                    df.at[index, "duration"] = data["metadata"]["duration"]
+                else:
+                    logging.error(
+                        f"Error: {response.status_code} - {response.text} - {df.at[index, 'song']}"
+                    )
+
+            df.to_csv(
+                os.path.join(path, file),
+                index=False,
+                header=False,
+                quoting=QUOTE_NONNUMERIC,
+            )

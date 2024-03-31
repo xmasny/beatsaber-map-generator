@@ -402,3 +402,4 @@ def zip_folders(zip_filename, *folders):
                     file_path = os.path.join(foldername, filename)
                     # Add file to zip
                     zip_file.write(file_path)
+

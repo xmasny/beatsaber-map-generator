@@ -2,8 +2,8 @@ import datetime
 import time
 import wandb
 
-from data_generation import *
-from download_script import DownloadScript
+from data_preparation.data_generation import *
+from data_preparation.download_script import DownloadScript
 from utils import *
 
 wandb.init(project="beat-saber-map-generator")
