@@ -40,7 +40,7 @@ def main(run_parameters: RunConfig):
 
     dataset.load()
 
-    train_dataset = dataset[Split.TEST]  #! change to Split.TRAIN
+    train_dataset = dataset[Split.TRAIN]
     valid_dataset = dataset[Split.VALIDATION]
 
     train_dataset_len = train_dataset.n_shards
