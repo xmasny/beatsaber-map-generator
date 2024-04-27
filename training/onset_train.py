@@ -60,16 +60,19 @@ def main(run_parameters: RunConfig):
         },
         mode=run_parameters.wandb_mode,
     )
-
-    ignite_train(
-        dataset,
-        model,
-        train_loader,
-        valid_loader,
-        optimizer,
-        train_dataset_len,
-        valid_dataset_len,
-        device,
-        wandb_logger,
-        **run_parameters,  # type: ignore
-    )
+    try:
+        ignite_train(
+            dataset,
+            model,
+            train_loader,
+            valid_loader,
+            optimizer,
+            train_dataset_len,
+            valid_dataset_len,
+            device,
+            wandb_logger,
+            **run_parameters,  # type: ignore
+        )
+    except KeyboardInterrupt as e:
+        print(e)
+        wandb_logger.close()
