@@ -5,6 +5,7 @@ from sympy import true
 import torch
 from torch import nn
 from torch.nn import functional as F
+import wandb
 
 # from notes_generator.constants import *
 from dl.models.layers import BaseConvModel, BiLSTM, ConvStack
@@ -77,6 +78,8 @@ class OnsetsBase(nn.Module):
         self.eval()
         with torch.no_grad():
             probs = self(mel, condition, beats)
+
+            wandb.log({"onset_probs": probs.max()})
             if probs.max() > 0.5:
                 print(probs.max())
             return probs > 0.5, probs

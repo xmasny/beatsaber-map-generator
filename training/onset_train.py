@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import wandb
 from dl.models.onsets import SimpleOnsets
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel, loader_collate_fn
@@ -38,6 +39,12 @@ def main(run_parameters: RunConfig):
     if run_parameters.is_parallel:
         model = MyDataParallel(model)
 
+    wandb_logger = WandBLogger(
+        project="test-beat-saber-map-generator",
+        config={**run_parameters},
+        mode=run_parameters.wandb_mode,
+    )
+
     dataset.load()
 
     train_dataset = dataset[Split.TEST]  #! change to Split.TRAIN
@@ -50,16 +57,13 @@ def main(run_parameters: RunConfig):
     valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
     # Define your optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=run_parameters.lr)
-
-    wandb_logger = WandBLogger(
-        project="test-beat-saber-map-generator",
-        config={
+    wandb.config.update(
+        {
             "train_dataset_len": train_dataset_len,
             "valid_dataset_len": valid_dataset_len,
-            **run_parameters,
-        },
-        mode=run_parameters.wandb_mode,
+        }
     )
+
     try:
         ignite_train(
             dataset,
