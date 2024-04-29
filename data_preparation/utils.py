@@ -1,10 +1,6 @@
 import json
 import os
-from typing import Optional
-import numpy as np
 from tqdm import tqdm
-
-from config import SongIteration
 
 
 def print_scripts():
