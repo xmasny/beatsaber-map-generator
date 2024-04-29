@@ -2,7 +2,6 @@ import json
 import os
 from typing import Optional
 import numpy as np
-from torch.nn import DataParallel
 from tqdm import tqdm
 
 from config import SongIteration
@@ -127,25 +126,3 @@ def loader_collate_fn(batch):
                 data_list.append(data)
 
     return data_list
-
-
-class MyDataParallel(DataParallel):
-    def run_on_batch(
-        self, batch, fuzzy_width=1, fuzzy_scale=1.0, merge_scale: Optional[float] = None
-    ):
-        return self.module.run_on_batch(
-            batch,
-            fuzzy_width=fuzzy_width,
-            fuzzy_scale=fuzzy_scale,
-            merge_scale=merge_scale,
-            net=self,
-        )
-
-    def predict(self, batch):
-        return self.module.predict(batch)
-
-    def state_dict(self, destination=None, prefix="", keep_vars=False):
-        return self.module.state_dict(destination, prefix, keep_vars)
-
-    def load_state_dict(self, state_dict, strict=True):
-        self.module.load_state_dict(state_dict, strict)
