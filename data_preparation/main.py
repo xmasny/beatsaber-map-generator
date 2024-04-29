@@ -2,17 +2,19 @@ import datetime
 import time
 import wandb
 
-from data_preparation.data_generation import *
-from data_preparation.download_script import DownloadScript
+from data_generation import *
+from download_script import DownloadScript
 from utils import *
 
-# wandb.init(project="beat-saber-map-generator")
+wandb.init(project="test-beat-saber-map-generator", mode="disabled")
 
 folders = [
     "data",
     "terminal",
     "saved_data",
     "dataset/songs",
+    "dataset/songs/mel128",
+    "dataset/songs/mel229",
     "dataset/beatmaps/color_notes/Easy",
     "dataset/beatmaps/color_notes/Normal",
     "dataset/beatmaps/color_notes/Hard",
