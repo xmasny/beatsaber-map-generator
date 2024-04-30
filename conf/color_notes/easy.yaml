@@ -24,3 +24,4 @@ warmup_steps: 200
 epochs: 100
 wandb_mode: disabled #disabled, online, offline, 
 is_parallel: false
+save_valid_dataset: false

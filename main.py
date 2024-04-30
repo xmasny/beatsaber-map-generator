@@ -1,7 +1,6 @@
 import sys
 import hydra
-from omegaconf import OmegaConf
-import torch
+import os
 
 from config import RunConfig
 from training.onset_train import main as train
@@ -16,4 +15,11 @@ if __name__ == "__main__":
     sys.argv.append("hydra.run.dir=.")
     sys.argv.append("hydra.output_subdir=null")
     sys.argv.append("hydra/job_logging=stdout")
-    main()
+
+    try:
+        main()
+    except Exception as e:
+        if os.path.exists("dataset/valid_dataset"):
+            os.removedirs("dataset/valid_dataset")
+            print("Removed dataset/valid_dataset")
+        print(e)

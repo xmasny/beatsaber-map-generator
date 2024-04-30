@@ -104,3 +104,4 @@ class RunConfig(DictConfig):
     epochs: int
     wandb_mode: str
     is_parallel: bool
+    save_valid_dataset: bool
