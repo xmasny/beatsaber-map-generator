@@ -5,10 +5,20 @@ import os
 import traceback
 from collections import Counter
 import zipfile
+import pandas as pd
 from tqdm import tqdm
 
 import librosa
 import numpy as np
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    filename="outputs/data_generation.log",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
 
 from utils import create_all_data_dirs_json
 
@@ -36,7 +46,7 @@ class DataGeneration:
                     json.dump(song_info[0], f)
                     message = f"{song[0]} SongInfo.dat saved"
                     print(message)
-                    self.terminal_file.write(f"{message}\n")
+                    self.terminal_file.write(f"{message}/n")
                     self.terminal_file.flush()
             else:
                 message = f"{song[0]} not found"
@@ -231,28 +241,72 @@ class DataGeneration:
 
     def mel_gen_and_save(self):
         errored = []
-        with open("dataset/song_files.json", "r") as file:
-            song_files = json.load(file)
-        
-        progressbar = tqdm(song_files)
-        
+        difficulty = input("Choose a difficulty: ")
+        with open(f"dataset/beatmaps/color_notes/{difficulty}.csv", "r") as f:
+            df = pd.read_csv(
+                f,
+                header=None,
+                names=[
+                    "song",
+                    "npzFile",
+                    "upvotes",
+                    "downvotes",
+                    "score",
+                    "bpm",
+                    "duration",
+                    "automapper",
+                ],
+            )
+            automapper = df["automapper"] == True
+
+            df = df[~automapper]
+            songs = df["song"].tolist()
+            progressbar = tqdm(songs, desc="Generating mel spectrograms")
+
+        with open(f"dataset/song_levels.json", "r") as f:
+            song_levels = json.load(f)
+
         for index, song in enumerate(progressbar):
             try:
-                if os.path.exists(f"dataset/songs/{song[0]}_{song[2]}.npy"):
+                if os.path.exists(f"dataset/songs/mel229/{song}"):
                     continue
                 else:
-                    audio_data, sample_rate = librosa.load(f"data/{song[0]}/{song[1]}")
+                    song_split = song.split("_")
+                    audio_data, sample_rate = librosa.load(
+                        f"data/{song_split[0]}/{song_levels[song_split[0]]['songFilename']}"
+                    )
+
+                    if sample_rate != 22050:
+                        print(
+                            f"Sample rate for {song_split[0]} is {sample_rate}, resampling to 22050",
+                        )
+                        logging.info(
+                            f"Sample rate for {song_split[0]} is {sample_rate}, resampling to 22050"
+                        )
+                        audio_data = librosa.resample(
+                            audio_data, orig_sr=sample_rate, target_sr=22050
+                        )
+                        sample_rate = 22050
 
                     # Compute the Mel spectrogram
-                    mel_spectrogram = librosa.feature.melspectrogram(y=audio_data, sr=sample_rate)
-                    np.save(f"dataset/songs/{song[0]}_{song[2]}.npy", mel_spectrogram)
+                    mel_spectrogram = librosa.feature.melspectrogram(
+                        y=audio_data, sr=sample_rate, n_mels=229
+                    )
+                    np.save(
+                        f"dataset/songs/mel229/{song}",
+                        mel_spectrogram,
+                    )
 
             except Exception as e:
                 errored.append(song)
-                print(f"Error generating mel spectrogram for {song[0]}")
-                print(e)
+                print(
+                    f"Error generating mel spectrogram for {song_split[0]}, difficulty {difficulty}"
+                )
+                logging.error(
+                    f"Error generating mel spectrogram for {song_split[0]}, difficulty {difficulty}"
+                )
                 continue
-            
+
         if errored and errored != []:
             with open(f"saved_data/errored_songs.json", "w") as file:
                 file.write(json.dumps(errored))
@@ -277,51 +331,66 @@ class DataGeneration:
     def create_beatmap_arrays_and_save(self):
         with open(f"dataset/song_levels.json", "r") as f:
             song_levels = json.load(f)
-            
+
         progress_bar = tqdm(song_levels, desc="Parsing songs")
 
         count_all = 0
         count_missing = 0
 
-        allowed_keys = ['b', 'x', 'y', 'c', 'd', 'a', 'w', 'h']
+        allowed_keys = ["b", "x", "y", "c", "d", "a", "w", "h"]
 
         for song in progress_bar:
-            if 'Standard' in song_levels[song]['difficultySet']:
-                for level in song_levels[song]['difficultySet']['Standard']:
+            if "Standard" in song_levels[song]["difficultySet"]:
+                for level in song_levels[song]["difficultySet"]["Standard"]:
                     try:
                         count_all += 1
-                        
+
                         color_notes = None
                         bomb_notes = None
                         obstacles = None
-                            
-                        diffic = song_levels[song]['difficultySet']['Standard'][level]
+
+                        diffic = song_levels[song]["difficultySet"]["Standard"][level]
                         with open(f"data/{song}/{diffic}", "r") as f:
                             data = json.load(f)
-                        if all(key in data for key in ('colorNotes', 'bombNotes', 'obstacles')):
-                            color_notes = data['colorNotes']
-                            bomb_notes = data['bombNotes']
-                            obstacles = data['obstacles']
+                        if all(
+                            key in data
+                            for key in ("colorNotes", "bombNotes", "obstacles")
+                        ):
+                            color_notes = data["colorNotes"]
+                            bomb_notes = data["bombNotes"]
+                            obstacles = data["obstacles"]
 
                             for index, note in enumerate(color_notes):
                                 if len(note) != 6:
-                                    keys_to_remove = [key for key in note.keys() if key not in allowed_keys]
+                                    keys_to_remove = [
+                                        key
+                                        for key in note.keys()
+                                        if key not in allowed_keys
+                                    ]
                                     for key in keys_to_remove:
                                         color_notes[index].pop(key)
 
                             for index, note in enumerate(bomb_notes):
                                 if len(note) != 3:
-                                    keys_to_remove = [key for key in note.keys() if key not in allowed_keys]
+                                    keys_to_remove = [
+                                        key
+                                        for key in note.keys()
+                                        if key not in allowed_keys
+                                    ]
                                     for key in keys_to_remove:
                                         bomb_notes[index].pop(key)
 
                             for index, obstacle in enumerate(obstacles):
                                 if len(obstacle) != 6:
-                                    keys_to_remove = [key for key in obstacle.keys() if key not in allowed_keys]
+                                    keys_to_remove = [
+                                        key
+                                        for key in obstacle.keys()
+                                        if key not in allowed_keys
+                                    ]
                                     for key in keys_to_remove:
                                         obstacles[index].pop(key)
 
-                        elif all(key in data for key in ('_notes', '_obstacles')):
+                        elif all(key in data for key in ("_notes", "_obstacles")):
                             color_notes = []
                             bomb_notes = []
                             obstacles = []
@@ -359,24 +428,53 @@ class DataGeneration:
                                         }
                                     )
                         else:
-                            print(f"Skipping {song} - {level} due to missing valid keys")
+                            print(
+                                f"Skipping {song} - {level} due to missing valid keys"
+                            )
                             count_missing += 1
                             continue
-                        
+
                         if color_notes == [] and bomb_notes == [] and obstacles == []:
                             count_missing += 1
                             continue
-                        
+
                         if color_notes:
-                            ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in color_notes]
-                            np.save(f"dataset/beatmaps/color_notes/{level}/{song}_{song_levels[song]['songId']}", ordered_list)
+                            ordered_list = [
+                                [
+                                    sorted_pair[1]
+                                    for sorted_pair in sorted(dictionary.items())
+                                ]
+                                for dictionary in color_notes
+                            ]
+                            np.save(
+                                f"dataset/beatmaps/color_notes/{level}/{song}_{song_levels[song]['songId']}",
+                                ordered_list,
+                            )
 
                         if bomb_notes:
-                            ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in bomb_notes]
-                            np.save(f"dataset/beatmaps/bomb_notes/{level}/{song}_{song_levels[song]['songId']}", ordered_list)
+                            ordered_list = [
+                                [
+                                    sorted_pair[1]
+                                    for sorted_pair in sorted(dictionary.items())
+                                ]
+                                for dictionary in bomb_notes
+                            ]
+                            np.save(
+                                f"dataset/beatmaps/bomb_notes/{level}/{song}_{song_levels[song]['songId']}",
+                                ordered_list,
+                            )
                         if obstacles:
-                            ordered_list = [[sorted_pair[1] for sorted_pair in sorted(dictionary.items())] for dictionary in obstacles]
-                            np.save(f"dataset/beatmaps/obstacles/{level}/{song}_{song_levels[song]['songId']}", ordered_list)
+                            ordered_list = [
+                                [
+                                    sorted_pair[1]
+                                    for sorted_pair in sorted(dictionary.items())
+                                ]
+                                for dictionary in obstacles
+                            ]
+                            np.save(
+                                f"dataset/beatmaps/obstacles/{level}/{song}_{song_levels[song]['songId']}",
+                                ordered_list,
+                            )
                     except Exception as e:
                         print(f"Error parsing {song} - {level}: {e}")
                         continue
@@ -392,6 +490,7 @@ class DataGeneration:
         if count_validation == dir_len:
             print("All beatmaps have been successfully parsed")
 
+
 def zip_folders(zip_filename, *folders):
     with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for folder in folders:
@@ -402,4 +501,3 @@ def zip_folders(zip_filename, *folders):
                     file_path = os.path.join(foldername, filename)
                     # Add file to zip
                     zip_file.write(file_path)
-
