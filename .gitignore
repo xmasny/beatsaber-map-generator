@@ -141,3 +141,4 @@ generator
 .vscode
 wandb
 dataset
+*.zip
