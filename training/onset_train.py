@@ -112,7 +112,14 @@ def main(run_parameters: RunConfig):
             save_valid_data(valid_loader, valid_dataset_len, run_parameters)
             saved_loader = saved_valid_loader(run_parameters)
             valid_loader = DataLoader(saved_loader, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
+    except KeyboardInterrupt as e:
+        print(e)
+        wandb.finish(1)
+        if os.path.exists("dataset/valid_dataset"):
+            shutil.rmtree("dataset/valid_dataset")
+            print("Removed dataset/valid_dataset")
 
+    try:
         ignite_train(
             dataset,
             model,
@@ -127,8 +134,7 @@ def main(run_parameters: RunConfig):
         )
     except KeyboardInterrupt as e:
         print(e)
-        wandb.finish(1)
+        wandb_logger.close()
         if os.path.exists("dataset/valid_dataset"):
             shutil.rmtree("dataset/valid_dataset")
             print("Removed dataset/valid_dataset")
-        print(e)
