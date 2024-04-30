@@ -243,8 +243,24 @@ class DataGeneration:
         errored = []
         difficulty = input("Choose a difficulty: ")
         with open(f"dataset/beatmaps/color_notes/{difficulty}.csv", "r") as f:
-            df = pd.read_csv(f)
-            songs = df.iloc[:, 0].tolist()
+            df = pd.read_csv(
+                f,
+                header=None,
+                names=[
+                    "song",
+                    "npzFile",
+                    "upvotes",
+                    "downvotes",
+                    "score",
+                    "bpm",
+                    "duration",
+                    "automapper",
+                ],
+            )
+            automapper = df["automapper"] == True
+
+            df = df[~automapper]
+            songs = df["song"].tolist()
             progressbar = tqdm(songs, desc="Generating mel spectrograms")
 
         with open(f"dataset/song_levels.json", "r") as f:
@@ -283,9 +299,12 @@ class DataGeneration:
 
             except Exception as e:
                 errored.append(song)
-                print(f"Error generating mel spectrogram for {song_split[0]}")
-                logging.error(f"Error generating mel spectrogram for {song_split[0]}")
-                print(e)
+                print(
+                    f"Error generating mel spectrogram for {song_split[0]}, difficulty {difficulty}"
+                )
+                logging.error(
+                    f"Error generating mel spectrogram for {song_split[0]}, difficulty {difficulty}"
+                )
                 continue
 
         if errored and errored != []:
