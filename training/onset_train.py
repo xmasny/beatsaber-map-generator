@@ -10,6 +10,8 @@ from config import *
 from torch.utils.data import DataLoader
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 
+import shutil
+
 from tqdm import tqdm
 
 
@@ -28,7 +30,9 @@ def save_valid_data(
     )
 
     if os.path.exists(path):
-        os.removedirs("dataset/valid_dataset")
+        shutil.rmtree(
+            "dataset/valid_dataset",
+        )
 
     os.makedirs(path)
     pbar = tqdm(total=valid_dataset_len, desc="Saving valid dataset")

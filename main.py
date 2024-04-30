@@ -1,3 +1,4 @@
+import shutil
 import sys
 import hydra
 import os
@@ -20,6 +21,6 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         if os.path.exists("dataset/valid_dataset"):
-            os.removedirs("dataset/valid_dataset")
+            shutil.rmtree("dataset/valid_dataset")
             print("Removed dataset/valid_dataset")
         print(e)
