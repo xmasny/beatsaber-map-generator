@@ -31,7 +31,7 @@ def save_valid_data(
         os.removedirs("dataset/valid_dataset")
 
     os.makedirs(path)
-    pbar = tqdm(total=valid_dataset_len)
+    pbar = tqdm(total=valid_dataset_len, desc="Saving valid dataset")
 
     for i, batch in enumerate(valid_loader):
         for song in batch:

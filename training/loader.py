@@ -31,7 +31,7 @@ class BaseLoader(IterableDataset):  # type: ignore
         onsets = get_onset_array(song)
         song_len = round(song["meta"]["duration"]) * 1000  # in ms
         onsets_array_len = len(onsets)
-        beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
+        beats_array = gen_beats_array(onsets_array_len, bpm_info, song["id"], song_len)
 
         condition = DifficultyNumber[self.difficulty.name].value
 
@@ -44,11 +44,6 @@ class BaseLoader(IterableDataset):  # type: ignore
         if self.with_beats:
             # beat array(2 at downbeats, 1 at other beats)
             data["beats"] = beats_array  # type: ignore
-
-        # processed_song = []  # Update the type annotation
-
-        # for data in self.process_song(song, beats_array, condition, onsets):
-        #     processed_song.append(data)
 
         song["data"] = data  # type: ignore
         return song
@@ -124,6 +119,7 @@ class BaseLoader(IterableDataset):  # type: ignore
             streaming=self.stream_dataset,
             trust_remote_code=True,
         )
+        # Map the dataset to the iterator - generate onset, beats
         self.dataset = dataset.map(self.iter)
 
     def __len__(self):
@@ -199,6 +195,7 @@ def gen_beats_array(
     length: int,
     bpm_info: List[Tuple[float, float, int]],
     mel_length: int,
+    id: int,
     distinguish_downbeat: bool = False,
 ):
     """
@@ -220,7 +217,7 @@ def gen_beats_array(
     -------
 
     """
-    validate(bpm_info, mel_length)
+    validate(bpm_info, mel_length, id)
 
     # The time range that nth(>= 0) frame represents is
     #   (n - 0.5) * FRAME < time <= (n + 0.5) * FRAME [ms]
@@ -262,14 +259,14 @@ def convert_units(ms: float, units: TimeUnit) -> float:
         return float(ms) / 32.0
 
 
-def validate(bpm_info: List[Tuple[float, float, int]], mel_length: int):
+def validate(bpm_info: List[Tuple[float, float, int]], mel_length: int, id: int):
     for x, (bpm, start, beat) in enumerate(bpm_info):
         assert bpm > 0
         assert start >= 0
         assert beat > 0
         assert (
             np.round(start / FRAME) <= mel_length
-        ), f"The start position of bpm_info ({start}) is outside the song length ({mel_length})."
+        ), f"The start position of bpm_info ({start}) is outside the song length ({mel_length}), for song{id}."
 
 
 def assert_length(arr: np.ndarray, length: int):
