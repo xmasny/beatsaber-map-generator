@@ -253,7 +253,6 @@ class DataGeneration:
         for index, song in enumerate(progressbar):
             try:
                 if os.path.exists(f"dataset/songs/mel229/{song}"):
-                    print(f"Mel spectrogram for {song} already exists")
                     logging.info(f"Mel spectrogram for {song} already exists")
                     continue
                 else:
