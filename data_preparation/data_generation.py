@@ -253,7 +253,6 @@ class DataGeneration:
         for index, song in enumerate(progressbar):
             try:
                 if os.path.exists(f"dataset/songs/mel229/{song}"):
-                    logging.info(f"Mel spectrogram for {song} already exists")
                     continue
                 else:
                     song_split = song.split("_")
@@ -284,8 +283,8 @@ class DataGeneration:
 
             except Exception as e:
                 errored.append(song)
-                print(f"Error generating mel spectrogram for {song[0]}")
-                logging.error(f"Error generating mel spectrogram for {song[0]}")
+                print(f"Error generating mel spectrogram for {song_split[0]}")
+                logging.error(f"Error generating mel spectrogram for {song_split[0]}")
                 print(e)
                 continue
 
