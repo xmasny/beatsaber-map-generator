@@ -127,4 +127,8 @@ def main(run_parameters: RunConfig):
         )
     except KeyboardInterrupt as e:
         print(e)
-        wandb_logger.close()
+        wandb.finish(1)
+        if os.path.exists("dataset/valid_dataset"):
+            shutil.rmtree("dataset/valid_dataset")
+            print("Removed dataset/valid_dataset")
+        print(e)
