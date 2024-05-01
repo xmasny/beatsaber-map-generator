@@ -72,7 +72,7 @@ def main(run_parameters: RunConfig):
             dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)
 
             valid_dataset = SavedValidDataloader(run_parameters)
-            valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
+            valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
 
     except KeyboardInterrupt as e:
         print(e)
