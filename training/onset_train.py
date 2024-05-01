@@ -58,8 +58,8 @@ def main(run_parameters: RunConfig):
         train_dataset_len = train_dataset.n_shards
         valid_dataset_len = valid_dataset.n_shards
 
-        train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=2)  # type: ignore
-        valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=2)  # type: ignore
+        train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
+        valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
         # Define your optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=run_parameters.lr)
         wandb.config.update(
@@ -72,7 +72,7 @@ def main(run_parameters: RunConfig):
             dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)
 
             valid_dataset = SavedValidDataloader(run_parameters)
-            valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=2)  # type: ignore
+            valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
 
     except KeyboardInterrupt as e:
         print(e)

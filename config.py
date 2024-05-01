@@ -105,3 +105,4 @@ class RunConfig(DictConfig):
     wandb_mode: str
     is_parallel: bool
     save_valid_dataset: bool
+    num_workers: int
