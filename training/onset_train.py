@@ -1,18 +1,15 @@
 import os
-import numpy as np
 import torch
 import wandb
 from dl.models.onsets import SimpleOnsets
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
-from training.loader import BaseLoader
+from training.loader import BaseLoader, SavedValidDataloader
 from config import *
 from torch.utils.data import DataLoader
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 
 import shutil
-
-from tqdm import tqdm
 
 
 def non_collate(batch):
@@ -21,39 +18,6 @@ def non_collate(batch):
 
 _valid_dataset_path = "dataset/valid_dataset/{object_type}/{difficulty}"
 
-
-def save_valid_data(
-    valid_loader: DataLoader, valid_dataset_len: int, run_parameters: RunConfig
-):
-    path = _valid_dataset_path.format(
-        object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
-    )
-
-    if os.path.exists(path):
-        shutil.rmtree(
-            "dataset/valid_dataset",
-        )
-
-    os.makedirs(path)
-    pbar = tqdm(total=valid_dataset_len, desc="Saving valid dataset")
-
-    for i, batch in enumerate(valid_loader):
-        for song in batch:
-            np.save(
-                f'{path}/song{song["id"]}_{song["song_id"]}.npy',
-                song,
-                allow_pickle=True,
-            )
-            pbar.update(1)
-
-
-def saved_valid_loader(run_parameters: RunConfig):
-    path = _valid_dataset_path.format(
-        object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
-    )
-    for song in os.listdir(path):
-
-        yield np.load(f"{path}/{song}", allow_pickle=True).item()
 
 
 def main(run_parameters: RunConfig):
@@ -98,8 +62,8 @@ def main(run_parameters: RunConfig):
         train_dataset_len = train_dataset.n_shards
         valid_dataset_len = valid_dataset.n_shards
 
-        train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
-        valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
+        train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=2)  # type: ignore
+        valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=2)  # type: ignore
         # Define your optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=run_parameters.lr)
         wandb.config.update(
@@ -109,9 +73,11 @@ def main(run_parameters: RunConfig):
             }
         )
         if run_parameters.save_valid_dataset:
-            save_valid_data(valid_loader, valid_dataset_len, run_parameters)
-            saved_loader = saved_valid_loader(run_parameters)
-            valid_loader = DataLoader(saved_loader, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
+            dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)
+
+            valid_dataset = SavedValidDataloader(run_parameters)
+            valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=2)  # type: ignore
+
     except KeyboardInterrupt as e:
         print(e)
         wandb.finish(1)
