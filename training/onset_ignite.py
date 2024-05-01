@@ -275,7 +275,9 @@ def ignite_train(
     train_num_songs_pbar = tqdm(total=train_dataset_len)
     valid_num_songs_pbar = tqdm(total=valid_dataset_len)
 
-    valid_song_batch_num = ceil(valid_dataset_len / songs_batch_size)
+    valid_song_batch_num = ceil(
+        valid_dataset_len / songs_batch_size * (num_workers if num_workers > 0 else 1)
+    )
     epoch_length_valid = generate_valid_length(
         valid_loader,
         dataset,
