@@ -113,9 +113,7 @@ def ignite_train(
         segment_batch = []
         # while True:
         for index, songs in enumerate(iteration):
-            for song in DataLoader(
-                songs, collate_fn=collate_fn, num_workers=num_workers
-            ):
+            for song in DataLoader(songs, collate_fn=collate_fn):
                 if num_songs_pbar:
                     num_songs_pbar.update(1)
                 for segment in dataset.process_song(
@@ -275,9 +273,8 @@ def ignite_train(
     train_num_songs_pbar = tqdm(total=train_dataset_len)
     valid_num_songs_pbar = tqdm(total=valid_dataset_len)
 
-    valid_song_batch_num = ceil(valid_dataset_len / songs_batch_size) * (
-        num_workers if num_workers > 0 else 1
-    )
+    valid_song_batch_num = ceil(valid_dataset_len / songs_batch_size)
+
     epoch_length_valid = generate_valid_length(
         valid_loader,
         dataset,
