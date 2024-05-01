@@ -10,7 +10,7 @@ from training.onset_train import main as train
 @hydra.main(version_base=None, config_path="./conf", config_name="config")
 def main(cfg: RunConfig):
     try:
-        train(cfg)
+        train(cfg.params)
     except Exception as e:
         if os.path.exists("dataset/valid_dataset"):
             shutil.rmtree("dataset/valid_dataset")
