@@ -1,10 +1,15 @@
-import time
+import os
+import shutil
 from typing import Tuple
 import librosa
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from config import *
 from datasets import load_dataset, IterableDataset
+
+_valid_dataset_path = "dataset/valid_dataset/{object_type}/{difficulty}"
 
 
 class BaseLoader(IterableDataset):  # type: ignore
@@ -130,6 +135,33 @@ class BaseLoader(IterableDataset):  # type: ignore
 
     def __iter__(self):
         return iter(self.dataset)
+
+    def save_valid_data(
+        self,
+        valid_loader: DataLoader,
+        valid_dataset_len: int,
+        run_parameters: RunConfig,
+    ):
+        path = _valid_dataset_path.format(
+            object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
+        )
+
+        if os.path.exists(path):
+            shutil.rmtree(
+                "dataset/valid_dataset",
+            )
+
+        os.makedirs(path)
+        pbar = tqdm(total=valid_dataset_len, desc="Saving valid dataset")
+
+        for i, batch in enumerate(valid_loader):
+            for song in batch:
+                np.save(
+                    f'{path}/song{song["id"]}_{song["song_id"]}.npy',
+                    song,
+                    allow_pickle=True,
+                )
+                pbar.update(1)
 
 
 def iter_array(array, length, skip, params):
@@ -285,3 +317,22 @@ def assert_length(arr: np.ndarray, length: int):
     length2 = length - arr.shape[0]
     arr2 = np.zeros((length2, arr.shape[1]))
     return np.concatenate([arr, arr2])
+
+
+class SavedValidDataloader(IterableDataset):
+    def __init__(self, run_parameters: RunConfig):
+        self.path = _valid_dataset_path.format(
+            object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
+        )
+        self.songs = os.listdir(self.path)
+
+    def __len__(self):
+        return len(self.songs)
+
+    def __getitem__(self, idx):
+        song = np.load(f"{self.path}/{self.songs[idx]}", allow_pickle=True)
+        return song
+
+    def __iter__(self):
+        for song in self.songs:
+            yield np.load(f"{self.path}/{song}", allow_pickle=True).item()
