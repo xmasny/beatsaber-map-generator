@@ -16,10 +16,6 @@ def non_collate(batch):
     return batch
 
 
-_valid_dataset_path = "dataset/valid_dataset/{object_type}/{difficulty}"
-
-
-
 def main(run_parameters: RunConfig):
     try:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
