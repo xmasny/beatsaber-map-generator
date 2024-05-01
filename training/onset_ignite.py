@@ -94,6 +94,7 @@ def ignite_train(
     warmup_steps = run_parameters.get("warmup_steps", 0)
     epochs = run_parameters.get("epochs", 100)
     wandb_mode = run_parameters.get("wandb_mode", "disabled")
+    num_workers = run_parameters.get("num_workers", 2)
 
     if lr_find:
         lr_find_loss = []
@@ -112,7 +113,9 @@ def ignite_train(
         segment_batch = []
         # while True:
         for index, songs in enumerate(iteration):
-            for song in DataLoader(songs, collate_fn=collate_fn):
+            for song in DataLoader(
+                songs, collate_fn=collate_fn, num_workers=num_workers
+            ):
                 if num_songs_pbar:
                     num_songs_pbar.update(1)
                 for segment in dataset.process_song(
