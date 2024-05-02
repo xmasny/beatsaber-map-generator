@@ -38,13 +38,17 @@ def generate_valid_length(
     valid_dataset_len = 0
     for songs in pbar:
         for song in DataLoader(songs, collate_fn=collate_fn):
-            for segment in dataset.process_song(
-                song=song,
-                beats_array=song["data"]["beats"],
-                condition=song["data"]["condition"],
-                onsets=song["data"]["onset"],
-            ):
-                valid_dataset_len += 1
+            try:
+                for segment in dataset.process_song(
+                    song=song,
+                    beats_array=song["data"]["beats"],
+                    condition=song["data"]["condition"],
+                    onsets=song["data"]["onset"],
+                ):
+                    valid_dataset_len += 1
+            except AssertionError as e:
+                print(e)
+                continue
     return ceil(valid_dataset_len / batch_size)
 
 
@@ -114,20 +118,24 @@ def ignite_train(
         # while True:
         for index, songs in enumerate(iteration):
             for song in DataLoader(songs, collate_fn=collate_fn):
-                if num_songs_pbar:
-                    num_songs_pbar.update(1)
-                for segment in dataset.process_song(
-                    song=song,
-                    beats_array=song["data"]["beats"],
-                    condition=song["data"]["condition"],
-                    onsets=song["data"]["onset"],
-                ):
+                try:
+                    if num_songs_pbar:
+                        num_songs_pbar.update(1)
+                    for segment in dataset.process_song(
+                        song=song,
+                        beats_array=song["data"]["beats"],
+                        condition=song["data"]["condition"],
+                        onsets=song["data"]["onset"],
+                    ):
 
-                    segment_batch.append(segment)
-                    if len(segment_batch) == train_batch_size:
-                        segment_batch = concatenate_tensors_by_key(segment_batch)
-                        yield segment_batch
-                        segment_batch = []
+                        segment_batch.append(segment)
+                        if len(segment_batch) == train_batch_size:
+                            segment_batch = concatenate_tensors_by_key(segment_batch)
+                            yield segment_batch
+                            segment_batch = []
+                except AssertionError as e:
+                    print(e)
+                    continue
 
     # Define a function to handle a single training iteration
     def train_step(engine: Engine, batch):
