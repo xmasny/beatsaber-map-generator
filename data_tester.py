@@ -1,3 +1,4 @@
+import wandb
 from config import DifficultyName, ObjectType, Split
 from training.loader import BaseLoader
 
@@ -25,6 +26,8 @@ dataset = BaseLoader(
     object_type=ObjectType[object_type],
 )
 
+wandb.init(project="test-beat-saber-map-generator", config={difficulty: object_type})
+
 dataset.load()
 
 all_data = dataset[Split.ALL]
@@ -47,3 +50,5 @@ try:
 except Exception as e:
     logging.error(e)
     print(e)
+
+wandb.finish()
