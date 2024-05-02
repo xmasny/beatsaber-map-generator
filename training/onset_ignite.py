@@ -118,24 +118,22 @@ def ignite_train(
         # while True:
         for index, songs in enumerate(iteration):
             for song in DataLoader(songs, collate_fn=collate_fn):
-                try:
-                    if num_songs_pbar:
-                        num_songs_pbar.update(1)
-                    for segment in dataset.process_song(
-                        song=song,
-                        beats_array=song["data"]["beats"],
-                        condition=song["data"]["condition"],
-                        onsets=song["data"]["onset"],
-                    ):
-
-                        segment_batch.append(segment)
-                        if len(segment_batch) == train_batch_size:
-                            segment_batch = concatenate_tensors_by_key(segment_batch)
-                            yield segment_batch
-                            segment_batch = []
-                except AssertionError as e:
-                    print(e)
+                if num_songs_pbar:
+                    num_songs_pbar.update(1)
+                if "not_working" in song:
                     continue
+                for segment in dataset.process_song(
+                    song=song,
+                    beats_array=song["data"]["beats"],
+                    condition=song["data"]["condition"],
+                    onsets=song["data"]["onset"],
+                ):
+
+                    segment_batch.append(segment)
+                    if len(segment_batch) == train_batch_size:
+                        segment_batch = concatenate_tensors_by_key(segment_batch)
+                        yield segment_batch
+                        segment_batch = []
 
     # Define a function to handle a single training iteration
     def train_step(engine: Engine, batch):

@@ -25,4 +25,4 @@ epochs: 100
 wandb_mode: online #disabled, online, offline, 
 is_parallel: false
 save_valid_dataset: false
-num_workers: 2
+num_workers: 0
