@@ -6,6 +6,8 @@ import os
 from config import RunConfig
 from training.onset_train import main as train
 
+import wandb
+
 
 @hydra.main(version_base=None, config_path="./conf", config_name="config")
 def main(cfg: RunConfig):
@@ -16,6 +18,7 @@ def main(cfg: RunConfig):
             shutil.rmtree("dataset/valid_dataset")
             print("Removed dataset/valid_dataset")
         print(e)
+        wandb.finish(1)
 
 
 if __name__ == "__main__":

@@ -74,6 +74,7 @@ class SongIteration(TypedDict):
     song_id: str
     data: Data | List[Data]
     meta: Meta
+    not_working: Optional[bool]
 
 
 class RunConfig(DictConfig):

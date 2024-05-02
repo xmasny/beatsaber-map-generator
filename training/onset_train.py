@@ -72,11 +72,11 @@ def main(run_parameters: RunConfig):
             dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)
 
             valid_dataset = SavedValidDataloader(run_parameters)
+            valid_dataset_len = len(valid_dataset)
             valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
 
     except KeyboardInterrupt as e:
         print(e)
-        wandb.finish(1)
         if os.path.exists("dataset/valid_dataset"):
             shutil.rmtree("dataset/valid_dataset")
             print("Removed dataset/valid_dataset")
