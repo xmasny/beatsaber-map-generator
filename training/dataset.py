@@ -28,7 +28,7 @@ _LICENSE = ""
 
 _BASE_DATA_PAT_FORMAT_STR = "{type}/{difficulty}"
 
-_DOWNLOAD_URL = "dataset/"
+_DOWNLOAD_URL = "../dataset/"
 
 
 def _types():
