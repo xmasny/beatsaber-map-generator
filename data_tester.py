@@ -36,15 +36,19 @@ all_data_len = all_data.n_shards
 
 pbar = tqdm(dataloader, total=ceil(all_data_len / batch_size))
 
+pbar_songs = tqdm(total=all_data_len)
+
 print(f"Number of shards: {all_data_len}")
 
 for i, batch in enumerate(pbar):
     try:
         for song in batch:
+            pbar_songs.update(1)
             pass
     except Exception as e:
         logging.error(e, song["song_id"], song["id"])
         print(e, song["song_id"], song["id"])
+        pbar_songs.update(1)
 
 
 wandb.finish()
