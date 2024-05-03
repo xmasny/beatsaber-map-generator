@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from typing import Tuple
@@ -10,6 +11,10 @@ from config import *
 from datasets import load_dataset, IterableDataset
 
 _valid_dataset_path = "dataset/valid_dataset/{object_type}/{difficulty}"
+
+logging.basicConfig(
+    level=logging.ERROR, format="%(asctime)s - %(message)s", filename="data_tester.log"
+)
 
 
 class BaseLoader(IterableDataset):  # type: ignore
@@ -37,7 +42,13 @@ class BaseLoader(IterableDataset):  # type: ignore
         song_len = round(song["meta"]["duration"]) * 1000  # in ms
         onsets_array_len = len(onsets)
 
-        beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
+        try:
+            beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
+        except AssertionError as e:
+            logging.error(f'Error in song{song["song_id"]} {song["id"]}: {e}')
+            print(
+                f'Error in song{song["song_id"]} {song["id"]} difficulty {self.difficulty}: {e}'
+            )
         condition = DifficultyNumber[self.difficulty.name].value
 
         data = dict(
