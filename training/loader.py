@@ -191,7 +191,8 @@ def get_bpm_info(song: SongIteration):
 
 
 def get_onset_array(song: SongIteration):
-    print(song["data"]["mel"])  # type: ignore
+    if not isinstance(song["data"]["mel"], np.ndarray):  # type: ignore
+        song["data"]["mel"] = np.array(song["data"]["mel"])  # type: ignore
     timestamps = librosa.times_like(song["data"]["mel"], sr=sample_rate)  # type: ignore
 
     onsets = np.zeros_like(timestamps, dtype=np.float32)
