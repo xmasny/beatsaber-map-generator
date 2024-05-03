@@ -11,8 +11,8 @@ all_difficulties = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
 def move_and_zip_selected_type_difficulty():
     while True:
         try:
-            object_type = input("Choose object type: ")
-            difficulty = "color_notes"
+            object_type = "color_notes"
+            difficulty = input("Choose difficulty: ")
 
             df = pd.read_csv(
                 f"dataset/beatmaps/{object_type}/{difficulty}.csv",
