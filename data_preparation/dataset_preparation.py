@@ -22,7 +22,7 @@ def move_and_zip_selected_type_difficulty():
             for filename in os.listdir(f"dataset/beatmaps/{object_type}/{difficulty}"):
                 if filename.endswith(".npy"):
                     shutil.copy(
-                        f"dataset/songs/{filename}",
+                        f"dataset/songs/mel229/{filename}",
                         f"dataset/beatmaps/{object_type}/{difficulty}/mels/{filename}",
                     )
 
