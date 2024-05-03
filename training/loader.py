@@ -369,7 +369,6 @@ class TestDataset(BaseLoader):
             "training/dataset.py",
             f"{self.object_type.value}-{self.difficulty.value}",
             streaming=self.stream_dataset,
-            trust_remote_code=True,
         )
         # Map the dataset to the iterator - generate onset, beats
         self.dataset = dataset.map(self.iter)

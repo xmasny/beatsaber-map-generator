@@ -24,7 +24,7 @@ dataset = TestDataset(
     difficulty=DifficultyName[difficulty],
 )
 
-wandb.init(project="test-beat-saber-map-generator", config={difficulty: difficulty})
+wandb.init(project="test-beat-saber-map-generator", config={"difficulty": difficulty})
 
 dataset.load()
 
