@@ -1,6 +1,7 @@
 import os
 import shutil
 import zipfile
+import pandas as pd
 from tqdm import tqdm
 import wandb
 
@@ -11,7 +12,12 @@ def move_and_zip_selected_type_difficulty():
     while True:
         try:
             object_type = input("Choose object type: ")
-            difficulty = input("Choose difficulty: ")
+            difficulty = "color_notes"
+
+            df = pd.read_csv(
+                f"dataset/beatmaps/{object_type}/{difficulty}.csv",
+                header=None,
+            ).values.tolist()
 
             if not os.path.exists(f"dataset/beatmaps/{object_type}/{difficulty}"):
                 raise Exception("Path does not exist, please try again.")
@@ -19,12 +25,11 @@ def move_and_zip_selected_type_difficulty():
             if not os.path.exists(f"dataset/beatmaps/{object_type}/{difficulty}/mels"):
                 os.makedirs(f"dataset/beatmaps/{object_type}/{difficulty}/mels")
 
-            for filename in os.listdir(f"dataset/beatmaps/{object_type}/{difficulty}"):
-                if filename.endswith(".npy"):
-                    shutil.copy(
-                        f"dataset/songs/mel229/{filename}",
-                        f"dataset/beatmaps/{object_type}/{difficulty}/mels/{filename}",
-                    )
+            for filename in tqdm(df, desc=f"Copying {object_type} {difficulty}"):
+                shutil.copy(
+                    f"dataset/songs/mel229/{filename[0]}",
+                    f"dataset/beatmaps/{object_type}/{difficulty}/mels/{filename[0]}",
+                )
 
         except Exception as e:
             print(e)
