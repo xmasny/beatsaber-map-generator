@@ -4,8 +4,10 @@ from tqdm import tqdm
 
 difficulty = input("Enter difficulty: ")
 
+map_path = f"dataset/beatmaps/color_notes"
+
 df = pd.read_csv(
-    f"dataset/beatmaps/color_notes/{difficulty}.csv",
+    f"{map_path}/{difficulty}.csv",
     header=None,
 ).values.tolist()
 
@@ -15,7 +17,7 @@ pbar = tqdm(df, total=len(df))
 
 for i, song in enumerate(pbar):
     try:
-        with open(f"dataset/color_notes/{difficulty}/{song[0]}", "rb") as f:
+        with open(f"{map_path}/{difficulty}/{song[0]}", "rb") as f:
             np.load(f)
 
         with open(f"dataset/songs/{song[0]}", "rb") as f:
@@ -34,6 +36,4 @@ for i in corrupted:
 print(f"New length: {len(df)}")
 
 df = pd.DataFrame(df)
-df.to_csv(
-    f"dataset/beatmaps/color_notes/{difficulty}_new.csv", index=False, header=False
-)
+df.to_csv(f"{map_path}/{difficulty}_new.csv", index=False, header=False)
