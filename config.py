@@ -72,7 +72,7 @@ class SongIteration(TypedDict):
     id: int
     beatmap: ndarray
     song_id: str
-    data: Union[Data, List[Data]]
+    data: Data | List[Data]
     meta: Meta
     not_working: Optional[bool]
 
