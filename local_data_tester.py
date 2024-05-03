@@ -20,7 +20,7 @@ for i, song in enumerate(pbar):
         with open(f"{map_path}/{difficulty}/{song[0]}", "rb") as f:
             np.load(f)
 
-        with open(f"dataset/songs/{song[0]}", "rb") as f:
+        with open(f"dataset/songs/mel229/{song[0]}", "rb") as f:
             np.load(f)
 
     except Exception as e:
