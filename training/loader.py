@@ -13,7 +13,9 @@ from datasets import load_dataset, IterableDataset
 _valid_dataset_path = "dataset/valid_dataset/{object_type}/{difficulty}"
 
 logging.basicConfig(
-    level=logging.ERROR, format="%(asctime)s - %(message)s", filename="data_tester.log"
+    level=logging.ERROR,
+    format="%(levelname)s - %(asctime)s - %(message)s",
+    filename="data_tester.log",
 )
 
 
@@ -45,10 +47,13 @@ class BaseLoader(IterableDataset):  # type: ignore
         try:
             beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
         except AssertionError as e:
-            logging.error(f'Error in song{song["song_id"]} {song["id"]}: {e}')
-            print(
-                f'Error in song{song["song_id"]} {song["id"]} difficulty {self.difficulty}: {e}'
+            logging.error(
+                f'song{song["id"]}_{song["song_id"]} difficulty {self.difficulty}: {e}'
             )
+            print(
+                f'Error in song{song["id"]}_{song["song_id"]} difficulty {self.difficulty}: {e}'
+            )
+            song["not_working"] = True
         condition = DifficultyNumber[self.difficulty.name].value
 
         data = dict(
@@ -57,7 +62,7 @@ class BaseLoader(IterableDataset):  # type: ignore
             mel=song["data"]["mel"],  # type: ignore
         )
 
-        if self.with_beats:
+        if self.with_beats and "not_working" not in song:
             # beat array(2 at downbeats, 1 at other beats)
             data["beats"] = beats_array  # type: ignore
 
