@@ -1,6 +1,6 @@
 import wandb
-from config import DifficultyName, ObjectType, Split
-from training.loader import BaseLoader
+from config import DifficultyName, Split
+from training.loader import TestDataset
 
 from torch.utils.data import DataLoader
 
@@ -19,14 +19,12 @@ logging.basicConfig(
 difficulty = input("Enter difficulty: ").upper()
 batch_size = int(input("Enter batch size: "))
 num_workers = int(input("Enter number of workers: "))
-object_type = "color_notes".upper()
 
-dataset = BaseLoader(
+dataset = TestDataset(
     difficulty=DifficultyName[difficulty],
-    object_type=ObjectType[object_type],
 )
 
-wandb.init(project="test-beat-saber-map-generator", config={difficulty: object_type})
+wandb.init(project="test-beat-saber-map-generator", config={difficulty: difficulty})
 
 dataset.load()
 
@@ -39,16 +37,14 @@ all_data_len = all_data.n_shards
 pbar = tqdm(dataloader, total=ceil(all_data_len / batch_size))
 
 print(f"Number of shards: {all_data_len}")
-try:
-    for i, batch in enumerate(pbar):
-        try:
-            for song in batch:
-                pass
-        except Exception as e:
-            logging.error(e, song["song_id"], song["id"])
-            print(e, song["song_id"], song["id"])
-except Exception as e:
-    logging.error(e)
-    print(e)
+
+for i, batch in enumerate(pbar):
+    try:
+        for song in batch:
+            pass
+    except Exception as e:
+        logging.error(e, song["song_id"], song["id"])
+        print(e, song["song_id"], song["id"])
+
 
 wandb.finish()

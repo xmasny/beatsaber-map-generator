@@ -341,3 +341,35 @@ class SavedValidDataloader(IterableDataset):
     def __iter__(self):
         for song in self.songs:
             yield np.load(f"{self.path}/{song}", allow_pickle=True).item()
+
+
+class TestDataset(BaseLoader):
+    def __init__(
+        self,
+        difficulty: DifficultyName = DifficultyName.EASY,
+        object_type: ObjectType = ObjectType.COLOR_NOTES,
+        enable_condition: bool = True,
+        stream_dataset: bool = True,
+        with_beats: bool = True,
+        seq_length: int = 16000,
+        skip_step: int = 2000,
+    ):
+        super().__init__(
+            difficulty=difficulty,
+            object_type=object_type,
+            enable_condition=enable_condition,
+            stream_dataset=stream_dataset,
+            with_beats=with_beats,
+            seq_length=seq_length,
+            skip_step=skip_step,
+        )
+
+    def load(self):
+        dataset = load_dataset(
+            "training/dataset.py",
+            f"{self.object_type.value}-{self.difficulty.value}",
+            streaming=self.stream_dataset,
+            trust_remote_code=True,
+        )
+        # Map the dataset to the iterator - generate onset, beats
+        self.dataset = dataset.map(self.iter)

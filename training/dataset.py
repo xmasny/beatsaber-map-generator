@@ -1,10 +1,13 @@
+import random
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import signal
 
 import datasets
 import os
 import re
+import platform
 
 _CITATION = """\
 @InProceedings{huggingface:dataset,
@@ -25,7 +28,7 @@ _LICENSE = ""
 
 _BASE_DATA_PAT_FORMAT_STR = "{type}/{difficulty}"
 
-_DOWNLOAD_URL = "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/dataset/"
+_DOWNLOAD_URL = "dataset/"
 
 
 def _types():
@@ -37,8 +40,37 @@ def _difficulties():
 
 
 def split_dataset(songs):
-    train, valid = train_test_split(songs, train_size=0.8)
-    valid, test = train_test_split(valid, test_size=0.5)
+    shuffle_seed = random.randint(0, 2**32 - 1)
+    if platform.system() == "Linux":
+        try:
+
+            def handler(signum, frame):
+                raise TimeoutError("Timed out")
+
+            signal.signal(signal.SIGALRM, handler)  # type: ignore
+            signal.alarm(30)  # type: ignore
+
+            answer = input("Do you want to set a seed for the shuffle? (y/n): ")
+            if answer:
+                signal.alarm(0)  # type: ignore
+            if answer == "y":
+                shuffle_seed = int(input("Enter the seed: "))
+        except TimeoutError:
+            print("No input given, using random seed")
+    else:
+        answer = input("Do you want to set a seed for the shuffle? (y/n): ")
+        if answer == "y":
+            shuffle_seed = int(input("Enter the seed: "))
+
+    try:
+        import wandb  # type: ignore
+
+        wandb.config.update({"shuffle_seed": shuffle_seed})
+    except ImportError:
+        pass
+
+    train, valid = train_test_split(songs, train_size=0.8, random_state=shuffle_seed)
+    valid, test = train_test_split(valid, test_size=0.5, random_state=shuffle_seed)
 
     return train, valid, test
 
@@ -94,7 +126,7 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
             if song[0].endswith(".npy")
         ]
         songs_urls = [
-            f"{_DOWNLOAD_URL}songs/{song[0]}"
+            f"{_DOWNLOAD_URL}songs/mel229/{song[0]}"
             for song in split
             if song[0].endswith(".npy")
         ]
@@ -151,7 +183,11 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
                 ],
             )
 
-            songs = df.values.tolist()
+            automapper = df["automapper"] == True
+
+            df = df[~automapper]
+
+        songs = df.values.tolist()
 
         train, valid, test = split_dataset(songs)
 
