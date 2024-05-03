@@ -1,0 +1,4 @@
+from data_preparation.dataset_preparation import move_and_zip_selected_type_difficulty
+
+
+move_and_zip_selected_type_difficulty()
