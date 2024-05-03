@@ -37,11 +37,7 @@ class BaseLoader(IterableDataset):  # type: ignore
         song_len = round(song["meta"]["duration"]) * 1000  # in ms
         onsets_array_len = len(onsets)
 
-        try:
-            beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
-        except AssertionError as e:
-            print(f"Error in song {song['id']}: {e}")
-            song["not_working"] = True
+        beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
         condition = DifficultyNumber[self.difficulty.name].value
 
         data = dict(
@@ -50,7 +46,7 @@ class BaseLoader(IterableDataset):  # type: ignore
             mel=song["data"]["mel"],  # type: ignore
         )
 
-        if self.with_beats and "not_working" not in song:
+        if self.with_beats:
             # beat array(2 at downbeats, 1 at other beats)
             data["beats"] = beats_array  # type: ignore
 
