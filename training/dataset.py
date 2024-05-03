@@ -28,7 +28,7 @@ _LICENSE = ""
 
 _BASE_DATA_PAT_FORMAT_STR = "{type}/{difficulty}"
 
-_DOWNLOAD_URL = "../dataset/"
+_DOWNLOAD_URL = "dataset/"
 
 
 def _types():
@@ -165,7 +165,7 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
         """Returns SplitGenerators."""
         all_songs_csv = dl_manager.download(
             f"{_DOWNLOAD_URL}beatmaps/{self.config.data_dir}.csv"
-        )
+        )[9:]
 
         with open(all_songs_csv) as csvfile:  # type: ignore
             df = pd.read_csv(
@@ -247,10 +247,10 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
         """Yields examples."""
 
         for beatmap_file, song_file, data in zip(beatmap_files, song_files, metadata):
-            with open(beatmap_file, "rb") as npy_file:
+            with open(beatmap_file[9:], "rb") as npy_file:
                 beatmap: np.ndarray = np.load(npy_file)
 
-            with open(song_file, "rb") as npy_file:
+            with open(song_file[9:], "rb") as npy_file:
                 song: np.ndarray = np.load(npy_file)
 
             split = re.split(r"_|\.", os.path.basename(beatmap_file))
