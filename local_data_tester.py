@@ -5,7 +5,7 @@ from tqdm import tqdm
 difficulty = input("Enter difficulty: ")
 
 df = pd.read_csv(
-    f"dataset/color_notes/{difficulty}.csv",
+    f"dataset/beatmaps/color_notes/{difficulty}.csv",
     header=None,
 ).values.tolist()
 
@@ -34,4 +34,6 @@ for i in corrupted:
 print(f"New length: {len(df)}")
 
 df = pd.DataFrame(df)
-df.to_csv(f"dataset/{difficulty}_new.csv", index=False, header=False)
+df.to_csv(
+    f"dataset/beatmaps/color_notes/{difficulty}_new.csv", index=False, header=False
+)
