@@ -252,6 +252,7 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
 
             with open(song_file[9:], "rb") as npy_file:
                 song: np.ndarray = np.load(npy_file)
+            print(song)
 
             split = re.split(r"_|\.", os.path.basename(beatmap_file))
             id_ = int(split[0][4:])
