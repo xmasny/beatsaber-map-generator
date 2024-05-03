@@ -1,5 +1,5 @@
 import enum
-from typing import List, Dict, Optional, TypedDict
+from typing import List, Dict, Optional, TypedDict, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig
@@ -72,7 +72,7 @@ class SongIteration(TypedDict):
     id: int
     beatmap: ndarray
     song_id: str
-    data: Data | List[Data]
+    data: Union[Data, List[Data]]
     meta: Meta
     not_working: Optional[bool]
 
