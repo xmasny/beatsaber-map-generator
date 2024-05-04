@@ -80,8 +80,6 @@ class OnsetsBase(nn.Module):
             probs = self(mel, condition, beats)
 
             wandb.log({"onset_probs": probs.max()})
-            if probs.max() > 0.5:
-                print(probs.max())
             return probs > 0.5, probs
 
     def run_on_batch(

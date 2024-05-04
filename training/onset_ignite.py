@@ -60,10 +60,9 @@ def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
         return
     wandb.log(
         {f"{mode}-avg_loss": loss, f"{mode}-avg_loss_onset": metrics["loss-onset"]},
-        step=epoch,
     )
     if "loss-notes" in metrics:
-        wandb.log({f"{mode}-avg_loss_notes": metrics["loss-notes"]}, step=epoch)
+        wandb.log({f"{mode}-avg_loss_notes": metrics["loss-notes"]})
 
 
 def score_function(engine):
@@ -176,7 +175,7 @@ def ignite_train(
                 loss_v = smoothing * loss_v + (1 - smoothing) * lr_find_loss[-1]
                 lr_find_loss.append(loss_v)
 
-            wandb.log({"train-loss": loss_v}, step=i)
+            wandb.log({"train-loss": loss_v})
 
         losses = {key: value.item() for key, value in {"loss": loss, **losses}.items()}
 
@@ -184,7 +183,7 @@ def ignite_train(
 
         for key, value in losses.items():
             if wandb_mode != "disabled":
-                wandb.log({key: value, "iteration": i})
+                wandb.log({key: value})
 
         return predictions, losses
 
@@ -268,7 +267,6 @@ def ignite_train(
 
         metrics = evaluator.state.metrics
         write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
-        wandb.join()
         model.train()
 
     if wandb_mode != "disabled":
