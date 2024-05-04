@@ -56,6 +56,9 @@ def main(run_parameters: RunConfig):
         wandb.define_metric("epoch")
         wandb.define_metric("metrics/*", step_metric="epoch")
 
+        wandb.define_metric("validation/step")
+        wandb.define_metric("validation/*", step_metric="validation/step")
+
         dataset.load()
 
         train_dataset = dataset[Split.TRAIN]

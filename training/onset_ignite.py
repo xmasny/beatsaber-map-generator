@@ -258,13 +258,13 @@ def ignite_train(
                     epoch_length_valid,
                     eval_tolerance,
                 ).items():
-                    k = "validation-" + key.replace(" ", "_")
+                    k = "validation/" + key.replace(" ", "_")
                     v = np.mean(value)
                     if wandb_mode != "disabled":
-                        wandb.log({k: v}, step=i)
+                        wandb.log({k: v, "validation/step": i})
 
             if wandb_mode != "disabled":
-                wandb.log({"lr": lr}, step=i)
+                wandb.log({"validation/lr": lr, "validation/step": i})
 
         metrics = evaluator.state.metrics
         write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
