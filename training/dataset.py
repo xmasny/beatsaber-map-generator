@@ -184,12 +184,11 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
             )
 
             automapper = df["automapper"] == True
-            bpm = df[(df["bpm"] >= 100.0) & (df["bpm"] <= 500.0)]
 
             df = df[~automapper]
-            df = df[bpm]
 
         songs = df.values.tolist()
+        songs = [value for value in songs if 100.0 <= value[5] <= 500.0]
 
         train, valid, test = split_dataset(songs)
 
