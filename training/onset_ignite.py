@@ -34,7 +34,7 @@ def generate_valid_length(
     song_batch_num: int,
     batch_size: int,
 ):
-    pbar = tqdm(valid_loader, total=song_batch_num)
+    pbar = tqdm(valid_loader, total=song_batch_num, desc="Generate valid length")
     valid_dataset_len = 0
     for songs in pbar:
         for song in DataLoader(songs, collate_fn=collate_fn):
@@ -59,10 +59,16 @@ def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
     if wandb_mode == "disabled":
         return
     wandb.log(
-        {f"metrics/{mode}-avg_loss": loss, f"metrics/{mode}-avg_loss_onset": metrics["loss-onset"], 'epoch': epoch}
+        {
+            f"metrics/{mode}-avg_loss": loss,
+            f"metrics/{mode}-avg_loss_onset": metrics["loss-onset"],
+            "epoch": epoch,
+        }
     )
     if "loss-notes" in metrics:
-        wandb.log({f"metrics/{mode}-avg_loss_notes": metrics["loss-notes"], 'epoch': epoch})
+        wandb.log(
+            {f"metrics/{mode}-avg_loss_notes": metrics["loss-notes"], "epoch": epoch}
+        )
 
 
 def score_function(engine):
@@ -175,7 +181,7 @@ def ignite_train(
                 loss_v = smoothing * loss_v + (1 - smoothing) * lr_find_loss[-1]
                 lr_find_loss.append(loss_v)
 
-            wandb.log({"train/loss": loss_v, 'train/step':i})
+            wandb.log({"train/loss": loss_v, "train/step": i})
 
         losses = {key: value.item() for key, value in {"loss": loss, **losses}.items()}
 
@@ -183,7 +189,7 @@ def ignite_train(
 
         for key, value in losses.items():
             if wandb_mode != "disabled":
-                wandb.log({f"train/{key}": value, 'train/step': i})
+                wandb.log({f"train/{key}": value, "train/step": i})
 
         return predictions, losses
 
@@ -300,8 +306,8 @@ def ignite_train(
     if wandb_mode != "disabled":
         wandb.watch(model, log="all", criterion=avg_loss)
 
-    train_num_songs_pbar = tqdm(total=train_dataset_len)
-    valid_num_songs_pbar = tqdm(total=valid_dataset_len)
+    train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
+    valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
 
     valid_song_batch_num = ceil(valid_dataset_len / songs_batch_size)
 
