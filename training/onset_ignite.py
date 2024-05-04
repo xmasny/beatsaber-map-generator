@@ -268,9 +268,6 @@ def ignite_train(
         write_metrics(metrics, "validation", engine.state.epoch, i, wandb_mode)
         model.train()
 
-    if wandb_mode != "disabled":
-        wandb.watch(model)
-
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss_onset = Average(output_transform=lambda output: output[1]["loss-onset"])
     avg_loss.attach(trainer, "loss")
@@ -304,6 +301,8 @@ def ignite_train(
         model_handler,
         {"mymodel": model},
     )
+    if wandb_mode != "disabled":
+        wandb.watch(model, log="all", criterion=avg_loss)
 
     train_num_songs_pbar = tqdm(total=train_dataset_len)
     valid_num_songs_pbar = tqdm(total=valid_dataset_len)
