@@ -52,7 +52,7 @@ def generate_valid_length(
     return ceil(valid_dataset_len / batch_size)
 
 
-def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
+def write_metrics(metrics, mode: str, epoch: int, iteration: int, wandb_mode: str):
     loss = metrics["loss"]
     logger.info(f"{mode} Results - Epoch: {epoch}  " f"Avg loss: {loss:.4f}")
     # wandb
@@ -60,9 +60,10 @@ def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
         return
     wandb.log(
         {f"{mode}-avg_loss": loss, f"{mode}-avg_loss_onset": metrics["loss-onset"]},
+        step=iteration,
     )
     if "loss-notes" in metrics:
-        wandb.log({f"{mode}-avg_loss_notes": metrics["loss-notes"]})
+        wandb.log({f"{mode}-avg_loss_notes": metrics["loss-notes"]}, step=iteration)
 
 
 def score_function(engine):
@@ -175,7 +176,7 @@ def ignite_train(
                 loss_v = smoothing * loss_v + (1 - smoothing) * lr_find_loss[-1]
                 lr_find_loss.append(loss_v)
 
-            wandb.log({"train-loss": loss_v})
+            wandb.log({"train-loss": loss_v}, step=i)
 
         losses = {key: value.item() for key, value in {"loss": loss, **losses}.items()}
 
@@ -183,7 +184,7 @@ def ignite_train(
 
         for key, value in losses.items():
             if wandb_mode != "disabled":
-                wandb.log({key: value})
+                wandb.log({key: value}, step=i)
 
         return predictions, losses
 
@@ -231,9 +232,7 @@ def ignite_train(
                     f"Loss: {loss:.4f}"
                 )
                 if wandb_mode != "disabled":
-                    wandb.log(
-                        {"training_loss": loss, "iteration": engine.state.iteration}
-                    )
+                    wandb.log({"training_loss": loss}, step=engine.state.iteration)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=validation_interval))
     def log_validation_results(engine: Engine):
@@ -259,14 +258,14 @@ def ignite_train(
                     k = "validation-" + key.replace(" ", "_")
                     v = np.mean(value)
                     if wandb_mode != "disabled":
-                        wandb.log({k: v, "iteration": i})
+                        wandb.log({k: v}, step=i)
 
             if wandb_mode != "disabled":
-                wandb.log({"lr": lr, "iteration": i})
-                wandb.log({"epoch": engine.state.epoch})
+                wandb.log({"lr": lr}, step=i)
+                wandb.log({"epoch": engine.state.epoch}, step=i)
 
         metrics = evaluator.state.metrics
-        write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
+        write_metrics(metrics, "validation", engine.state.epoch, i, wandb_mode)
         model.train()
 
     if wandb_mode != "disabled":
