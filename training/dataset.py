@@ -184,9 +184,10 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
             )
 
             automapper = df["automapper"] == True
-            bpm = df["bpm"] < 100 or df["bpm"] > 500
+            bpm = df["bpm"] < 100.0 or df["bpm"] > 500.0
 
             df = df[~automapper]
+            df = df[~bpm]
 
         songs = df.values.tolist()
 
