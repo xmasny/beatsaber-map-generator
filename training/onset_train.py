@@ -50,6 +50,12 @@ def main(run_parameters: RunConfig):
             mode=run_parameters.wandb_mode,
         )
 
+        wandb.define_metric("train/step")
+        wandb.define_metric("train/*", step_metric="train/step")
+
+        wandb.define_metric("epoch")
+        wandb.define_metric("metrics/*", step_metric="epoch")
+
         dataset.load()
 
         train_dataset = dataset[Split.TRAIN]
