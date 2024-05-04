@@ -25,7 +25,7 @@ from training.loader import BaseLoader
 from tqdm import tqdm
 
 
-# logger = getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def generate_valid_length(
@@ -52,6 +52,20 @@ def generate_valid_length(
     return ceil(valid_dataset_len / batch_size)
 
 
+def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
+    loss = metrics["loss"]
+    logger.info(f"{mode} Results - Epoch: {epoch}  " f"Avg loss: {loss:.4f}")
+    # wandb
+    if wandb_mode == "disabled":
+        return
+    wandb.log(
+        {f"{mode}-avg_loss": loss, f"{mode}-avg_loss_onset": metrics["loss-onset"]},
+        step=epoch,
+    )
+    if "loss-notes" in metrics:
+        wandb.log({f"{mode}-avg_loss_notes": metrics["loss-notes"]}, step=epoch)
+
+
 def score_function(engine):
     val_loss = engine.state.metrics["loss"]
     return -val_loss
@@ -70,7 +84,7 @@ def ignite_train(
     train_dataset_len,
     valid_dataset_len,
     device,
-    wandb_logger,
+    wandb_logger: WandBLogger,
     **run_parameters,
 ) -> None:
 
@@ -162,14 +176,20 @@ def ignite_train(
                 loss_v = smoothing * loss_v + (1 - smoothing) * lr_find_loss[-1]
                 lr_find_loss.append(loss_v)
 
+            wandb.log({"train-loss": loss_v}, step=i)
+
         losses = {key: value.item() for key, value in {"loss": loss, **losses}.items()}
 
         i = engine.state.iteration
 
+        for key, value in losses.items():
+            if wandb_mode != "disabled":
+                wandb.log({key: value, "iteration": i})
+
         return predictions, losses
 
     # Define a function to handle a single evaluation iteration
-    def eval_step(engine, batch):
+    def eval_step(engine: Engine, batch):
         model.eval()
         with torch.no_grad():
             predictions, losses = model.run_on_batch(batch)
@@ -191,21 +211,33 @@ def ignite_train(
     checkpoint = Path(log_dir) / "checkpoint"
 
     @trainer.on(Events.STARTED)
-    def resume_training(engine):
+    def resume_training(engine: Engine):
         if resume_checkpoint:
             engine.state.iteration = resume_checkpoint
             engine.state.epoch = int(resume_checkpoint / engine.state.epoch_length)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=loss_interval))
-    def log_training_loss(engine):
-        loss = engine.state.output[1]["loss"]
-        iteration_max = engine.state.max_epochs * engine.state.epoch_length
-        """ logger.info(
-            f"Iteration[{engine.state.iteration}/{iteration_max}] " f"Loss: {loss:.4f}"
-        ) """
+    def log_training_loss(engine: Engine):
+        if isinstance(engine.state.output, dict):
+            loss = engine.state.output.get("loss")
+            if loss is not None:
+                iteration_max = (
+                    engine.state.max_epochs * engine.state.epoch_length
+                    if engine.state.max_epochs is not None
+                    and engine.state.epoch_length is not None
+                    else None
+                )
+                logger.info(
+                    f"Iteration[{engine.state.iteration}/{iteration_max}] "
+                    f"Loss: {loss:.4f}"
+                )
+                if wandb_mode != "disabled":
+                    wandb.log(
+                        {"training_loss": loss, "iteration": engine.state.iteration}
+                    )
 
     @trainer.on(Events.ITERATION_COMPLETED(every=validation_interval))
-    def log_validation_results(engine):
+    def log_validation_results(engine: Engine):
         i = engine.state.iteration
         lr = [pg["lr"] for pg in optimizer.param_groups][-1]
 
@@ -228,10 +260,19 @@ def ignite_train(
                     k = "validation-" + key.replace(" ", "_")
                     v = np.mean(value)
                     if wandb_mode != "disabled":
-                        wandb.log({k: v}, step=i)
+                        wandb.log({k: v, "iteration": i})
+
+            if wandb_mode != "disabled":
+                wandb.log({"lr": lr, "iteration": i})
+                wandb.log({"epoch": engine.state.epoch})
 
         metrics = evaluator.state.metrics
+        write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
+        wandb.join()
         model.train()
+
+    if wandb_mode != "disabled":
+        wandb.watch(model)
 
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss_onset = Average(output_transform=lambda output: output[1]["loss-onset"])
@@ -266,15 +307,6 @@ def ignite_train(
         model_handler,
         {"mymodel": model},
     )
-    if wandb_mode != "disabled":
-        wandb_logger.attach_output_handler(
-            trainer,
-            event_name=Events.ITERATION_COMPLETED,
-            tag="training",
-            output_transform=lambda loss: {"loss": loss},
-        )
-
-        wandb_logger.watch(model)
 
     train_num_songs_pbar = tqdm(total=train_dataset_len)
     valid_num_songs_pbar = tqdm(total=valid_dataset_len)
@@ -288,9 +320,15 @@ def ignite_train(
         train_batch_size,
     )
 
+    logger.info(
+        f"epoch_length: {epoch_length} epoch_length_valid: {epoch_length_valid}"
+    )
     # Run the training process
     trainer.run(
         cycle(train_loader, train_num_songs_pbar),
         max_epochs=epochs,
         epoch_length=epoch_length,
     )
+
+    if wandb_mode != "disabled":
+        wandb.join()
