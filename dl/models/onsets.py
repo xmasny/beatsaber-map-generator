@@ -79,7 +79,7 @@ class OnsetsBase(nn.Module):
         with torch.no_grad():
             probs = self(mel, condition, beats)
 
-            wandb.log({"onset_probs": probs.max()})
+            wandb.log({"tracking/onset_probs": probs.max()})
             return probs > 0.5, probs
 
     def run_on_batch(
