@@ -81,7 +81,6 @@ class RunConfig(DictConfig):
     object_type: str
     difficulty: str
     model_dir: str
-    lr: float
     songs_batch_size: int
     train_batch_size: int
     enable_condition: bool
@@ -107,3 +106,7 @@ class RunConfig(DictConfig):
     is_parallel: bool
     save_valid_dataset: bool
     num_workers: int
+    lr_scheduler: str
+    weight_decay: float
+    eta_min: float
+    verbose: bool

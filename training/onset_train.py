@@ -9,6 +9,10 @@ from config import *
 from torch.utils.data import DataLoader
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 
+from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
+from torch.optim import Adam
+
+
 import shutil
 
 
@@ -69,8 +73,32 @@ def main(run_parameters: RunConfig):
 
         train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
         valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
+
         # Define your optimizer
-        optimizer = torch.optim.Adam(model.parameters(), lr=run_parameters.lr)
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            run_parameters.start_lr,
+            weight_decay=run_parameters.weight_decay,
+        )
+        if run_parameters.lr_scheduler == "CyclicLR":
+            lr_scheduler = CyclicLR(
+                optimizer,
+                run_parameters.start_lr,
+                run_parameters.end_lr,
+                1000,
+                cycle_momentum=False,
+                verbose=run_parameters.verbose,
+            )
+        elif run_parameters.lr_scheduler == "CosineAnnealingLR":
+            lr_scheduler = CosineAnnealingLR(
+                optimizer,
+                run_parameters.epochs * 100,
+                eta_min=run_parameters.eta_min,
+                verbose=run_parameters.verbose,
+            )
+        else:
+            raise ValueError
+
         wandb.config.update(
             {
                 "train_dataset_len": train_dataset_len,
@@ -101,6 +129,7 @@ def main(run_parameters: RunConfig):
             valid_dataset_len,
             device,
             wandb_logger,
+            lr_scheduler,
             **run_parameters,  # type: ignore
         )
     except KeyboardInterrupt as e:

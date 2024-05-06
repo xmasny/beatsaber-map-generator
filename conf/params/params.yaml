@@ -16,7 +16,7 @@ checkpoint_interval: 400
 validation_interval: 200
 fuzzy_scale: 0.2
 fuzzy_width: 5
-lr_find: true
+lr_find: false
 end_lr: 1e-7
 start_lr: 1e-1
 epoch_length: 100
@@ -26,3 +26,7 @@ wandb_mode: online #disabled, online, offline,
 is_parallel: false
 save_valid_dataset: false
 num_workers: 0
+lr_scheduler: CosineAnnealingLR # CosineAnnealingLR, CyclicLR
+weight_decay: 0
+eta_min: 1e-6
+verbose: false

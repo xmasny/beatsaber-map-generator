@@ -10,6 +10,7 @@ import wandb
 
 from config import *
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import LambdaLR, _LRScheduler
 
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint
@@ -90,6 +91,7 @@ def ignite_train(
     valid_dataset_len,
     device,
     wandb_logger: WandBLogger,
+    lr_scheduler: _LRScheduler | LambdaLR,
     **run_parameters,
 ) -> None:
 
