@@ -16,7 +16,6 @@ checkpoint_interval: 400
 validation_interval: 200
 fuzzy_scale: 0.2
 fuzzy_width: 5
-lr_find: false
 end_lr: 1e-7
 start_lr: 1e-1
 epoch_length: 100

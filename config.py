@@ -96,7 +96,6 @@ class RunConfig(DictConfig):
     validation_interval: int
     fuzzy_scale: float
     fuzzy_width: int
-    lr_find: bool
     end_lr: float
     start_lr: float
     epoch_length: int

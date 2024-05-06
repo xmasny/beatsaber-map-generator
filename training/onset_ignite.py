@@ -1,4 +1,3 @@
-import math
 import shutil
 from logging import getLogger
 from math import ceil
@@ -10,7 +9,7 @@ import wandb
 
 from config import *
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import LambdaLR, _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler
 
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint
@@ -19,7 +18,7 @@ from ignite.contrib.handlers.wandb_logger import WandBLogger
 
 from ignite.metrics import Average
 
-from dl.models.onsets import OnsetsBase, SimpleOnsets
+from dl.models.onsets import OnsetsBase
 from notes_generator.training.evaluate import concatenate_tensors_by_key, evaluate
 from training.loader import BaseLoader
 
@@ -91,7 +90,7 @@ def ignite_train(
     valid_dataset_len,
     device,
     wandb_logger: WandBLogger,
-    lr_scheduler: _LRScheduler | LambdaLR,
+    lr_scheduler: _LRScheduler,
     **run_parameters,
 ) -> None:
 
@@ -112,7 +111,6 @@ def ignite_train(
     log_dir = run_parameters.get("log_dir", "logs")
     fuzzy_scale = run_parameters.get("fuzzy_scale", 1.0)
     fuzzy_width = run_parameters.get("fuzzy_width", 1)
-    lr_find = run_parameters.get("lr_find", False)
     start_lr = run_parameters.get("start_lr", 1e-4)
     end_lr = run_parameters.get("end_lr", 1e-4)
     epoch_length = run_parameters.get("epoch_length", 100)
@@ -120,17 +118,6 @@ def ignite_train(
     epochs = run_parameters.get("epochs", 100)
     wandb_mode = run_parameters.get("wandb_mode", "disabled")
     num_workers = run_parameters.get("num_workers", 2)
-
-    if lr_find:
-        lr_find_loss = []
-        lr_find_lr = []
-        optimizer = torch.optim.Adam(model.parameters(), start_lr)
-        lr_find_epochs = 2
-        lr_lambda = lambda x: math.exp(
-            x * math.log(end_lr / start_lr) / (lr_find_epochs * epoch_length)
-        )
-        lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
-        smoothing = 0.05
 
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
         if num_songs_pbar:
@@ -172,18 +159,6 @@ def ignite_train(
                 pass
             else:
                 lr_scheduler.step()
-        if lr_find:
-            loss_v = loss.item()  # type: ignore
-            i = engine.state.iteration
-            lr_step = optimizer.state_dict()["param_groups"][0]["lr"]
-            lr_find_lr.append(lr_step)
-            if i == 1:
-                lr_find_loss.append(loss_v)
-            else:
-                loss_v = smoothing * loss_v + (1 - smoothing) * lr_find_loss[-1]
-                lr_find_loss.append(loss_v)
-
-            wandb.log({"train/loss": loss_v, "train/step": i})
 
         losses = {key: value.item() for key, value in {"loss": loss, **losses}.items()}
 
