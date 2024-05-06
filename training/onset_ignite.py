@@ -112,13 +112,10 @@ def ignite_train(
     log_dir = run_parameters.get("log_dir", "logs")
     fuzzy_scale = run_parameters.get("fuzzy_scale", 1.0)
     fuzzy_width = run_parameters.get("fuzzy_width", 1)
-    start_lr = run_parameters.get("start_lr", 1e-4)
-    end_lr = run_parameters.get("end_lr", 1e-4)
     epoch_length = run_parameters.get("epoch_length", 100)
     warmup_steps = run_parameters.get("warmup_steps", 0)
     epochs = run_parameters.get("epochs", 100)
     wandb_mode = run_parameters.get("wandb_mode", "disabled")
-    num_workers = run_parameters.get("num_workers", 2)
 
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
         if num_songs_pbar:
