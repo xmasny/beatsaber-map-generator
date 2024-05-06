@@ -10,6 +10,7 @@ import wandb
 from config import *
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint
@@ -85,7 +86,7 @@ def ignite_train(
     model: OnsetsBase,
     train_loader,
     valid_loader,
-    optimizer,
+    optimizer: Optimizer,
     train_dataset_len,
     valid_dataset_len,
     device,
@@ -163,6 +164,8 @@ def ignite_train(
         losses = {key: value.item() for key, value in {"loss": loss, **losses}.items()}
 
         i = engine.state.iteration
+
+        wandb.log({"train/lr": lr_scheduler.get_last_lr(), "train/step": i})
 
         for key, value in losses.items():
             if wandb_mode != "disabled":

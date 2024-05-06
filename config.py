@@ -108,4 +108,3 @@ class RunConfig(DictConfig):
     lr_scheduler: str
     weight_decay: float
     eta_min: float
-    verbose: bool

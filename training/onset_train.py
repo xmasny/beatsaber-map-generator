@@ -87,14 +87,12 @@ def main(run_parameters: RunConfig):
                 run_parameters.end_lr,
                 1000,
                 cycle_momentum=False,
-                verbose=run_parameters.verbose,
             )
         elif run_parameters.lr_scheduler == "CosineAnnealingLR":
             lr_scheduler = CosineAnnealingLR(
                 optimizer,
                 run_parameters.epochs * 100,
                 eta_min=run_parameters.eta_min,
-                verbose=run_parameters.verbose,
             )
         else:
             raise ValueError

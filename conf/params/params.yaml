@@ -28,4 +28,3 @@ num_workers: 0
 lr_scheduler: CosineAnnealingLR # CosineAnnealingLR, CyclicLR
 weight_decay: 0
 eta_min: 1e-6
-verbose: false
