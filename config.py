@@ -105,6 +105,6 @@ class RunConfig(DictConfig):
     is_parallel: bool
     save_valid_dataset: bool
     num_workers: int
-    lr_scheduler_select: str
+    lr_scheduler_name: str
     weight_decay: float
     eta_min: float

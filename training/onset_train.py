@@ -80,7 +80,7 @@ def main(run_parameters: RunConfig):
             run_parameters.start_lr,
             weight_decay=run_parameters.weight_decay,
         )
-        if run_parameters.lr_scheduler == "CyclicLR":
+        if run_parameters.lr_scheduler_name == "CyclicLR":
             lr_scheduler = CyclicLR(
                 optimizer,
                 run_parameters.start_lr,
@@ -88,7 +88,7 @@ def main(run_parameters: RunConfig):
                 1000,
                 cycle_momentum=False,
             )
-        elif run_parameters.lr_scheduler == "CosineAnnealingLR":
+        elif run_parameters.lr_scheduler_name == "CosineAnnealingLR":
             lr_scheduler = CosineAnnealingLR(
                 optimizer,
                 run_parameters.epochs * 100,

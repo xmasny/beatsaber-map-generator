@@ -25,6 +25,6 @@ wandb_mode: online #disabled, online, offline,
 is_parallel: false
 save_valid_dataset: false
 num_workers: 0
-lr_scheduler_select: CosineAnnealingLR # CosineAnnealingLR, CyclicLR
+lr_scheduler_name: CosineAnnealingLR # CosineAnnealingLR, CyclicLR
 weight_decay: 0
 eta_min: 1e-6
