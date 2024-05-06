@@ -19,7 +19,7 @@ fuzzy_width: 5
 end_lr: 1e-7
 start_lr: 1e-1
 epoch_length: 100
-warmup_steps: 400
+warmup_steps: 0
 epochs: 100
 wandb_mode: online #disabled, online, offline, 
 is_parallel: false

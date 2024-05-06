@@ -162,7 +162,7 @@ def ignite_train(
 
         i = engine.state.iteration
 
-        wandb.log({"train/lr": lr_scheduler.get_last_lr(), "train/step": i})
+        wandb.log({"train/lr": lr_scheduler.get_last_lr()[0], "train/step": i})
 
         for key, value in losses.items():
             if wandb_mode != "disabled":
