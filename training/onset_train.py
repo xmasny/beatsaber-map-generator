@@ -75,7 +75,7 @@ def main(run_parameters: RunConfig):
         valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
 
         # Define your optimizer
-        optimizer = torch.optim.Adam(
+        optimizer = Adam(
             model.parameters(),
             run_parameters.start_lr,
             weight_decay=run_parameters.weight_decay,
@@ -126,8 +126,8 @@ def main(run_parameters: RunConfig):
             train_dataset_len,
             valid_dataset_len,
             device,
-            wandb_logger,
             lr_scheduler,
+            wandb_logger,
             **run_parameters,  # type: ignore
         )
     except KeyboardInterrupt as e:

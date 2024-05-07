@@ -9,7 +9,7 @@ import wandb
 
 from config import *
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine, Events
@@ -90,8 +90,8 @@ def ignite_train(
     train_dataset_len,
     valid_dataset_len,
     device,
-    wandb_logger: WandBLogger,
-    lr_scheduler: _LRScheduler,
+    lr_scheduler: CyclicLR | CosineAnnealingLR,
+    wandb_logger: Optional[WandBLogger],
     **run_parameters,
 ) -> None:
 
@@ -115,7 +115,7 @@ def ignite_train(
     epoch_length = run_parameters.get("epoch_length", 100)
     warmup_steps = run_parameters.get("warmup_steps", 0)
     epochs = run_parameters.get("epochs", 100)
-    wandb_mode = run_parameters.get("wandb_mode", "disabled")
+    wandb_mode = run_parameters.get("wandb_mode", "online")
 
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
         if num_songs_pbar:
@@ -162,7 +162,9 @@ def ignite_train(
 
         i = engine.state.iteration
 
-        wandb.log({"train/lr": lr_scheduler.get_last_lr()[0], "train/step": i})
+        lr = [pg["lr"] for pg in optimizer.param_groups][-1]
+
+        wandb.log({"train/lr": lr, "train/step": i})
 
         for key, value in losses.items():
             if wandb_mode != "disabled":
@@ -214,7 +216,7 @@ def ignite_train(
                     f"Loss: {loss:.4f}"
                 )
 
-    @trainer.on(Events.ITERATION_COMPLETED(every=validation_interval))
+    @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
     def log_validation_results(engine: Engine):
         i = engine.state.iteration
         lr = [pg["lr"] for pg in optimizer.param_groups][-1]

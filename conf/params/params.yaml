@@ -13,7 +13,7 @@ dropout: 0.5
 rnn_dropout: 0.0
 loss_interval: 100
 checkpoint_interval: 400
-validation_interval: 200
+validation_interval: 1
 fuzzy_scale: 0.2
 fuzzy_width: 5
 end_lr: 1e-7
