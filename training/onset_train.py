@@ -49,7 +49,7 @@ def main(run_parameters: RunConfig):
             model = MyDataParallel(model)
 
         wandb_logger = WandBLogger(
-            project="test-beat-saber-map-generator",
+            project="beat-saber-map-generator",
             config={**run_parameters},
             mode=run_parameters.wandb_mode,
         )

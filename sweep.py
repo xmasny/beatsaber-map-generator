@@ -141,7 +141,7 @@ def sweep_train(config=None):
 wandb.agent(
     sweep_id,
     sweep_train,
-    project="test-beat-saber-map-generator",
+    project="beat-saber-map-generator",
 )
 
 wandb.finish()
