@@ -163,9 +163,16 @@ class BaseLoader(IterableDataset):  # type: ignore
         )
 
         if os.path.exists(path):
-            shutil.rmtree(
-                "dataset/valid_dataset",
+            delete = input(
+                f"Valid dataset already exists. Do you want to delete it? (y/n) "
             )
+            if delete == "y":
+                shutil.rmtree(
+                    "dataset/valid_dataset",
+                )
+                print("Removed dataset/valid_dataset")
+            else:
+                return
 
         os.makedirs(path)
         pbar = tqdm(total=valid_dataset_len, desc="Saving valid dataset")

@@ -45,17 +45,17 @@ run_parameters = AttributeDict()
 run_parameters.difficulty = "Easy"
 run_parameters.object_type = "color_notes"
 
-batch_size = int(input("Enter the batch size: "))
+songs_batch_size = int(input("Enter the batch size: "))
 num_workers = int(input("Enter the number of workers: "))
 
-train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
-valid_loader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
+train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
+valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
 
 dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)  # type: ignore
 
 valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
 valid_dataset_len = len(valid_dataset)
-valid_loader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=non_collate)  # type: ignore
+valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
 
 sweep_id = input("Enter the sweep id: ")
 
@@ -64,13 +64,19 @@ def sweep_train(config=None):
     with wandb.init(config=config):  # type: ignore
         config = wandb.config
 
-        run_parameters = {**config}
+        run_parameters = {
+            **config,
+            "songs_batch_size": songs_batch_size,
+            "num_workers": num_workers,
+        }
 
         wandb.config.update(
             {
                 "train_dataset_len": train_dataset_len,
                 "valid_dataset_len": valid_dataset_len,
                 "wandb_mode": "online",
+                "songs_batch_size": songs_batch_size,
+                "num_workers": num_workers,
             }
         )
 

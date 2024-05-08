@@ -52,7 +52,7 @@ parameters:
   log_dir:  
     value: ./logs
   train_batch_size: 
-    value: 2
+    value: 30
   enable_condition: 
     value: true
   seq_length: 
@@ -70,7 +70,7 @@ parameters:
   validation_interval:  
     value: 1
   epochs: 
-    value: 20
+    value: 10
   is_parallel: 
     value: false
   save_valid_dataset: 
