@@ -81,13 +81,6 @@ def sweep_train(config=None):
         if gpus:
             run_parameters["epoch_length"] = run_parameters["epoch_length"] * 2
             run_parameters["train_batch_size"] = run_parameters["train_batch_size"] // 2
-            wandb.config.update(
-                {
-                    "epoch_length": run_parameters["epoch_length"],
-                    "train_batch_size": run_parameters["train_batch_size"],
-                },
-                allow_val_change=True,
-            )
 
         wandb.config.update(
             {
