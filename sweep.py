@@ -11,6 +11,19 @@ from torch.optim import Adam
 from dl.models.onsets import SimpleOnsets
 
 
+class AttributeDict(dict):
+    def __getattr__(self, attr):
+        if attr in self:
+            return self[attr]
+        else:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{attr}'"
+            )
+
+    def __setattr__(self, attr, value):
+        self[attr] = value
+
+
 def non_collate(batch):
     return batch
 
@@ -26,10 +39,11 @@ valid_dataset = dataset[Split.VALIDATION]
 train_dataset_len = train_dataset.n_shards
 valid_dataset_len = valid_dataset.n_shards
 
-run_parameters = {
-    "difficulty": "Easy",
-    "object_type": "color_notes",
-}
+run_parameters = AttributeDict()
+
+
+run_parameters.difficulty = "Easy"
+run_parameters.object_type = "color_notes"
 
 batch_size = int(input("Enter the batch size: "))
 num_workers = int(input("Enter the number of workers: "))
