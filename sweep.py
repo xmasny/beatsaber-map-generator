@@ -48,7 +48,6 @@ run_parameters.object_type = "color_notes"
 songs_batch_size = int(input("Enter the batch size: "))
 num_workers = int(input("Enter the number of workers: "))
 
-train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
 valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
 
 dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)  # type: ignore
@@ -61,6 +60,7 @@ sweep_id = input("Enter the sweep id: ")
 
 
 def sweep_train(config=None):
+    train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
     with wandb.init(config=config):  # type: ignore
         config = wandb.config
 
