@@ -41,6 +41,7 @@ def main(run_parameters: RunConfig):
             dropout=run_parameters.dropout,
             rnn_dropout=run_parameters.rnn_dropout,
             enable_condition=run_parameters.enable_condition,
+            num_layers=run_parameters.num_layers,
             enable_beats=run_parameters.with_beats,
             inference_chunk_length=round(run_parameters.seq_length / FRAME),
         ).to(device)
