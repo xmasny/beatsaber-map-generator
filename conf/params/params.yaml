@@ -1,7 +1,6 @@
 object_type: color_notes
 difficulty: Easy
 log_dir: ./logs
-lr: 0.0001
 train_batch_size: 14
 songs_batch_size: 20
 enable_condition: true
@@ -9,22 +8,22 @@ seq_length: 16000
 skip_step: 2000
 with_beats: true
 num_layers: 2
-dropout: 0.5
-rnn_dropout: 0.0
+dropout: 0.4
+rnn_dropout: 0.1
 loss_interval: 100
 checkpoint_interval: 400
 validation_interval: 1
 fuzzy_scale: 0.2
 fuzzy_width: 5
-end_lr: 1e-7
-start_lr: 1e-1
-epoch_length: 100
-warmup_steps: 0
+end_lr: 0.00241
+start_lr: 0.000493
+epoch_length: 400
+warmup_steps: 800
 epochs: 100
 wandb_mode: online #disabled, online, offline, 
 is_parallel: false
 save_valid_dataset: false
 num_workers: 0
-lr_scheduler_name: CosineAnnealingLR # CosineAnnealingLR, CyclicLR
+lr_scheduler_name: CyclicLR # CosineAnnealingLR, CyclicLR
 weight_decay: 0
 eta_min: 1e-6
