@@ -58,14 +58,6 @@ valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn
 
 sweep_id = input("Enter the sweep id: ")
 
-gpus_q = input("Do you want to use all GPUs? (y/n): ")
-gpus = []
-
-if gpus_q == "y":
-    gpus = None
-else:
-    gpus.append(int(input("Enter the ID of GPU: ")))
-
 
 def sweep_train(config=None):
     train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
@@ -77,10 +69,6 @@ def sweep_train(config=None):
             "songs_batch_size": songs_batch_size,
             "num_workers": num_workers,
         }
-
-        if gpus:
-            run_parameters["epoch_length"] = run_parameters["epoch_length"] * 2
-            run_parameters["train_batch_size"] = run_parameters["train_batch_size"] // 2
 
         wandb.config.update(
             {
@@ -101,7 +89,7 @@ def sweep_train(config=None):
             inference_chunk_length=round(config.seq_length / FRAME),
         ).to(device)
 
-        model = MyDataParallel(model, device_ids=gpus)
+        model = MyDataParallel(model)
 
         optimizer = Adam(
             model.parameters(),

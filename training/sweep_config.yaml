@@ -1,25 +1,20 @@
-method: random
+method: bayes
 metric:
   goal: minimize
   name: train/loss-onset
 parameters:
   warmup_steps:
-    min: 0
-    max: 800
-    q: 100
-    distribution: q_uniform
+    values: [400, 800]
   epoch_length:
-    min: 100
-    max: 400
-    q: 100
-    distribution: q_uniform
+    value: 400
   fuzzy_width:
     min: 2
-    max: 10
+    max: 6
     distribution: int_uniform
   fuzzy_scale:
     min: 0.1
     max: 0.7
+    q: 0.1
     distribution: q_uniform
   start_lr:
     min: 1e-6
@@ -72,7 +67,7 @@ parameters:
   epochs: 
     value: 10
   is_parallel: 
-    value: false
+    value: true
   save_valid_dataset: 
     value: false
   eta_min: 
