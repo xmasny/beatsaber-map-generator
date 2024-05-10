@@ -18,8 +18,8 @@ while True:
             repo_id="masny5/beatsaber_songs_and_metadata",
             repo_type="dataset",
             commit_message=f"Add new songs and metadata",
-            token='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',
-            ignore_patterns=["*.npy", 'songs/*'],
+            token="",
+            ignore_patterns=["*.npy", "songs/*"],
             multi_commits=True,
             multi_commits_verbose=True,
         )
@@ -42,7 +42,7 @@ while True:
             print(e.response.status_code)
             print("Request Entity Too Large")
             break
-        
+
         elif e.response.status_code == 500:
             print(e.response.status_code)
             print("Internal Server Error")
