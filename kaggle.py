@@ -57,7 +57,7 @@ valid_dataset_len = len(valid_dataset)
 valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
 
 sweep_id = "c734g143"
-train_batch_size = 60
+train_batch_size = 50
 
 
 def sweep_train(config=None):
