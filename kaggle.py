@@ -56,8 +56,8 @@ valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
 valid_dataset_len = len(valid_dataset)
 valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
 
-sweep_id = "c734g143"
-train_batch_size = 35
+sweep_id = "2nfhyqko"
+train_batch_size = 45
 
 
 def sweep_train(config=None):
@@ -143,7 +143,7 @@ def sweep_train(config=None):
 wandb.agent(
     sweep_id,
     sweep_train,
-    project="test-beat-saber-map-generator",
+    project="beat-saber-map-generator",
 )
 
 wandb.finish()
