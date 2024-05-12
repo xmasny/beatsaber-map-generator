@@ -1,3 +1,4 @@
+import os
 import shutil
 from logging import getLogger
 from math import ceil
@@ -249,6 +250,31 @@ def ignite_train(
         write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
         model.train()
 
+    @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
+    def weight_sum(engine: Engine):
+        # Define weights for each metric
+        f1_accuracy = wandb.summary["validation/metric/onset/f1"]
+        train_loss = wandb.summary["train/loss"]
+        val_loss = wandb.summary["metrics/validation-avg_loss"]
+
+        f1_weight = 1.0
+        train_loss_weight = -1.0
+        val_loss_weight = -1.0
+
+        # Compute the combined metric
+        weight_sum = (
+            f1_weight * f1_accuracy
+            + train_loss_weight * train_loss
+            + val_loss_weight * val_loss
+        )
+
+        wandb.log(
+            {
+                "weight_sum/f1/train_loss/val_loss": weight_sum,
+                "epoch": engine.state.epoch,
+            }
+        )
+
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss_onset = Average(output_transform=lambda output: output[1]["loss-onset"])
     avg_loss.attach(trainer, "loss")
@@ -260,18 +286,50 @@ def ignite_train(
         )
         evaluator.add_event_handler(Events.COMPLETED, handler)
     to_save = {"trainer": trainer, "optimizer": optimizer}
+    if lr_scheduler:
+        to_save["lr_scheduler"] = lr_scheduler
     if checkpoint.exists() and not resume_checkpoint:
         shutil.rmtree(str(checkpoint))
     handler = Checkpoint(
         to_save,
-        DiskSaver(str(checkpoint), create_dir=True, require_empty=False),
+        DiskSaver(os.path.join(wandb.run.dir, "checkpoints"), create_dir=True, require_empty=False),  # type: ignore
         n_saved=n_saved_checkpoint,
     )
     trainer.add_event_handler(
         Events.ITERATION_COMPLETED(every=checkpoint_interval), handler
     )
+
+    best_checkpoint = Checkpoint(
+        to_save,
+        DiskSaver(os.path.join(wandb.run.dir), create_dir=False, require_empty=False),  # type: ignore
+        n_saved=1,
+        score_function=score_function,
+        score_name="validation_loss",
+        greater_or_equal=True,
+    )
+
+    trainer.add_event_handler(
+        Events.EPOCH_COMPLETED(every=validation_interval), best_checkpoint
+    )
+
+    best_model = ModelCheckpoint(
+        dirname=os.path.join(wandb.run.dir),  # type: ignore
+        filename_prefix="model",
+        n_saved=1,
+        create_dir=True,
+        require_empty=False,
+        score_function=score_function,
+        score_name="validation_loss",
+        greater_or_equal=True,
+    )
+    trainer.add_event_handler(
+        Events.EPOCH_COMPLETED(every=validation_interval),
+        best_model,
+        {"mymodel": model},
+    )
+
     model_handler = ModelCheckpoint(
-        dirname=str(checkpoint),
+        dirname=os.path.join(wandb.run.dir, "model_checkpoints"),  # type: ignore
         filename_prefix="model",
         n_saved=n_saved_model,
         create_dir=True,
@@ -282,6 +340,7 @@ def ignite_train(
         model_handler,
         {"mymodel": model},
     )
+
     if wandb_mode != "disabled":
         wandb.watch(model, log="all", criterion=avg_loss)
 

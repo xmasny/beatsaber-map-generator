@@ -1,7 +1,7 @@
 method: bayes
 metric:
-  goal: minimize
-  name: train/loss-onset
+  goal: maximize
+  name: weight_sum/f1/train_loss/val_loss
 parameters:
   warmup_steps:
     values: [400, 800]
@@ -65,10 +65,10 @@ parameters:
   validation_interval:  
     value: 1
   epochs: 
-    value: 10
+    value: 100
   is_parallel: 
     value: true
   save_valid_dataset: 
-    value: false
+    value: true
   eta_min: 
     value: 1e-6

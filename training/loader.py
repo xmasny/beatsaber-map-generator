@@ -157,12 +157,19 @@ class BaseLoader(IterableDataset):  # type: ignore
         valid_loader: DataLoader,
         valid_dataset_len: int,
         run_parameters: RunConfig,
+        default_delete: bool = False,
     ):
         path = _valid_dataset_path.format(
             object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
         )
 
-        if os.path.exists(path):
+        if default_delete:
+            shutil.rmtree(
+                "dataset/valid_dataset",
+            )
+            print("Removed dataset/valid_dataset")
+
+        if os.path.exists(path) and not default_delete:
             delete = input(
                 f"Valid dataset already exists. Do you want to delete it? (y/n) "
             )

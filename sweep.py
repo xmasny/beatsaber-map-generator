@@ -31,13 +31,13 @@ def non_collate(batch):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dataset = BaseLoader()
 
-dataset.load()
+songs_batch_size = int(input("Enter the batch size: "))
+num_workers = int(input("Enter the number of workers: "))
 
-train_dataset = dataset[Split.TRAIN]
-valid_dataset = dataset[Split.VALIDATION]
+sweep_id = input("Enter the sweep id: ")
+train_batch_size = int(input("Enter the train batch size: "))
 
-train_dataset_len = train_dataset.n_shards
-valid_dataset_len = valid_dataset.n_shards
+use_same_shuffle = input("Use the same shuffle for whole sweep run? (y/n): ")
 
 run_parameters = AttributeDict()
 
@@ -45,22 +45,43 @@ run_parameters = AttributeDict()
 run_parameters.difficulty = "Easy"
 run_parameters.object_type = "color_notes"
 
-songs_batch_size = int(input("Enter the batch size: "))
-num_workers = int(input("Enter the number of workers: "))
+if use_same_shuffle == "y":
+    dataset.load()
 
-valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
+    train_dataset = dataset[Split.TRAIN]
+    valid_dataset = dataset[Split.VALIDATION]
 
-dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)  # type: ignore
+    train_dataset_len = train_dataset.n_shards
+    valid_dataset_len = valid_dataset.n_shards
 
-valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
-valid_dataset_len = len(valid_dataset)
-valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
+    valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
 
-sweep_id = input("Enter the sweep id: ")
+    dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)  # type: ignore
+
+    valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
+    valid_dataset_len = len(valid_dataset)
+    valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
 
 
 def sweep_train(config=None):
-    train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
+    if use_same_shuffle != "y":
+        dataset.load()
+
+        train_dataset = dataset[Split.TRAIN]
+        valid_dataset = dataset[Split.VALIDATION]
+
+        train_dataset_len = train_dataset.n_shards
+        valid_dataset_len = valid_dataset.n_shards
+
+        valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
+
+        dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters, default_delete=True)  # type: ignore
+
+        valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
+        valid_dataset_len = len(valid_dataset)
+        valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
+
+        train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
     with wandb.init(config=config):  # type: ignore
         config = wandb.config
 
@@ -68,6 +89,7 @@ def sweep_train(config=None):
             **config,
             "songs_batch_size": songs_batch_size,
             "num_workers": num_workers,
+            "train_batch_size": train_batch_size,
         }
 
         wandb.config.update(
@@ -119,6 +141,8 @@ def sweep_train(config=None):
 
         wandb.define_metric("epoch")
         wandb.define_metric("metrics/*", step_metric="epoch")
+
+        wandb.define_metric("weight_sum/*", step_metric="epoch")
 
         wandb.define_metric("validation/step")
         wandb.define_metric("validation/*", step_metric="validation/step")
