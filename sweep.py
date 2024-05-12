@@ -31,7 +31,7 @@ def non_collate(batch):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dataset = BaseLoader()
 
-songs_batch_size = int(input("Enter the batch size: "))
+songs_batch_size = int(input("Enter the song batch size: "))
 num_workers = int(input("Enter the number of workers: "))
 
 sweep_id = input("Enter the sweep id: ")
@@ -39,13 +39,11 @@ train_batch_size = int(input("Enter the train batch size: "))
 
 use_same_shuffle = input("Use the same shuffle for whole sweep run? (y/n): ")
 
-run_parameters = AttributeDict()
-
-
-run_parameters.difficulty = "Easy"
-run_parameters.object_type = "color_notes"
 
 if use_same_shuffle == "y":
+    run_parameters = AttributeDict()
+    run_parameters.difficulty = "Easy"
+    run_parameters.object_type = "color_notes"
     dataset.load()
 
     train_dataset = dataset[Split.TRAIN]
@@ -65,6 +63,10 @@ if use_same_shuffle == "y":
 
 def sweep_train(config=None):
     if use_same_shuffle != "y":
+        run_parameters = AttributeDict()
+        run_parameters.difficulty = "Easy"
+        run_parameters.object_type = "color_notes"
+
         dataset.load()
 
         train_dataset = dataset[Split.TRAIN]
