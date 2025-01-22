@@ -4,5 +4,5 @@
     <option name="pathToExecutable" value="C:\Users\assas\anaconda3\Scripts\black.exe" />
     <option name="sdkName" value="Python 3.10" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="beatgenenv" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="beatenv" project-jdk-type="Python SDK" />
 </project>

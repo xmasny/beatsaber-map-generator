@@ -69,7 +69,7 @@ def split_dataset(songs):
     except ImportError:
         pass
 
-    train, valid = train_test_split(songs, train_size=0.8, random_state=shuffle_seed)
+    train, valid = train_test_split(songs, train_size=0.6, random_state=shuffle_seed)
     valid, test = train_test_split(valid, test_size=0.5, random_state=shuffle_seed)
 
     return train, valid, test

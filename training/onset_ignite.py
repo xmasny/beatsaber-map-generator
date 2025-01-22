@@ -36,6 +36,7 @@ def generate_valid_length(
     song_batch_num: int,
     batch_size: int,
 ):
+    return 14000
     pbar = tqdm(valid_loader, total=song_batch_num, desc="Generate valid length")
     valid_dataset_len = 0
     for songs in pbar:

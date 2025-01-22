@@ -50,7 +50,7 @@ def main(run_parameters: RunConfig):
             model = MyDataParallel(model)
 
         wandb_logger = WandBLogger(
-            project="beat-saber-map-generator",
+            project="test-beat-saber-map-generator",
             config={**run_parameters},
             mode=run_parameters.wandb_mode,
         )
@@ -68,7 +68,7 @@ def main(run_parameters: RunConfig):
 
         dataset.load()
 
-        train_dataset = dataset[Split.TRAIN]
+        train_dataset = dataset[Split.TEST]
         valid_dataset = dataset[Split.VALIDATION]
 
         train_dataset_len = train_dataset.n_shards

@@ -16,15 +16,19 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(message)s", filename="data_tester.log"
 )
 
-difficulty = input("Enter difficulty: ").upper()
-batch_size = int(input("Enter batch size: "))
-num_workers = int(input("Enter number of workers: "))
+difficulty = "EASY"
+batch_size = 2
+num_workers = 0
 
 dataset = TestDataset(
     difficulty=DifficultyName[difficulty],
 )
 
-wandb.init(project="test-beat-saber-map-generator", config={"difficulty": difficulty})
+wandb.init(
+    project="test-beat-saber-map-generator",
+    config={"difficulty": difficulty},
+    mode="disabled",
+)
 
 dataset.load()
 
