@@ -20,10 +20,10 @@ for difficulty in difficulties:
             "automapper",
         ],
     )
-    # df.drop(df.columns[1], axis=1, inplace=True)
+    df.drop(df.columns[1], axis=1, inplace=True)
     df[difficulty] = True
 
-    df.to_csv(f"dataset/beatmaps/color_notes/{difficulty}.csv", index=False)
+    df.to_csv(f"dataset/beatmaps/color_notes/{difficulty}_old.csv", index=False)
 
 
 merge = pd.concat(
