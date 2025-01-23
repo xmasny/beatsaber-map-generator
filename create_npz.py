@@ -1,8 +1,14 @@
+import logging
 import os
+import pickle
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(message)s", filename="create_npz.log"
+)
 
 difficulties = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
 types = ["color_notes", "obstacles", "bomb_notes"]
@@ -30,12 +36,18 @@ for object_type in types:
                 if song[difficulty]:
                     data_dict[difficulty] = np.load(f"dataset/beatmaps/{object_type}/{difficulty}/{key}.npy")
             except FileNotFoundError:
-                pass
+                logging.error(f"File not found: {key}")
             try:
                 data_dict["song"] = np.load(f"dataset/songs/mel229/{key}.npy", allow_pickle=True)
             except FileNotFoundError:
-                pass
-
+                logging.error(f"File not found: {key}")
+            except pickle.UnpicklingError:
+                try:
+                    data_dict["song"] = np.load(f"dataset/songs/mel229/{key}.npy")
+                except Exception as e:
+                    logging.error(f"Error loading {key}: {e}")
+                    print(f"Error loading {key}: {e}")
+                    continue
         if data_dict != {}:
             np.savez(f"dataset/beatmaps/{object_type}/npz/{key}.npz", **data_dict)
         progress_bar.update(1)
