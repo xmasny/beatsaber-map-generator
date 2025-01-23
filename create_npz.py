@@ -37,6 +37,17 @@ for object_type in types:
                     data_dict[difficulty] = np.load(f"dataset/beatmaps/{object_type}/{difficulty}/{key}.npy")
             except FileNotFoundError:
                 logging.error(f"File not found: {key}")
+            except ValueError:
+                try:
+                    data_dict[difficulty] = np.load(f"dataset/beatmaps/{object_type}/{difficulty}/{key}.npy", allow_pickle=True)
+                except pickle.UnpicklingError as e:
+                    logging.error(f"Error loading {key}: {e}")
+                    print(f"Error loading {key}: {e}")
+                    continue
+                except Exception as e:
+                    logging.error(f"Error loading {key}: {e}")
+                    print(f"Error loading {key}: {e}")
+                    continue
             try:
                 data_dict["song"] = np.load(f"dataset/songs/mel229/{key}.npy", allow_pickle=True)
             except FileNotFoundError:
