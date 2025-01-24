@@ -39,7 +39,8 @@ for object_type in types:
                 logging.error(f"Map File not found: {key}, {difficulty}")
             except ValueError:
                 try:
-                    data_dict[difficulty] = np.load(f"dataset/beatmaps/{object_type}/{difficulty}/{key}.npy", allow_pickle=True)
+                    data_dict[difficulty] = np.load(f"dataset/beatmaps/{object_type}/{difficulty}/{key}.npy",
+                                                    allow_pickle=True)
                 except pickle.UnpicklingError as e:
                     logging.error(f"Error loading map {key}, {difficulty}: {e}")
                     print(f"Error loading map {key}, {difficulty}: {e}")
@@ -48,10 +49,19 @@ for object_type in types:
                     logging.error(f"Error loading map {key}, {difficulty}: {e}")
                     print(f"Error loading map {key}, {difficulty}: {e}")
                     continue
+            except Exception as e:
+                logging.error(f"Error loading map {key}, {difficulty}: {e}")
+                print(f"Error loading map {key}, {difficulty}: {e}")
+                continue
         try:
             data_dict["song"] = np.load(f"dataset/songs/mel229/{key}.npy", allow_pickle=True)
         except FileNotFoundError:
             logging.error(f"Mel File not found: {key}")
+        except ValueError as e:
+            logging.error(f"Error loading mel file {key}: {e}")
+            print(f"Error loading mel file {key}: {e}")
+            return
+
         except pickle.UnpicklingError:
             try:
                 data_dict["song"] = np.load(f"dataset/songs/mel229/{key}.npy")
@@ -59,6 +69,11 @@ for object_type in types:
                 logging.error(f"Error loading mel file {key}: {e}")
                 print(f"Error loading mel file {key}: {e}")
                 return
+        except Exception as e:
+            logging.error(f"Error loading mel file {key}: {e}")
+            print(f"Error loading mel file {key}: {e}")
+            return
+
         if data_dict != {}:
             np.savez(f"dataset/beatmaps/{object_type}/npz/{key}.npz", **data_dict)
         progress_bar.update(1)
