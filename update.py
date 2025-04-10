@@ -81,7 +81,7 @@ if value == 0:
 elif value == 1:
     new_column = "npz_size_mb"
     if new_column not in df.columns:
-        df[new_column] = 0
+        df[new_column] = 0.0
 
     for index, row in tqdm(df.iterrows(), total=len(df)):
         song = row["song"]
@@ -102,8 +102,5 @@ elif value == 1:
         except Exception as e:
             log_error("ERROR", path, f"- {e}")
             # leave as 0
-
-        if index % 100 == 0:  # type: ignore
-            df.to_csv(CSV_PATH, index=False)
 
     df.to_csv(CSV_PATH, index=False)
