@@ -10,7 +10,7 @@ value = int(input("Enter update option (default 0): ") or 0)
 
 for type in ["bomb_notes", "obstacles"]:
 
-    base_path = f"dataset/beatmaps/{type}/"
+    base_path = f"dataset/beatmaps/{type}"
 
     CSV_PATH = f"{base_path}/combined_songs.csv"  # Path to your CSV file
     NPZ_DIR = f"{base_path}/npz"  # Folder containing .npz files
