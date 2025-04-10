@@ -88,11 +88,7 @@ elif value == 1:
         path = os.path.join(NPZ_DIR, song)
 
         # Skip rows and leave 'npz_size_mb' as 0
-        if (
-            not os.path.exists(path)
-            or ("automapper" in row and row["automapper"])
-            or ("missing_song" in row and row["missing_song"])
-        ):
+        if not os.path.exists(path):
             continue
 
         try:
