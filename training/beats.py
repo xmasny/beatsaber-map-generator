@@ -1,5 +1,5 @@
-"""The beat guide proposed in our paper
-"""
+"""The beat guide proposed in our paper"""
+
 import bisect
 import enum
 from collections import Counter, defaultdict
@@ -119,7 +119,9 @@ def gen_beats_array(
     return arr.reshape([-1, 1])
 
 
-def get_beat_list(bpm_info: List, max_length_ms, units: TimeUnit = TimeUnit.milliseconds):
+def get_beat_list(
+    bpm_info: List, max_length_ms, units: TimeUnit = TimeUnit.milliseconds
+):
     """
     Return the lists containing beats.
 
@@ -153,7 +155,7 @@ def get_beat_list(bpm_info: List, max_length_ms, units: TimeUnit = TimeUnit.mill
     bpm_list = []
     bar_list = []
     bar_nth = 0
-    for (bpm, start, end, beat) in zip(bpms, starts, ends, beats):
+    for bpm, start, end, beat in zip(bpms, starts, ends, beats):
         beat_duration = convert_units((60.0 / bpm) * 1000.0, units)
         beat_num = 0
         for b in np.arange(start, end, beat_duration):  # iterate over each beat
@@ -168,7 +170,6 @@ def get_beat_list(bpm_info: List, max_length_ms, units: TimeUnit = TimeUnit.mill
         if beat_num != 0:
             bar_nth += 1
     return time_list, beat_list, bpm_list, bar_list
-
 
 
 def fill_beat_list(bar_beat_list):
@@ -233,31 +234,38 @@ def count_bar_beats(bar_bpm_list):
         stat[f_beats] += 1
     return logs, stat
 
+
 if __name__ == "__main__":
-    
-    with (open("dataset/song_levels.json", "r")) as f:
+
+    with open("dataset/song_levels.json", "r") as f:
         song_levels = json.load(f)
-    
-    bpm:float = song_levels['song39']['bpm']
-    mel_spectrogram: np.ndarray = np.load("dataset/songs/song39_31b8e.npy")
-    object_array: np.ndarray = np.load("dataset/beatmaps/color_notes/Expert/song39_31b8e.npy")
+
+    bpm: float = song_levels["song39"]["bpm"]
+    mel_spectrogram: np.ndarray = np.load("dataset/songs/song39_31b8e.npz")
+    object_array: np.ndarray = np.load(
+        "dataset/beatmaps/color_notes/Expert/song39_31b8e.npz"
+    )
 
     # Extract timestamps for each frame
     timestamps = librosa.times_like(mel_spectrogram, sr=sample_rate)
 
     mel_list = timestamps.tolist()
-    tempo, beat_frames = librosa.beat.beat_track(onset_envelope=mel_spectrogram.mean(axis=0), hop_length=hop_length, sr=sample_rate)
+    tempo, beat_frames = librosa.beat.beat_track(
+        onset_envelope=mel_spectrogram.mean(axis=0),
+        hop_length=hop_length,
+        sr=sample_rate,
+    )
     audio_length_miliseconds = (timestamps.shape[0] * hop_length) / sample_rate * 1000
-    
+
     bar: int = 4
-    
+
     bpm_info = [
         (bpm, 0.0, bar),
     ]
-    
+
     arr = get_beat_list(bpm_info, audio_length_miliseconds)
-    
+
     arr2 = gen_beats_array(mel_spectrogram.shape[1], bpm_info, mel_spectrogram.shape[1]).tolist()  # type: ignore
-    
+
     print(arr)
     print(arr2)

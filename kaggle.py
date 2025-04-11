@@ -1,14 +1,14 @@
 import torch
 import wandb
-from training.onset_ignite import ignite_train
-from utils import MyDataParallel
-from training.loader import BaseLoader, SavedValidDataloader
-from config import *
+from torch.optim import Adam
+from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 from torch.utils.data import DataLoader
 
-from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
-from torch.optim import Adam
+from config import *
 from dl.models.onsets import SimpleOnsets
+from training.loader import BaseLoader, SavedValidDataloader
+from training.onset_ignite import ignite_train
+from utils import MyDataParallel
 
 
 class AttributeDict(dict):

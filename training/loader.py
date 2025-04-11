@@ -1,16 +1,21 @@
 import logging
 import os
+import re
 import shutil
 from typing import Tuple
+
 import librosa
 import numpy as np
 import torch
+from datasets import load_dataset, IterableDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from config import *
-from datasets import load_dataset, IterableDataset
 
-_valid_dataset_path = "dataset/valid_dataset/{object_type}/{difficulty}"
+from config import *
+from dl.models.util import log_window_to_csv
+from notes_generator.preprocessing import mel
+
+_valid_dataset_path = "dataset/valid_dataset/{object_type}"
 
 logging.basicConfig(
     level=logging.ERROR,
@@ -22,7 +27,7 @@ logging.basicConfig(
 class BaseLoader(IterableDataset):  # type: ignore
     def __init__(
         self,
-        difficulty: DifficultyName = DifficultyName.EASY,
+        difficulty: DifficultyName = DifficultyName.ALL,
         object_type: ObjectType = ObjectType.COLOR_NOTES,
         enable_condition: bool = True,
         stream_dataset: bool = True,
@@ -40,12 +45,12 @@ class BaseLoader(IterableDataset):  # type: ignore
 
     def iter(self, song: SongIteration) -> SongIteration | dict:
         bpm_info = get_bpm_info(song)
-        onsets = get_onset_array(song)
+        onsets = get_onset_array(song, self.difficulty)
         song_len = round(song["meta"]["duration"]) * 1000  # in ms
-        onsets_array_len = len(onsets)
+        mel_array_len = len(song["data"]["mel"][0])  # type: ignore
 
         try:
-            beats_array = gen_beats_array(onsets_array_len, bpm_info, song_len)
+            beats_array = gen_beats_array(mel_array_len, bpm_info, song_len)
         except AssertionError as e:
             logging.error(
                 f'song{song["id"]}_{song["song_id"]} difficulty {self.difficulty}: {e}'
@@ -54,11 +59,9 @@ class BaseLoader(IterableDataset):  # type: ignore
                 f'Error in song{song["id"]}_{song["song_id"]} difficulty {self.difficulty}: {e}'
             )
             song["not_working"] = True
-        condition = DifficultyNumber[self.difficulty.name].value
 
         data = dict(
-            condition=condition,  # difficulty
-            onset=onsets,
+            onsets=onsets,
             mel=song["data"]["mel"],  # type: ignore
         )
 
@@ -135,7 +138,7 @@ class BaseLoader(IterableDataset):  # type: ignore
 
     def load(self):
         dataset = load_dataset(
-            "masny5/beatsaber_songs_and_metadata",
+            "./training/dataset.py",
             f"{self.object_type.value}-{self.difficulty.value}",
             streaming=self.stream_dataset,
             trust_remote_code=True,
@@ -159,9 +162,7 @@ class BaseLoader(IterableDataset):  # type: ignore
         run_parameters: RunConfig,
         default_delete: bool = False,
     ):
-        path = _valid_dataset_path.format(
-            object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
-        )
+        path = _valid_dataset_path.format(object_type=run_parameters.object_type)
 
         if default_delete:
             shutil.rmtree(
@@ -171,7 +172,7 @@ class BaseLoader(IterableDataset):  # type: ignore
 
         if os.path.exists(path) and not default_delete:
             delete = input(
-                f"Valid dataset already exists. Do you want to delete it? (y/n) "
+                "Valid dataset already exists. Do you want to delete it? (y/n) "
             )
             if delete == "y":
                 shutil.rmtree(
@@ -216,21 +217,34 @@ def get_bpm_info(song: SongIteration):
     return [(bpm, start, beats)]
 
 
-def get_onset_array(song: SongIteration):
+def get_onset_array(
+    song: SongIteration, difficulty: DifficultyName = DifficultyName.ALL
+):
+    def get_onsets_for_beatmap(beatmap, timestamps, bpm):
+        onsets_array = np.zeros_like(timestamps, dtype=np.float32)
+        for obj in beatmap:  # type: ignore
+            beat_time = obj[1]
+            beat_time_to_sec = beat_time / bpm * 60
+            closest_frame_idx = np.argmin(np.abs(timestamps - beat_time_to_sec))
+            onsets_array[closest_frame_idx] = 1
+        return onsets_array.reshape(-1, 1)
+
     if not isinstance(song["data"]["mel"], np.ndarray):  # type: ignore
         song["data"]["mel"] = np.array(song["data"]["mel"])  # type: ignore
+
     timestamps = librosa.times_like(song["data"]["mel"], sr=sample_rate)  # type: ignore
+    onsets = {}
 
-    onsets = np.zeros_like(timestamps, dtype=np.float32)
+    for key, beatmap in song["beatmaps"].items():
+        if beatmap:  # equivalent to checking if beatmap is not empty
+            onsets[key] = {}
+            onsets[key]["onsets_array"] = get_onsets_for_beatmap(
+                beatmap, timestamps, song["meta"]["bpm"]
+            )
+            pascal_key = re.sub(r"([a-z])([A-Z])", r"\1_\2", key).upper()
+            onsets[key]["condition"] = DifficultyNumber[pascal_key].value
 
-    for obj in song["beatmap"]:  # type: ignore
-        beat_time = obj[1]
-
-        beat_time_to_sec = beat_time / song["meta"]["bpm"] * 60
-        closest_frame_idx = np.argmin(np.abs(timestamps - beat_time_to_sec))
-        onsets[closest_frame_idx] = 1
-
-    return onsets.reshape(-1, 1)
+    return onsets
 
 
 def process_bpminfo(
@@ -354,9 +368,7 @@ def assert_length(arr: np.ndarray, length: int):
 
 class SavedValidDataloader(IterableDataset):
     def __init__(self, run_parameters: RunConfig):
-        self.path = _valid_dataset_path.format(
-            object_type=run_parameters.object_type, difficulty=run_parameters.difficulty
-        )
+        self.path = _valid_dataset_path.format(object_type=run_parameters.object_type)
         self.songs = os.listdir(self.path)
 
     def __len__(self):
@@ -391,6 +403,7 @@ class TestDataset(BaseLoader):
             seq_length=seq_length,
             skip_step=skip_step,
         )
+        self.dataset = None
 
     def load(self):
         dataset = load_dataset(

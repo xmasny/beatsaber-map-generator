@@ -21,6 +21,7 @@ from ignite.contrib.handlers.wandb_logger import WandBLogger
 from ignite.metrics import Average
 
 from dl.models.onsets import OnsetsBase
+from dl.models.util import generate_window_data
 from notes_generator.training.evaluate import concatenate_tensors_by_key, evaluate
 from training.loader import BaseLoader
 
@@ -36,22 +37,27 @@ def generate_valid_length(
     song_batch_num: int,
     batch_size: int,
 ):
-    return 14000
+    # return 14000
     pbar = tqdm(valid_loader, total=song_batch_num, desc="Generate valid length")
     valid_dataset_len = 0
     for songs in pbar:
         for song in DataLoader(songs, collate_fn=collate_fn):
             try:
-                for segment in dataset.process_song(
-                    song=song,
-                    beats_array=song["data"]["beats"],
-                    condition=song["data"]["condition"],
-                    onsets=song["data"]["onset"],
-                ):
-                    valid_dataset_len += 1
-            except AssertionError as e:
+                for index, onset in song["data"]["onsets"].items():
+                    for segment in dataset.process_song(
+                        song=song,
+                        beats_array=song["data"]["beats"],
+                        condition=onset["condition"],
+                        onsets=onset["onsets_array"],
+                    ):
+                        # song_iterations = generate_window_data(
+                        #     data_length=np.shape(song["data"]["mel"])[1]
+                        # ) * len(song["data"]["onsets"])
+                        valid_dataset_len += 1
+            except Exception as e:
                 print(e)
                 continue
+    pbar.close()
     return ceil(valid_dataset_len / batch_size)
 
 
@@ -130,18 +136,19 @@ def ignite_train(
                     num_songs_pbar.update(1)
                 if "not_working" in song:
                     continue
-                for segment in dataset.process_song(
-                    song=song,
-                    beats_array=song["data"]["beats"],
-                    condition=song["data"]["condition"],
-                    onsets=song["data"]["onset"],
-                ):
+                for index, onset in song["data"]["onsets"].items():
+                    for segment in dataset.process_song(
+                        song=song,
+                        beats_array=song["data"]["beats"],
+                        condition=onset["condition"],
+                        onsets=onset["onsets_array"],
+                    ):
 
-                    segment_batch.append(segment)
-                    if len(segment_batch) == train_batch_size:
-                        segment_batch = concatenate_tensors_by_key(segment_batch)
-                        yield segment_batch
-                        segment_batch = []
+                        segment_batch.append(segment)
+                        if len(segment_batch) == train_batch_size:
+                            segment_batch = concatenate_tensors_by_key(segment_batch)
+                            yield segment_batch
+                            segment_batch = []
 
     # Define a function to handle a single training iteration
     def train_step(engine: Engine, batch):

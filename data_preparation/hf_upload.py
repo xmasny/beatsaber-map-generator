@@ -19,7 +19,7 @@ while True:
             repo_type="dataset",
             commit_message=f"Add new songs and metadata",
             token="",
-            ignore_patterns=["*.npy", "songs/*"],
+            ignore_patterns=["*.npz", "songs/*"],
             multi_commits=True,
             multi_commits_verbose=True,
         )
@@ -51,5 +51,3 @@ while True:
         print(e)
         print("Upload failed")
         break
-
-wandb.finish()

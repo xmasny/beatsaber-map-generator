@@ -1,19 +1,18 @@
 import os
+import shutil
+
 import torch
 import wandb
+from ignite.contrib.handlers.wandb_logger import WandBLogger
+from torch.optim import Adam
+from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
+from torch.utils.data import DataLoader
+
+from config import *
 from dl.models.onsets import SimpleOnsets
+from training.loader import BaseLoader, SavedValidDataloader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
-from training.loader import BaseLoader, SavedValidDataloader
-from config import *
-from torch.utils.data import DataLoader
-from ignite.contrib.handlers.wandb_logger import WandBLogger
-
-from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
-from torch.optim import Adam
-
-
-import shutil
 
 
 def non_collate(batch):

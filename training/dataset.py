@@ -1,13 +1,13 @@
+import os
+import platform
 import random
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
+import re
 import signal
 
 import datasets
-import os
-import re
-import platform
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 _CITATION = """\
 @InProceedings{huggingface:dataset,
@@ -26,9 +26,11 @@ _HOMEPAGE = ""
 
 _LICENSE = ""
 
-_BASE_DATA_PAT_FORMAT_STR = "{type}/{difficulty}"
+_BASE_DATA_PAT_FORMAT_STR = "{type}"
 
-_DOWNLOAD_URL = "dataset/"
+_DOWNLOAD_URL = (
+    "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/dataset/beatmaps/"
+)
 
 
 def _types():
@@ -36,11 +38,12 @@ def _types():
 
 
 def _difficulties():
-    return ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
+    return ["All", "Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
 
 
 def split_dataset(songs):
     shuffle_seed = random.randint(0, 2**32 - 1)
+    print(f"Using shuffle seed: {shuffle_seed}")
     if platform.system() == "Linux":
         try:
 
@@ -101,9 +104,7 @@ class BeatSaberSongsAndMetadataConfig(datasets.BuilderConfig):
 
         self.type = type
         self.difficulty = difficulty
-        self.data_dir = _BASE_DATA_PAT_FORMAT_STR.format(
-            type=type, difficulty=difficulty
-        )
+        self.data_dir = _BASE_DATA_PAT_FORMAT_STR.format(type=type)
 
 
 class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
@@ -121,17 +122,12 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
 
     def generate_urls(self, split):
         beatmaps_urls = [
-            f"{_DOWNLOAD_URL}beatmaps/{self.config.data_dir}/{song[0]}"
-            for song in split
-            if song[0].endswith(".npy")
-        ]
-        songs_urls = [
-            f"{_DOWNLOAD_URL}songs/mel229/{song[0]}"
-            for song in split
-            if song[0].endswith(".npy")
+            f"{_DOWNLOAD_URL}{self.config.data_dir}/npz/{beatmap[0]}"
+            for beatmap in split
+            if beatmap[0].endswith(".npz")
         ]
 
-        return beatmaps_urls, songs_urls
+        return beatmaps_urls
 
     def _info(self):
         return datasets.DatasetInfo(
@@ -140,13 +136,28 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
                 {
                     "id": datasets.Value("int32"),
                     "song_id": datasets.Value("string"),
-                    "beatmap": datasets.Array2D(shape=(None, 6), dtype="float32"),
+                    "beatmaps": {
+                        "Normal": datasets.Sequence(
+                            datasets.Array2D(shape=(None, 6), dtype="float32")
+                        ),
+                        "Easy": datasets.Sequence(
+                            datasets.Array2D(shape=(None, 6), dtype="float32")
+                        ),
+                        "Hard": datasets.Sequence(
+                            datasets.Array2D(shape=(None, 6), dtype="float32")
+                        ),
+                        "Expert": datasets.Sequence(
+                            datasets.Array2D(shape=(None, 6), dtype="float32")
+                        ),
+                        "ExpertPlus": datasets.Sequence(
+                            datasets.Array2D(shape=(None, 6), dtype="float32")
+                        ),
+                    },
                     "data": {
-                        "mel": datasets.Array2D(shape=(None, 128), dtype="float32"),
+                        "mel": datasets.Array2D(shape=(None, 229), dtype="float32"),
                     },
                     "meta": {
                         "song": datasets.Value("string"),
-                        "npzFile": datasets.Value("string"),
                         "upvotes": datasets.Value("int32"),
                         "downvotes": datasets.Value("int32"),
                         "score": datasets.Value("float32"),
@@ -164,57 +175,41 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         """Returns SplitGenerators."""
         all_songs_csv = dl_manager.download(
-            f"{_DOWNLOAD_URL}beatmaps/{self.config.data_dir}.csv"
-        )[9:]
+            f"{_DOWNLOAD_URL}{self.config.data_dir}/combined_songs.csv"
+        )
 
         with open(all_songs_csv) as csvfile:  # type: ignore
-            df = pd.read_csv(
-                csvfile,
-                header=None,
-                names=[
-                    "song",
-                    "npzFile",
-                    "upvotes",
-                    "downvotes",
-                    "score",
-                    "bpm",
-                    "duration",
-                    "automapper",
-                ],
-            )
+            df = pd.read_csv(csvfile)
 
             automapper = df["automapper"] == True
+            missing_song = df["missing_song"] == True
+            missing_levels = df["missing_levels"] == True
 
             df = df[~automapper]
+            df = df[~missing_song]
+            df = df[~missing_levels]
 
         songs = df.values.tolist()
+
         songs = [value for value in songs if 100.0 <= value[5] <= 500.0]
 
         train, valid, test = split_dataset(songs)
 
-        beatmaps_urls_train, songs_urls_train = self.generate_urls(train)
-        beatmaps_urls_valid, songs_urls_valid = self.generate_urls(valid)
-        beatmaps_urls_test, songs_urls_test = self.generate_urls(test)
-        beatmap_files_all, song_files_all = self.generate_urls(songs)
+        beatmaps_urls_train = self.generate_urls(train)
+        beatmaps_urls_valid = self.generate_urls(valid)
+        beatmaps_urls_test = self.generate_urls(test)
+        beatmaps_urls_all = self.generate_urls(songs)
 
         beatmap_files_train = dl_manager.download(beatmaps_urls_train)
-        song_files_train = dl_manager.download(songs_urls_train)
-
         beatmap_files_valid = dl_manager.download(beatmaps_urls_valid)
-        song_files_valid = dl_manager.download(songs_urls_valid)
-
         beatmap_files_test = dl_manager.download(beatmaps_urls_test)
-        song_files_test = dl_manager.download(songs_urls_test)
-
-        beatmap_files_all = dl_manager.download(beatmap_files_all)
-        song_files_all = dl_manager.download(song_files_all)
+        beatmap_files_all = dl_manager.download(beatmaps_urls_all)
 
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN,  # type: ignore
                 gen_kwargs={
                     "beatmap_files": beatmap_files_train,
-                    "song_files": song_files_train,
                     "metadata": train,
                 },
             ),
@@ -222,7 +217,6 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
                 name=datasets.Split.VALIDATION,  # type: ignore
                 gen_kwargs={
                     "beatmap_files": beatmap_files_valid,
-                    "song_files": song_files_valid,
                     "metadata": valid,
                 },
             ),
@@ -230,7 +224,6 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
                 name=datasets.Split.TEST,  # type: ignore
                 gen_kwargs={
                     "beatmap_files": beatmap_files_test,
-                    "song_files": song_files_test,
                     "metadata": test,
                 },
             ),
@@ -238,23 +231,30 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
                 name=datasets.Split.ALL,  # type: ignore
                 gen_kwargs={
                     "beatmap_files": beatmap_files_all,
-                    "song_files": song_files_all,
                     "metadata": songs,
                 },
             ),
         ]
 
-    def _generate_examples(self, beatmap_files, song_files, metadata):
+    def _generate_examples(self, beatmap_files, metadata):
         """Yields examples."""
+        beatmap_data = None
+        beatmap_song = None
+        for beatmap_file, data in zip(beatmap_files, metadata):
+            with open(beatmap_file, "rb") as npz_file:
+                beatmap = np.load(npz_file, allow_pickle=True)
+                beatmap_song = beatmap["song"]
+                beatmap_data = {
+                    "Easy": beatmap["Easy"] if "Easy" in beatmap else [],
+                    "Normal": beatmap["Normal"] if "Normal" in beatmap else [],
+                    "Hard": beatmap["Hard"] if "Hard" in beatmap else [],
+                    "Expert": beatmap["Expert"] if "Expert" in beatmap else [],
+                    "ExpertPlus": (
+                        beatmap["ExpertPlus"] if "ExpertPlus" in beatmap else []
+                    ),
+                }
 
-        for beatmap_file, song_file, data in zip(beatmap_files, song_files, metadata):
-            with open(beatmap_file[9:], "rb") as npy_file:
-                beatmap: np.ndarray = np.load(npy_file)
-
-            with open(song_file[9:], "rb") as npy_file:
-                song: np.ndarray = np.load(npy_file)
-
-            split = re.split(r"_|\.", os.path.basename(beatmap_file))
+            split = re.split(r"[_.]", os.path.basename(beatmap_file))
             id_ = int(split[0][4:])
             song_id = split[1]
 
@@ -262,7 +262,6 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
                 zip(
                     [
                         "song",
-                        "npzFile",
                         "upvotes",
                         "downvotes",
                         "score",
@@ -277,9 +276,9 @@ class BeatSaberSongsAndMetadata(datasets.GeneratorBasedBuilder):
             yield f"{id_}_{song_id}", {
                 "id": id_,
                 "song_id": song_id,
-                "beatmap": beatmap,
+                "beatmaps": beatmap_data,
                 "data": {
-                    "mel": song,
+                    "mel": beatmap_song,
                 },
                 "meta": meta,
             }

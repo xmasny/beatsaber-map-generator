@@ -1,15 +1,13 @@
 import typing
 
-import numpy as np
-from sympy import true
 import torch
+import wandb
 from torch import nn
 from torch.nn import functional as F
-import wandb
 
-# from notes_generator.constants import *
-from dl.models.layers import BaseConvModel, BiLSTM, ConvStack
 from dl.models.fuzzy_label import fuzzy_on_batch
+# from notes_generator.constants import *
+from dl.models.layers import BiLSTM, ConvStack
 from dl.models.merge_labels import merge_labels
 from dl.models.util import batch_first
 
@@ -59,7 +57,7 @@ class OnsetsBase(nn.Module):
             containing predicted onset score.
         proba : torch.Tensor
             The tensor of shape (batch_size, seq_len, output_features)
-            containing predicted probability of onset score on each frames.
+            containing predicted probability of onset score on each frame.
 
         """
         device = next(self.parameters()).device

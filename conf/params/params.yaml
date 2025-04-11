@@ -1,8 +1,8 @@
 object_type: color_notes
-difficulty: Easy
+difficulty: All
 log_dir: ./logs
 train_batch_size: 2
-songs_batch_size: 2
+songs_batch_size: 8
 enable_condition: true
 seq_length: 16000
 skip_step: 2000
@@ -20,7 +20,7 @@ start_lr: 0.000493
 epoch_length: 400
 warmup_steps: 800
 epochs: 100
-wandb_mode: online #disabled, online, offline, 
+wandb_mode: disabled #disabled, online, offline, 
 is_parallel: false
 save_valid_dataset: false
 num_workers: 0

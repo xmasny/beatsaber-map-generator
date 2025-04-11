@@ -21,6 +21,7 @@ class ObjectType(enum.Enum):
 
 
 class DifficultyName(enum.Enum):
+    ALL = "All"
     EASY = "Easy"
     NORMAL = "Normal"
     HARD = "Hard"
@@ -29,6 +30,7 @@ class DifficultyName(enum.Enum):
 
 
 class DifficultyNumber(enum.Enum):
+    ALL = 0
     EASY = 1
     NORMAL = 3
     HARD = 5
@@ -68,9 +70,17 @@ class Data(TypedDict):
     mel: ndarray
 
 
+class Beatmaps(TypedDict):
+    Easy: List[Data] | list
+    Normal: List[Data] | list
+    Hard: List[Data] | list
+    Expert: List[Data] | list
+    ExpertPlus: List[Data] | list
+
+
 class SongIteration(TypedDict):
     id: int
-    beatmap: ndarray
+    beatmaps: Beatmaps
     song_id: str
     data: Data | List[Data]
     meta: Meta

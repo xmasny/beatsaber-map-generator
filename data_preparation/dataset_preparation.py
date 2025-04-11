@@ -79,7 +79,7 @@ def move_and_zip_all_difficulties():
             os.listdir(f"dataset/beatmaps/{object_type}/{difficulty}"),
             desc=f"Copying {object_type} {difficulty}",
         ):
-            if filename.endswith(".npy"):
+            if filename.endswith(".npz"):
                 shutil.copy(
                     f"dataset/songs/{filename}",
                     f"dataset/beatmaps/{object_type}/{difficulty}/mels/{filename}",

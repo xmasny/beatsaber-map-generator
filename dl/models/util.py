@@ -3,6 +3,9 @@ import typing
 import torch
 from torch import nn
 
+import csv
+import os
+
 
 def round_decimal(x: torch.Tensor, n_dig: int) -> torch.Tensor:
     return torch.round(x * 10**n_dig) / (10**n_dig)
@@ -25,9 +28,39 @@ def convert1d(target):
     return target
 
 
+def log_window_to_csv(
+    csv_path: str,
+    start_index: int,
+    end_index: int,
+    audio_length: int,
+    params: dict,
+):
+    # Check if file exists to write header only once
+    write_header = not os.path.exists(csv_path)
+
+    with open(csv_path, mode="a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        if write_header:
+            writer.writerow(["start_index", "end_index", "audio_length", "params"])
+
+        writer.writerow([start_index, end_index, audio_length, str(params)])
+
+
+def generate_window_data(data_length, seq_length=500, skip_step=62):
+    count = 0
+    for skip in range(0, seq_length, skip_step):  # this controls how the sliding starts
+        for start in range(skip, data_length - seq_length + 1, seq_length):
+            count += 1
+    return count
+
+
 class MyDataParallel(nn.DataParallel):
     def run_on_batch(
-        self, batch, fuzzy_width=1, fuzzy_scale=1.0, merge_scale: typing.Optional[float] = None
+        self,
+        batch,
+        fuzzy_width=1,
+        fuzzy_scale=1.0,
+        merge_scale: typing.Optional[float] = None,
     ):
         return self.module.run_on_batch(
             batch,
