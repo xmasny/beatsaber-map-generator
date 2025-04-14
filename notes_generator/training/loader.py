@@ -191,7 +191,9 @@ class BaseLoader:
         self.distinguish_downbeats = distinguish_downbeats
         self.app_name = app_name
         if augmentation_setting:
-            self.augmentations = augmenation.load_augmentations(Path(augmentation_setting))
+            self.augmentations = augmenation.load_augmentations(
+                Path(augmentation_setting)
+            )
         else:
             self.augmentations = None
         self._score_dict = self.load_dir(self.score_base_path)
@@ -235,7 +237,12 @@ class BaseLoader:
             score_dict[live_id] = metadata, scores
         return score_dict
 
-    def dataset(self, mode: str = "all", is_shuffle: bool = False, shuffle_buffer_size: int = 500):
+    def dataset(
+        self,
+        mode: str = "all",
+        is_shuffle: bool = False,
+        shuffle_buffer_size: int = 500,
+    ):
         """Return Dataset class in the specified mode.
 
         Parameters
@@ -252,7 +259,7 @@ class BaseLoader:
 
         Returns
         -------
-        Type[IterableDataset]
+        Type[Dataset]
 
         """
         if is_shuffle:
@@ -328,17 +335,23 @@ class BaseLoader:
                 song_length = len(mel_data[key])
                 if self.random_skip and train_or_test == "train":
                     skip = np.random.randint(0, seq_length)
-                    params = dict(key=key, skip=skip, seq_length=seq_length, live_id=live_id)
+                    params = dict(
+                        key=key, skip=skip, seq_length=seq_length, live_id=live_id
+                    )
                     yield from iter_array(mel_data[key], seq_length, skip, params)
                 else:
                     skip_step = int(round(self.skip_step / FRAME))
                     for skip in range(0, seq_length, skip_step):
-                        params = dict(key=key, skip=skip, seq_length=seq_length, live_id=live_id)
+                        params = dict(
+                            key=key, skip=skip, seq_length=seq_length, live_id=live_id
+                        )
                         yield from iter_array(mel_data[key], seq_length, skip, params)
 
 
 class OnsetLoader(BaseLoader):
-    def cut_segment(self, score_data: np.ndarray, start_index: int, end_index: int, length: int):
+    def cut_segment(
+        self, score_data: np.ndarray, start_index: int, end_index: int, length: int
+    ):
         """Ensure the length of data array.
 
         Parameters
@@ -441,8 +454,12 @@ class OnsetLoader(BaseLoader):
             else:
                 continue
 
-            for audio, start_index, end_index, params in self.iter_audio(live_id, train_or_test):
-                score_segment = self.cut_segment(score_data, start_index, end_index, audio.shape[0])
+            for audio, start_index, end_index, params in self.iter_audio(
+                live_id, train_or_test
+            ):
+                score_segment = self.cut_segment(
+                    score_data, start_index, end_index, audio.shape[0]
+                )
                 # Convert to the form of start, end, frame
                 data = dict(
                     condition=torch.Tensor([condition]),  # difficulty
@@ -456,7 +473,9 @@ class OnsetLoader(BaseLoader):
                 if self.with_beats:
                     # beat array(2 at downbeats, 1 at other beats)
                     data["beats"] = torch.from_numpy(
-                        self.cut_segment(beats_array, start_index, end_index, audio.shape[0])
+                        self.cut_segment(
+                            beats_array, start_index, end_index, audio.shape[0]
+                        )
                     ).float()
                 if self.augmentations and train_or_test == "train":
                     data = augmenation.apply_augmentation(self.augmentations, data)
@@ -467,7 +486,7 @@ class OnsetLoader(BaseLoader):
                 yield data
 
 
-class ScoreDataset(torch.utils.data.IterableDataset):
+class ScoreDataset(torch.utils.data.Dataset):
     def __init__(self, score_loader: BaseLoader, mode: str):
         self.score_loader = score_loader
         self.mode = mode
@@ -477,7 +496,7 @@ class ScoreDataset(torch.utils.data.IterableDataset):
 
 
 # https://discuss.pytorch.org/t/how-to-shuffle-an-iterable-dataset/64130
-class ShuffleDataset(torch.utils.data.IterableDataset):
+class ShuffleDataset(torch.utils.data.Dataset):
     def __init__(self, score_loader: BaseLoader, buffer_size: int, mode: str):
         self.score_loader = score_loader
         self.buffer_size = buffer_size

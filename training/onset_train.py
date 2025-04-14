@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from config import *
 from dl.models.onsets import SimpleOnsets
-from training.loader import BaseLoader, SavedValidDataloader
+from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
 
@@ -22,10 +22,10 @@ def non_collate(batch):
 def main(run_parameters: RunConfig):
     try:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        difficulty = getattr(
-            DifficultyName, f"{run_parameters.difficulty.upper()}"
-        ).name
-        object_type = getattr(ObjectType, f"{run_parameters.object_type.upper()}").name
+
+        difficulty = getattr(DifficultyName, run_parameters.difficulty.upper()).name
+        object_type = getattr(ObjectType, run_parameters.object_type.upper()).name
+
         dataset = BaseLoader(
             difficulty=DifficultyName[difficulty],
             object_type=ObjectType[object_type],
@@ -56,25 +56,26 @@ def main(run_parameters: RunConfig):
 
         wandb.define_metric("train/step")
         wandb.define_metric("train/*", step_metric="train/step")
-
         wandb.define_metric("epoch")
         wandb.define_metric("metrics/*", step_metric="epoch")
-
         wandb.define_metric("weight_sum/*", step_metric="epoch")
-
         wandb.define_metric("validation/step")
         wandb.define_metric("validation/*", step_metric="validation/step")
 
-        dataset.load()
+        train_dataset = dataset.get_split(Split.TRAIN)
+        valid_dataset = dataset.get_split(Split.VALIDATION)
 
-        train_dataset = dataset[Split.TEST]
-        valid_dataset = dataset[Split.VALIDATION]
-
-        train_dataset_len = train_dataset.n_shards
-        valid_dataset_len = valid_dataset.n_shards
+        train_dataset_len = len(train_dataset)
+        valid_dataset_len = len(valid_dataset)
 
         train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
         valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
+
+        for idx, batch in enumerate(train_loader):
+            for song in batch:
+                print(f"Song ID: {song['id']}, Difficulty: {song['difficulty']}")
+                print(f"Melody shape: {song['data']['mel'].shape}")
+                print(f"Onset shape: {song['data']['onset'].shape}")
 
         # Define your optimizer
         optimizer = Adam(
@@ -82,6 +83,7 @@ def main(run_parameters: RunConfig):
             run_parameters.start_lr,
             weight_decay=run_parameters.weight_decay,
         )
+
         if run_parameters.lr_scheduler_name == "CyclicLR":
             lr_scheduler = CyclicLR(
                 optimizer,
@@ -97,7 +99,7 @@ def main(run_parameters: RunConfig):
                 eta_min=run_parameters.eta_min,
             )
         else:
-            raise ValueError
+            raise ValueError("Unsupported scheduler")
 
         wandb.config.update(
             {
@@ -105,12 +107,6 @@ def main(run_parameters: RunConfig):
                 "valid_dataset_len": valid_dataset_len,
             }
         )
-        if run_parameters.save_valid_dataset:
-            dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)
-
-            valid_dataset = SavedValidDataloader(run_parameters)
-            valid_dataset_len = len(valid_dataset)
-            valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate)  # type: ignore
 
     except KeyboardInterrupt as e:
         print(e)
@@ -120,7 +116,7 @@ def main(run_parameters: RunConfig):
 
     try:
         ignite_train(
-            dataset,
+            train_dataset,
             model,
             train_loader,
             valid_loader,

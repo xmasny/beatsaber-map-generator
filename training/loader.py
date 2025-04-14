@@ -3,19 +3,24 @@ import os
 import re
 import shutil
 from typing import Tuple
+from sklearn.model_selection import train_test_split
 
 import librosa
 import numpy as np
+import pandas as pd
 import torch
-from datasets import load_dataset, IterableDataset
-from torch.utils.data import DataLoader
+from datasets import load_dataset, Dataset as HFDataset
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from config import *
 from dl.models.util import log_window_to_csv
 from notes_generator.preprocessing import mel
+from utils import clean_data
 
-_valid_dataset_path = "dataset/valid_dataset/{object_type}"
+base_dataset_path = (
+    "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/dataset/beatmaps"
+)
 
 logging.basicConfig(
     level=logging.ERROR,
@@ -24,30 +29,55 @@ logging.basicConfig(
 )
 
 
-class BaseLoader(IterableDataset):  # type: ignore
+class BaseLoader(Dataset):
     def __init__(
         self,
         difficulty: DifficultyName = DifficultyName.ALL,
         object_type: ObjectType = ObjectType.COLOR_NOTES,
         enable_condition: bool = True,
-        stream_dataset: bool = True,
         with_beats: bool = True,
         seq_length: int = 16000,
         skip_step: int = 2000,
+        valid_split_ratio: float = 0.2,
+        skip_processing: bool = False,
     ):
         self.difficulty = difficulty
         self.object_type = object_type
         self.enable_condition = enable_condition
-        self.stream_dataset = stream_dataset
         self.with_beats = with_beats
         self.seq_length = seq_length
         self.skip_step = skip_step
+        self.valid_split_ratio = valid_split_ratio
+        self.skip_processing = skip_processing
 
-    def iter(self, song: SongIteration) -> SongIteration | dict:
+        self.load()
+
+    def load(self):
+        dataset_path = f"{base_dataset_path}/{self.object_type.value}/metadata.csv"
+
+        df = pd.read_csv(dataset_path)
+
+        df = clean_data(df)
+
+        # First split into train+valid and test
+        train, test_valid = train_test_split(df, train_size=0.6, random_state=42)
+
+        # Then split train_valid into train and valid
+        test, valid = train_test_split(test_valid, test_size=0.5, random_state=42)
+
+        self.dataset = {
+            "train": train,
+            "validation": valid,
+            "test": test,
+        }
+
+    def process(self, song):
+        if self.skip_processing:
+            return song
         bpm_info = get_bpm_info(song)
         onsets = get_onset_array(song, self.difficulty)
         song_len = round(song["meta"]["duration"]) * 1000  # in ms
-        mel_array_len = len(song["data"]["mel"][0])  # type: ignore
+        mel_array_len = len(song["data"]["mel"][0])
 
         try:
             beats_array = gen_beats_array(mel_array_len, bpm_info, song_len)
@@ -60,140 +90,24 @@ class BaseLoader(IterableDataset):  # type: ignore
             )
             song["not_working"] = True
 
-        data = dict(
-            onsets=onsets,
-            mel=song["data"]["mel"],  # type: ignore
-        )
+        song["data"] = {
+            "mel": song["data"]["mel"],
+            "onsets": onsets,
+        }
 
         if self.with_beats and "not_working" not in song:
-            # beat array(2 at downbeats, 1 at other beats)
-            data["beats"] = beats_array  # type: ignore
+            song["data"]["beats"] = beats_array
 
-        song["data"] = data  # type: ignore
         return song
 
-    def process_song(
-        self,
-        song: SongIteration,
-        beats_array: np.ndarray,
-        condition: int,
-        onsets: np.ndarray,
-    ):
-        for audio, start_index, end_index, params in self.iter_audio(song):
-            score_segment = self.cut_segment(
-                onsets, start_index, end_index, audio.shape[0]  # type: ignore
-            )
-            # Convert to the form of start, end, frame
-            data = dict(
-                condition=torch.Tensor([condition]),  # difficulty
-                onset=torch.from_numpy(score_segment).float(),
-                audio=torch.from_numpy(audio).float(),  # audio (mel-spectrogram)
-            )
-            if self.with_beats:
-                # beat array(2 at downbeats, 1 at other beats)
-                data["beats"] = torch.from_numpy(
-                    self.cut_segment(
-                        beats_array, start_index, end_index, audio.shape[0]
-                    )
-                ).float()
+    def get_split(self, split: Split):
+        return self.dataset[split.value]
 
-            yield data
+    def __getitem__(self, idx):
+        return self.process(self.dataset[self.split][idx])  # type: ignore
 
-    def iter_audio(self, song: SongIteration):
-        """Iterate audio"""
-        seq_length = int(round(self.seq_length / FRAME))
-        song_mel = song["data"]["mel"].T  # type: ignore
-        skip_step = int(round(self.skip_step / FRAME))
-        for skip in range(0, seq_length, skip_step):
-            params = dict(skip=skip, seq_length=seq_length)
-            for data_tuple in iter_array(song_mel, seq_length, skip, params):
-                # Add debugging statement to print data_tuple
-                yield data_tuple
-
-    def cut_segment(
-        self, score_data: np.ndarray, start_index: int, end_index: int, length: int
-    ):
-        """Ensure the length of data array.
-
-        Parameters
-        ----------
-        score_data : np.ndarray
-            An array containing score data where the length will be adjusted.
-        start_index : int
-            The start index to cut the array.
-        end_index : int
-            The end index to cut the array.
-        length : length
-            The length of the array to be returned.
-
-        Returns
-        -------
-
-        """
-        # Cut the score data by specified length
-        score_segment = score_data[start_index:end_index]
-        # Pad if the length is insufficient
-        score_segment = assert_length(score_segment, length)
-        return score_segment
-
-    def load(self):
-        dataset = load_dataset(
-            "./training/dataset.py",
-            f"{self.object_type.value}-{self.difficulty.value}",
-            streaming=self.stream_dataset,
-            trust_remote_code=True,
-        )
-        # Map the dataset to the iterator - generate onset, beats
-        self.dataset = dataset.map(self.iter)
-
-    def __len__(self):
-        return getattr(self.dataset, "n_shards", None)
-
-    def __getitem__(self, split: Split) -> IterableDataset:
-        return self.dataset.get(split.value)  # type: ignore
-
-    def __iter__(self):
-        return iter(self.dataset)
-
-    def save_valid_data(
-        self,
-        valid_loader: DataLoader,
-        valid_dataset_len: int,
-        run_parameters: RunConfig,
-        default_delete: bool = False,
-    ):
-        path = _valid_dataset_path.format(object_type=run_parameters.object_type)
-
-        if default_delete:
-            shutil.rmtree(
-                "dataset/valid_dataset",
-            )
-            print("Removed dataset/valid_dataset")
-
-        if os.path.exists(path) and not default_delete:
-            delete = input(
-                "Valid dataset already exists. Do you want to delete it? (y/n) "
-            )
-            if delete == "y":
-                shutil.rmtree(
-                    "dataset/valid_dataset",
-                )
-                print("Removed dataset/valid_dataset")
-            else:
-                return
-
-        os.makedirs(path)
-        pbar = tqdm(total=valid_dataset_len, desc="Saving valid dataset")
-
-        for i, batch in enumerate(valid_loader):
-            for song in batch:
-                if "not_working" not in song:
-                    np.save(
-                        f'{path}/song{song["id"]}_{song["song_id"]}.npy',
-                        song,
-                        allow_pickle=True,
-                    )
-                pbar.update(1)
+    def __len__(self) -> int:
+        return len(self.dataset[self.split])  # type: ignore
 
 
 def iter_array(array, length, skip, params):
@@ -204,10 +118,10 @@ def iter_array(array, length, skip, params):
             yield data, i, i + length, params
 
 
-def get_bpm_info(song: SongIteration):
+def get_bpm_info(song):
     bpm = song["meta"]["bpm"]
 
-    energy = np.sum(song["data"]["mel"], axis=0)  # type: ignore
+    energy = np.sum(song["data"]["mel"], axis=0)
     start_index = np.argmax(energy > 0)
 
     start_time = librosa.frames_to_time(start_index, sr=sample_rate)
@@ -217,26 +131,24 @@ def get_bpm_info(song: SongIteration):
     return [(bpm, start, beats)]
 
 
-def get_onset_array(
-    song: SongIteration, difficulty: DifficultyName = DifficultyName.ALL
-):
+def get_onset_array(song: dict, difficulty: DifficultyName = DifficultyName.ALL):
     def get_onsets_for_beatmap(beatmap, timestamps, bpm):
         onsets_array = np.zeros_like(timestamps, dtype=np.float32)
-        for obj in beatmap:  # type: ignore
+        for obj in beatmap:
             beat_time = obj[1]
             beat_time_to_sec = beat_time / bpm * 60
             closest_frame_idx = np.argmin(np.abs(timestamps - beat_time_to_sec))
             onsets_array[closest_frame_idx] = 1
         return onsets_array.reshape(-1, 1)
 
-    if not isinstance(song["data"]["mel"], np.ndarray):  # type: ignore
-        song["data"]["mel"] = np.array(song["data"]["mel"])  # type: ignore
+    if not isinstance(song["data"]["mel"], np.ndarray):
+        song["data"]["mel"] = np.array(song["data"]["mel"])
 
-    timestamps = librosa.times_like(song["data"]["mel"], sr=sample_rate)  # type: ignore
+    timestamps = librosa.times_like(song["data"]["mel"], sr=sample_rate)
     onsets = {}
 
     for key, beatmap in song["beatmaps"].items():
-        if beatmap:  # equivalent to checking if beatmap is not empty
+        if beatmap:
             onsets[key] = {}
             onsets[key]["onsets_array"] = get_onsets_for_beatmap(
                 beatmap, timestamps, song["meta"]["bpm"]
@@ -364,52 +276,3 @@ def assert_length(arr: np.ndarray, length: int):
     length2 = length - arr.shape[0]
     arr2 = np.zeros((length2, arr.shape[1]))
     return np.concatenate([arr, arr2])
-
-
-class SavedValidDataloader(IterableDataset):
-    def __init__(self, run_parameters: RunConfig):
-        self.path = _valid_dataset_path.format(object_type=run_parameters.object_type)
-        self.songs = os.listdir(self.path)
-
-    def __len__(self):
-        return len(self.songs)
-
-    def __getitem__(self, idx):
-        song = np.load(f"{self.path}/{self.songs[idx]}", allow_pickle=True)
-        return song
-
-    def __iter__(self):
-        for song in self.songs:
-            yield np.load(f"{self.path}/{song}", allow_pickle=True).item()
-
-
-class TestDataset(BaseLoader):
-    def __init__(
-        self,
-        difficulty: DifficultyName = DifficultyName.EASY,
-        object_type: ObjectType = ObjectType.COLOR_NOTES,
-        enable_condition: bool = True,
-        stream_dataset: bool = True,
-        with_beats: bool = True,
-        seq_length: int = 16000,
-        skip_step: int = 2000,
-    ):
-        super().__init__(
-            difficulty=difficulty,
-            object_type=object_type,
-            enable_condition=enable_condition,
-            stream_dataset=stream_dataset,
-            with_beats=with_beats,
-            seq_length=seq_length,
-            skip_step=skip_step,
-        )
-        self.dataset = None
-
-    def load(self):
-        dataset = load_dataset(
-            "training/dataset.py",
-            f"{self.object_type.value}-{self.difficulty.value}",
-            streaming=self.stream_dataset,
-        )
-        # Map the dataset to the iterator - generate onset, beats
-        self.dataset = dataset.map(self.iter)

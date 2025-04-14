@@ -5,8 +5,6 @@ import numpy as np
 from torch.nn import DataParallel
 from tqdm import tqdm
 
-from config import SongIteration
-
 
 def print_scripts():
     print("All scripts: ")
@@ -127,6 +125,17 @@ def loader_collate_fn(batch):
                 data_list.append(data)
 
     return data_list
+
+
+def clean_data(df):
+    automapper = df["automapper"]
+    df = df[~automapper]
+    missing_levels = df["missing_levels"]
+    df = df[~missing_levels]
+    missing_song = df["missing_song"]
+    df = df[~missing_song]
+    df = df.drop(["missing_levels", "missing_song", "automapper"], axis=1)
+    return df
 
 
 class MyDataParallel(DataParallel):
