@@ -1,18 +1,19 @@
 import pandas as pd
 import numpy as np
 import os
-from training.loader import gen_beats_array
+from training.loader import gen_beats_array, get_onset_array
 import librosa
 from tqdm import tqdm
 from datetime import datetime
 
-value = int(input("Enter update option (default 0): ") or 0)
+value = input("Enter update option (default 'onset'): ") or "onset"
+start_index = int(input("Enter starting index (default 0): ") or 0)
 
-for type in ["bomb_notes", "obstacles"]:
+for type in ["color_notes", "bomb_notes", "obstacles"]:
 
     base_path = f"dataset/beatmaps/{type}"
 
-    CSV_PATH = f"{base_path}/combined_songs.csv"  # Path to your CSV file
+    CSV_PATH = f"{base_path}/metadata.csv"  # Path to your CSV file
     NPZ_DIR = f"{base_path}/npz"  # Folder containing .npz files
     LOG_PATH = "error_log.log"
 
@@ -35,8 +36,7 @@ for type in ["bomb_notes", "obstacles"]:
 
     df = pd.read_csv(CSV_PATH)
 
-    if value == 0:
-        start_index = int(input("Enter starting index (default 0): ") or 0)
+    if value == "beats":
 
         for index, row in tqdm(
             df.iloc[start_index:].iterrows(), total=len(df) - start_index
@@ -79,7 +79,7 @@ for type in ["bomb_notes", "obstacles"]:
 
         df.to_csv(CSV_PATH, index=False)
 
-    elif value == 1:
+    elif value == "size":
         new_column = "npz_size_mb"
         if new_column not in df.columns:
             df[new_column] = 0.0
@@ -101,3 +101,40 @@ for type in ["bomb_notes", "obstacles"]:
                 # leave as 0
 
         df.to_csv(CSV_PATH, index=False)
+
+    elif value == "onset":
+
+        missing_song = df["missing_song"]
+        df = df[~missing_song].reset_index(drop=True)
+
+        for index, row in tqdm(
+            df.iloc[start_index:].iterrows(), total=len(df) - start_index
+        ):
+            song = row["song"]
+            path = os.path.join(NPZ_DIR, song)
+
+            if not os.path.exists(path):
+                print(f"Missing: {path}")
+                log_error("MISSING", path)
+                continue
+
+            try:
+                data = np.load(path, allow_pickle=True)
+                data_dict = dict(data)
+                data_dict["bpm"] = row["bpm"]
+
+                if "song" in data and len(data["song"].shape) == 2:
+                    data_dict["onsets"] = get_onset_array(data_dict)
+                    np.savez(path, **data_dict)
+                else:
+                    df.at[index, "frames"] = 0
+                    log_error("INVALID SHAPE", path)
+
+            except Exception as e:
+                print(f"Error processing {path}: {e}")
+                log_error("ERROR", path, f"- {e}")
+
+    else:
+        print("Invalid option. Please choose 'onset', 'size', or 'beats'.")
+        value = input("Enter update option (default 'onset'): ") or "onset"
+        continue
