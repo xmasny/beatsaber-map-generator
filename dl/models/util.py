@@ -49,7 +49,7 @@ def log_window_to_csv(
 def generate_window_data(data_length, seq_length=500, skip_step=62):
     count = 0
     for skip in range(0, seq_length, skip_step):  # this controls how the sliding starts
-        for start in range(skip, data_length - seq_length + 1, seq_length):
+        for start in range(skip, int(data_length) - seq_length + 1, seq_length):
             count += 1
     return count
 

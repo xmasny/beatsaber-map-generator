@@ -1,21 +1,17 @@
+from io import BytesIO
 import logging
 import os
 import re
-import shutil
 from typing import Tuple
-from sklearn.model_selection import train_test_split
 
 import librosa
 import numpy as np
 import pandas as pd
-import torch
-from datasets import load_dataset, Dataset as HFDataset
-from torch.utils.data import Dataset
+import requests
+from torch.utils.data import Dataset, DataLoader, Subset
 from tqdm import tqdm
 
 from config import *
-from dl.models.util import log_window_to_csv
-from notes_generator.preprocessing import mel
 from utils import clean_data
 
 base_dataset_path = (
@@ -29,6 +25,14 @@ logging.basicConfig(
 )
 
 
+def non_collate(batch):
+    return batch
+
+
+# Cache to store splits by (object_type, seed)
+_SPLIT_CACHE = {}
+
+
 class BaseLoader(Dataset):
     def __init__(
         self,
@@ -40,6 +44,10 @@ class BaseLoader(Dataset):
         skip_step: int = 2000,
         valid_split_ratio: float = 0.2,
         skip_processing: bool = False,
+        split: Split = Split.TRAIN,
+        split_seed: int = 42,
+        batch_size: int = 2,
+        num_workers: int = 0,
     ):
         self.difficulty = difficulty
         self.object_type = object_type
@@ -49,65 +57,88 @@ class BaseLoader(Dataset):
         self.skip_step = skip_step
         self.valid_split_ratio = valid_split_ratio
         self.skip_processing = skip_processing
+        self.split = split
+        self.split_seed = split_seed
+        self.batch_size = batch_size
+        self.num_workers = num_workers
 
-        self.load()
+        self.dataset = {}
+        self.indices = {}
+        self._load_and_split()
 
-    def load(self):
+    def _load_and_split(self):
         dataset_path = f"{base_dataset_path}/{self.object_type.value}/metadata.csv"
-
         df = pd.read_csv(dataset_path)
-
         df = clean_data(df)
+        self.df = df
 
-        # First split into train+valid and test
-        train, test_valid = train_test_split(df, train_size=0.6, random_state=42)
+        cache_key = (self.object_type.value, self.split_seed)
 
-        # Then split train_valid into train and valid
-        test, valid = train_test_split(test_valid, test_size=0.5, random_state=42)
+        if cache_key in _SPLIT_CACHE:
+            self.indices = _SPLIT_CACHE[cache_key]
+            return
 
-        self.dataset = {
-            "train": train,
-            "validation": valid,
-            "test": test,
+        indices = np.arange(len(df))
+        np.random.seed(self.split_seed)
+        np.random.shuffle(indices)
+
+        train_end = int(0.6 * len(indices))
+        val_end = int(0.8 * len(indices))
+
+        self.indices = {
+            "train": indices[:train_end],
+            "validation": indices[train_end:val_end],
+            "test": indices[val_end:],
         }
 
-    def process(self, song):
-        if self.skip_processing:
-            return song
-        bpm_info = get_bpm_info(song)
-        onsets = get_onset_array(song, self.difficulty)
-        song_len = round(song["meta"]["duration"]) * 1000  # in ms
-        mel_array_len = len(song["data"]["mel"][0])
+        _SPLIT_CACHE[cache_key] = self.indices
+
+    def process(self, song_meta):
+        song_path = (
+            f"{base_dataset_path}/{self.object_type.value}/npz/{song_meta['song']}"
+        )
 
         try:
-            beats_array = gen_beats_array(mel_array_len, bpm_info, song_len)
+            response = requests.get(song_path)
+            response.raise_for_status()  # raises error if 404 or similar
+            song = dict(np.load(BytesIO(response.content), allow_pickle=True))
         except AssertionError as e:
             logging.error(
-                f'song{song["id"]}_{song["song_id"]} difficulty {self.difficulty}: {e}'
+                f'song{song_meta["id"]}_{song_meta["song_id"]} difficulty {self.difficulty}: {e}'
             )
             print(
-                f'Error in song{song["id"]}_{song["song_id"]} difficulty {self.difficulty}: {e}'
+                f'Error in song{song_meta["id"]}_{song_meta["song_id"]} difficulty {self.difficulty}: {e}'
             )
-            song["not_working"] = True
+            song_meta["not_working"] = True
 
-        song["data"] = {
-            "mel": song["data"]["mel"],
-            "onsets": onsets,
-        }
+        song_meta["data"] = song
 
-        if self.with_beats and "not_working" not in song:
-            song["data"]["beats"] = beats_array
+        if not self.with_beats and "not_working" not in song_meta:
+            song_meta["data"].pop("beats_array")
 
-        return song
+        return song_meta
 
-    def get_split(self, split: Split):
-        return self.dataset[split.value]
+    def get_dataloader(self, shuffle=True):
+        subset = Subset(self, self.indices[self.split.value])  # type: ignore
+        return DataLoader(
+            subset,
+            batch_size=self.batch_size,
+            shuffle=shuffle,
+            num_workers=self.num_workers,
+            collate_fn=non_collate,
+        )
+
+    def get_split_df(self, split: Split):
+        return self.df.iloc[self.indices[split.value]]
 
     def __getitem__(self, idx):
-        return self.process(self.dataset[self.split][idx])  # type: ignore
+        row = self.df.iloc[idx]
+        if self.skip_processing:
+            return row
+        return self.process(row.to_dict())
 
-    def __len__(self) -> int:
-        return len(self.dataset[self.split])  # type: ignore
+    def __len__(self):
+        return len(self.indices[self.split.value])
 
 
 def iter_array(array, length, skip, params):
@@ -141,17 +172,17 @@ def get_onset_array(song: dict, difficulty: DifficultyName = DifficultyName.ALL)
             onsets_array[closest_frame_idx] = 1
         return onsets_array.reshape(-1, 1)
 
-    if not isinstance(song["data"]["mel"], np.ndarray):
-        song["data"]["mel"] = np.array(song["data"]["mel"])
+    if not isinstance(song["song"], np.ndarray):
+        song["song"] = np.array(song["song"])
 
-    timestamps = librosa.times_like(song["data"]["mel"], sr=sample_rate)
+    timestamps = librosa.times_like(song["song"], sr=sample_rate)
     onsets = {}
 
-    for key, beatmap in song["beatmaps"].items():
-        if beatmap:
+    for key, beatmap in song.items():
+        if key in DIFFICULTY_NAMES:
             onsets[key] = {}
             onsets[key]["onsets_array"] = get_onsets_for_beatmap(
-                beatmap, timestamps, song["meta"]["bpm"]
+                beatmap, timestamps, song["bpm"]
             )
             pascal_key = re.sub(r"([a-z])([A-Z])", r"\1_\2", key).upper()
             onsets[key]["condition"] = DifficultyNumber[pascal_key].value

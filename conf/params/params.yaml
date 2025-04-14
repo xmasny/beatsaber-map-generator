@@ -2,7 +2,7 @@ object_type: color_notes
 difficulty: All
 log_dir: ./logs
 train_batch_size: 2
-songs_batch_size: 8
+songs_batch_size: 2
 enable_condition: true
 seq_length: 16000
 skip_step: 2000

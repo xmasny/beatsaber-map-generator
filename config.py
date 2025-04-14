@@ -12,6 +12,8 @@ sample_rate = 22050
 n_mels = 128
 FRAME = 32
 
+DIFFICULTY_NAMES = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
+
 
 # Enumerations
 class ObjectType(enum.Enum):

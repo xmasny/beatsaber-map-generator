@@ -13,27 +13,30 @@ from dl.models.onsets import SimpleOnsets
 from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
-
-
-def non_collate(batch):
-    return batch
+import random
 
 
 def main(run_parameters: RunConfig):
     try:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        difficulty = getattr(DifficultyName, run_parameters.difficulty.upper()).name
-        object_type = getattr(ObjectType, run_parameters.object_type.upper()).name
+        SEED = random.randint(0, 2**32 - 1)  # or fix it for true reproducibility
 
-        dataset = BaseLoader(
-            difficulty=DifficultyName[difficulty],
-            object_type=ObjectType[object_type],
-            enable_condition=run_parameters.enable_condition,
-            seq_length=run_parameters.seq_length,
-            skip_step=run_parameters.skip_step,
-            with_beats=run_parameters.with_beats,
-        )
+        common_dataset_args = {
+            "difficulty": DifficultyName[run_parameters.difficulty.upper()],
+            "object_type": ObjectType[run_parameters.object_type.upper()],
+            "enable_condition": run_parameters.enable_condition,
+            "seq_length": run_parameters.seq_length,
+            "skip_step": run_parameters.skip_step,
+            "with_beats": run_parameters.with_beats,
+            "batch_size": run_parameters.songs_batch_size,
+            "num_workers": run_parameters.num_workers,
+            # "split_seed": SEED,
+        }
+
+        train_dataset = BaseLoader(split=Split.TRAIN, **common_dataset_args)
+        valid_dataset = BaseLoader(split=Split.VALIDATION, **common_dataset_args)
+
         model = SimpleOnsets(
             input_features=n_mels,
             output_features=1,
@@ -62,20 +65,11 @@ def main(run_parameters: RunConfig):
         wandb.define_metric("validation/step")
         wandb.define_metric("validation/*", step_metric="validation/step")
 
-        train_dataset = dataset.get_split(Split.TRAIN)
-        valid_dataset = dataset.get_split(Split.VALIDATION)
-
         train_dataset_len = len(train_dataset)
         valid_dataset_len = len(valid_dataset)
 
-        train_loader = DataLoader(train_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
-        valid_loader = DataLoader(valid_dataset, batch_size=run_parameters.songs_batch_size, collate_fn=non_collate, num_workers=run_parameters.num_workers)  # type: ignore
-
-        for idx, batch in enumerate(train_loader):
-            for song in batch:
-                print(f"Song ID: {song['id']}, Difficulty: {song['difficulty']}")
-                print(f"Melody shape: {song['data']['mel'].shape}")
-                print(f"Onset shape: {song['data']['onset'].shape}")
+        train_loader = train_dataset.get_dataloader()
+        valid_loader = valid_dataset.get_dataloader()
 
         # Define your optimizer
         optimizer = Adam(
@@ -105,6 +99,7 @@ def main(run_parameters: RunConfig):
             {
                 "train_dataset_len": train_dataset_len,
                 "valid_dataset_len": valid_dataset_len,
+                "seed": SEED,
             }
         )
 
@@ -117,6 +112,7 @@ def main(run_parameters: RunConfig):
     try:
         ignite_train(
             train_dataset,
+            valid_dataset,
             model,
             train_loader,
             valid_loader,

@@ -32,46 +32,37 @@ logger = getLogger(__name__)
 
 
 def get_number_of_difficulties(song):
-    difficulties = 0
-    if song["Easy"]:
-        difficulties += 1
-    if song["Normal"]:
-        difficulties += 1
-    if song["Hard"]:
-        difficulties += 1
-    if song["Expert"]:
-        difficulties += 1
-    if song["ExpertPlus"]:
-        difficulties += 1
-    return difficulties
+    return sum(bool(song.get(diff)) for diff in DIFFICULTY_NAMES)
 
 
 def generate_valid_length(
+    valid_dataset: BaseLoader,
     valid_loader,
     song_batch_num: int,
     batch_size: int,
 ):
     # Temporarily skip preprocessing
 
-    valid_loader.dataset.skip_processing = True
+    return 1504333
+
+    valid_dataset.skip_processing = True
 
     pbar = tqdm(valid_loader, total=song_batch_num, desc="Generate valid length")
     valid_dataset_len = 0
     for songs in pbar:
-        for song in DataLoader(songs, collate_fn=collate_fn):
+        for batch in DataLoader(songs, collate_fn=collate_fn):
             try:
-                for index, onset in song:
-                    song_iterations = generate_window_data(
-                        data_length=song["frames"]
-                    ) * get_number_of_difficulties(song)
-                    valid_dataset_len += song_iterations
+                song_iterations = generate_window_data(
+                    data_length=batch["frames"]
+                ) * get_number_of_difficulties(batch)
+                valid_dataset_len += song_iterations
             except Exception as e:
                 print(e)
                 continue
     pbar.close()
 
     # Restore full preprocessing mode
-    valid_loader.dataset.skip_processing = False
+    valid_dataset.skip_processing = False
 
     return ceil(valid_dataset_len / batch_size)
 
@@ -105,7 +96,8 @@ def collate_fn(batch):
 
 
 def ignite_train(
-    dataset: BaseLoader,
+    train_dataset: BaseLoader,
+    valid_dataset: BaseLoader,
     model: OnsetsBase,
     train_loader,
     valid_loader,
@@ -152,8 +144,8 @@ def ignite_train(
                 if "not_working" in song:
                     continue
                 for index, onset in song["data"]["onsets"].items():
-                    for segment in dataset.process(
-                        song=song,
+                    for segment in train_dataset.process(
+                        song_meta=song,
                         # beats_array=song["data"]["beats"],
                         # condition=onset["condition"],
                         # onsets=onset["onsets_array"],
@@ -373,6 +365,7 @@ def ignite_train(
     valid_song_batch_num = ceil(valid_dataset_len / songs_batch_size)
 
     epoch_length_valid = generate_valid_length(
+        valid_dataset,
         valid_loader,
         valid_song_batch_num,
         train_batch_size,
