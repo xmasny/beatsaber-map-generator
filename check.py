@@ -3,12 +3,14 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-for type in ["bomb_notes", "obstacles"]:
+for type in ["color_notes"]:
 
     base_path = f"dataset/beatmaps/{type}/"
-    df = pd.read_csv(os.path.join(base_path, "combined_songs.csv"))
+    df = pd.read_csv(os.path.join(base_path, "metadata.csv"))
     df["missing_song"] = False
     df["missing_levels"] = False
+    df["frames"] = 0
+    df["npz_size_mb"] = 0.0
 
     path = os.path.join(base_path, "npz")
 
@@ -20,6 +22,13 @@ for type in ["bomb_notes", "obstacles"]:
             # Check if the song file is missing
             if "song" not in data:
                 df.at[index, "missing_song"] = True
+            else:
+                df.at[index, "frames"] = np.shape(data["song"])[1]
+                file_size = os.path.getsize(
+                    os.path.join(path, song["song"])
+                )  # in bytes
+                size_mb = file_size / (1024 * 1024)
+                df.at[index, "npz_size_mb"] = round(size_mb, 3)
 
             # Check if all difficulty levels are missing
             difficulties = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
@@ -38,7 +47,7 @@ for type in ["bomb_notes", "obstacles"]:
 
         # Optionally save progress every N rows (cast index to int)
         if int(index) % 100 == 0:  # type: ignore
-            df.to_csv(os.path.join(base_path, "combined_songs.csv"), index=False)
+            df.to_csv(os.path.join(base_path, "metadata.csv"), index=False)
 
     # Final save
-    df.to_csv(os.path.join(base_path, "combined_songs.csv"), index=False)
+    df.to_csv(os.path.join(base_path, "metadata.csv"), index=False)
