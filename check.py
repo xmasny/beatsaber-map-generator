@@ -46,8 +46,8 @@ for type in ["color_notes"]:
             df.at[index, "missing_levels"] = True
 
         # Optionally save progress every N rows (cast index to int)
-        if int(index) % 100 == 0:  # type: ignore
-            df.to_csv(os.path.join(base_path, "metadata.csv"), index=False)
+        # if int(index) % 100 == 0:  # type: ignore
+        #     df.to_csv(os.path.join(base_path, "metadata.csv"), index=False)
 
     # Final save
     df.to_csv(os.path.join(base_path, "metadata.csv"), index=False)
