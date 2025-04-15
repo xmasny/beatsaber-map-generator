@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
 import os
+import json
 from training.loader import gen_beats_array, get_onset_array
 import librosa
 from tqdm import tqdm
 from datetime import datetime
 
-value = input("Enter update option (default 'onset'): ") or "onset"
+value = input("Enter update option (default 'validate_onsets'): ") or "validate_onsets"
 start_index = int(input("Enter starting index (default 0): ") or 0)
 
 for type in ["color_notes", "bomb_notes", "obstacles"]:
@@ -134,7 +135,91 @@ for type in ["color_notes", "bomb_notes", "obstacles"]:
                 print(f"Error processing {path}: {e}")
                 log_error("ERROR", path, f"- {e}")
 
+    elif value == "validate_onsets":
+        VALIDATION_LOG = f"{base_path}/onset_validation_issues.csv"
+        DIFFICULTIES = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
+
+        df_filtered = df[~df["automapper"]].reset_index(drop=True)
+
+        issues = []
+
+        for index, row in tqdm(df_filtered.iterrows(), total=len(df_filtered)):
+            song = row["song"]
+            path = os.path.join(NPZ_DIR, song)
+            if not os.path.exists(path):
+                issues.append({"song": song, "issue": "File missing", "details": ""})
+                continue
+
+            try:
+                data = np.load(path, allow_pickle=True)
+                data_dict = dict(data)
+
+                # Check top-level keys
+                missing_keys = [
+                    k for k in ["song", "beats_array", "onsets"] if k not in data_dict
+                ]
+                if missing_keys:
+                    issues.append(
+                        {
+                            "song": song,
+                            "issue": "Missing keys",
+                            "details": json.dumps(missing_keys),
+                        }
+                    )
+                    continue
+
+                onsets = data_dict["onsets"].item()  # Should be a dict
+
+                for diff in DIFFICULTIES:
+                    expected = bool(row[diff])
+                    exists = diff in onsets
+
+                    if expected and not exists:
+                        issues.append(
+                            {
+                                "song": song,
+                                "issue": f"Missing expected difficulty '{diff}'",
+                                "details": "",
+                            }
+                        )
+                    elif not expected and exists:
+                        issues.append(
+                            {
+                                "song": song,
+                                "issue": f"Unexpected difficulty '{diff}' present",
+                                "details": "",
+                            }
+                        )
+                    elif exists:
+                        missing_fields = []
+                        if "onsets_array" not in onsets[diff]:
+                            missing_fields.append("onsets_array")
+                        if "condition" not in onsets[diff]:
+                            missing_fields.append("condition")
+                        if missing_fields:
+                            issues.append(
+                                {
+                                    "song": song,
+                                    "issue": f"Missing fields in '{diff}'",
+                                    "details": json.dumps(missing_fields),
+                                }
+                            )
+
+            except Exception as e:
+                issues.append({"song": song, "issue": "Exception", "details": str(e)})
+
+        if issues:
+            pd.DataFrame(issues).to_csv(VALIDATION_LOG, index=False)
+            print(f"Validation issues logged to: {VALIDATION_LOG}")
+        else:
+            print("All onset entries validated successfully.")
+
     else:
-        print("Invalid option. Please choose 'onset', 'size', or 'beats'.")
-        value = input("Enter update option (default 'onset'): ") or "onset"
+        print(
+            "Invalid option. Please choose 'onset', 'size', 'beats' or 'validate_onsets'."
+        )
+        value = (
+            input("Enter update option (default 'validate_onsets'): ")
+            or "validate_onsets"
+        )
         continue
