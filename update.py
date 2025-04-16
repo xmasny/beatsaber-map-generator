@@ -10,7 +10,8 @@ from datetime import datetime
 value = input("Enter update option (default 'validate_onsets'): ") or "validate_onsets"
 start_index = int(input("Enter starting index (default 0): ") or 0)
 
-for type in ["color_notes", "bomb_notes", "obstacles"]:
+# for type in ["color_notes", "bomb_notes", "obstacles"]:
+for type in ["color_notes"]:
 
     base_path = f"dataset/beatmaps/{type}"
 
@@ -44,6 +45,9 @@ for type in ["color_notes", "bomb_notes", "obstacles"]:
         ):
             song = row["song"]
             path = os.path.join(NPZ_DIR, song)
+
+            if row["automapper"]:
+                continue
 
             if not os.path.exists(path):
                 print(f"Missing: {path}")
@@ -113,6 +117,9 @@ for type in ["color_notes", "bomb_notes", "obstacles"]:
         ):
             song = row["song"]
             path = os.path.join(NPZ_DIR, song)
+
+            if row["automapper"]:
+                continue
 
             if not os.path.exists(path):
                 print(f"Missing: {path}")
