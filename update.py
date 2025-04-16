@@ -111,15 +111,13 @@ for type in ["color_notes"]:
 
         missing_song = df["missing_song"]
         df = df[~missing_song].reset_index(drop=True)
+        df = df[~df["automapper"]].reset_index(drop=True)
 
         for index, row in tqdm(
             df.iloc[start_index:].iterrows(), total=len(df) - start_index
         ):
             song = row["song"]
             path = os.path.join(NPZ_DIR, song)
-
-            if row["automapper"]:
-                continue
 
             if not os.path.exists(path):
                 print(f"Missing: {path}")
