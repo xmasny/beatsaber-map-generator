@@ -7,7 +7,7 @@ import librosa
 from tqdm import tqdm
 from datetime import datetime
 
-value = input("Enter update option (default 'validate_onsets'): ") or "validate_onsets"
+value = input("Enter update option (default 'check_data'): ") or "check_data"
 start_index = int(input("Enter starting index (default 0): ") or 0)
 
 # for type in ["color_notes", "bomb_notes", "obstacles"]:
@@ -18,6 +18,7 @@ for type in ["color_notes"]:
     CSV_PATH = f"{base_path}/metadata.csv"  # Path to your CSV file
     NPZ_DIR = f"{base_path}/npz"  # Folder containing .npz files
     LOG_PATH = "error_log.log"
+    SONGS_PATH = f"dataset/songs/mel229"  # Path to your songs folder
 
     def get_bpm_info(meta, song):
         bpm = meta["bpm"]
@@ -150,7 +151,7 @@ for type in ["color_notes"]:
 
         for index, row in tqdm(df_filtered.iterrows(), total=len(df_filtered)):
             song = row["song"]
-            path = os.path.join(NPZ_DIR, song)
+            path = os.path.join(NPZ_DIR, song + ".npz")
             if not os.path.exists(path):
                 issues.append({"song": song, "issue": "File missing", "details": ""})
                 continue
@@ -219,12 +220,87 @@ for type in ["color_notes"]:
         else:
             print("All onset entries validated successfully.")
 
+    elif value == "check_data":
+        VALIDATION_LOG = f"{base_path}/onset_validation_issues.csv"
+        DIFFICULTIES = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
+
+        df_filtered = df[~df["automapper"]].copy()
+
+        # Load list of problematic songs from previous validation
+        df_issues = pd.read_csv(VALIDATION_LOG)
+        df_issues = pd.DataFrame(df_issues["song"].drop_duplicates())
+
+        results = []
+
+        for _, row in tqdm(df_issues.iterrows(), total=len(df_issues)):
+            song_id = row["song"]
+            info = {"song": song_id}
+            meta_row = df_filtered[df_filtered["song"] == song_id]
+
+            if meta_row.empty:
+                info["error"] = "Metadata missing"
+                results.append(info)
+                continue
+
+            meta_row = meta_row.iloc[0]  # Get the metadata row
+
+            npz_path = os.path.join(NPZ_DIR, song_id)
+            if not npz_path.endswith(".npz"):
+                npz_path += ".npz"
+
+            if not os.path.exists(npz_path):
+                info["npz_missing"] = True
+                results.append(info)
+                continue
+
+            try:
+                song_data = np.load(npz_path, allow_pickle=True)
+                song_dict = dict(song_data)
+
+                # Check 'song' array
+                info["song_in_npz_missing"] = "song" not in song_dict
+
+                if not info["song_in_npz_missing"]:
+                    mel_song_path = os.path.join(SONGS_PATH, song_id)
+                    if not mel_song_path.endswith(".npz"):
+                        mel_song_path += ".npz"
+                    info["mel_song_exists"] = os.path.exists(mel_song_path)
+
+                info["beats_array_exists"] = "beats_array" in song_dict
+
+                onsets = song_dict.get("onsets", {})
+                if isinstance(onsets, np.ndarray):
+                    onsets = onsets.item()  # convert if stored as np.object
+
+                for diff in DIFFICULTIES:
+                    expected = bool(meta_row[diff])
+                    exists = diff in onsets
+
+                    if expected and not exists:
+                        onset_npy_path = os.path.join(base_path, diff, song_id)
+                        if not onset_npy_path.endswith(".npy"):
+                            onset_npy_path += ".npy"
+
+                        if os.path.exists(onset_npy_path):
+                            info[diff] = "onset npy exists"
+                        else:
+                            info[diff] = "onset npy missing"
+                    elif not expected and exists:
+                        info[diff] = "unexpected"
+                    elif expected and exists:
+                        info[diff] = "ok"
+                    else:
+                        info[diff] = "not expected and not present"
+
+            except Exception as e:
+                info["error"] = str(e)
+
+            results.append(info)
+
+        pd.DataFrame(results).to_csv(f"{base_path}/check_data_report.csv", index=False)
+        print("Check complete. Results saved to 'check_data_report.csv'")
+
     else:
-        print(
-            "Invalid option. Please choose 'onset', 'size', 'beats' or 'validate_onsets'."
-        )
-        value = (
-            input("Enter update option (default 'validate_onsets'): ")
-            or "validate_onsets"
-        )
+        print("Invalid option. Please choose 'onset', 'size', 'beats' or 'fix_onsets'.")
+        value = input("Enter update option (default 'check_data'): ") or "check_data"
         continue
