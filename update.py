@@ -178,9 +178,9 @@ for type in ["color_notes"]:
 
                 for diff in DIFFICULTIES:
                     expected = bool(row[diff])
-                    exists = diff in onsets
+                    exists_in_onsets = diff in onsets
 
-                    if expected and not exists:
+                    if expected and not exists_in_onsets:
                         issues.append(
                             {
                                 "song": song,
@@ -188,7 +188,7 @@ for type in ["color_notes"]:
                                 "details": "",
                             }
                         )
-                    elif not expected and exists:
+                    elif not expected and exists_in_onsets:
                         issues.append(
                             {
                                 "song": song,
@@ -196,7 +196,7 @@ for type in ["color_notes"]:
                                 "details": "",
                             }
                         )
-                    elif exists:
+                    elif exists_in_onsets:
                         missing_fields = []
                         if "onsets_array" not in onsets[diff]:
                             missing_fields.append("onsets_array")
@@ -242,7 +242,7 @@ for type in ["color_notes"]:
                 results.append(info)
                 continue
 
-            meta_row = meta_row.iloc[0]  # Get the metadata row
+            meta_row = meta_row.iloc[0]
 
             npz_path = os.path.join(NPZ_DIR, song_id)
             if not npz_path.endswith(".npz"):
@@ -257,49 +257,57 @@ for type in ["color_notes"]:
                 song_data = np.load(npz_path, allow_pickle=True)
                 song_dict = dict(song_data)
 
-                # Check 'song' array
                 info["song_in_npz_missing"] = "song" not in song_dict
 
-                if not info["song_in_npz_missing"]:
-                    mel_song_path = os.path.join(SONGS_PATH, song_id)
-                    if not mel_song_path.endswith(".npz"):
-                        mel_song_path += ".npz"
-                    if not os.path.exists(mel_song_path):
-                        info["mel_song_exists"] = False
-                    else:
-                        info["mel_song_exists"] = True
-
+                mel_song_path = os.path.join(SONGS_PATH, song_id)
+                if not mel_song_path.endswith(".npz"):
+                    mel_song_path += ".npz"
+                info["mel_song_exists"] = os.path.exists(mel_song_path)
                 info["beats_array_exists"] = "beats_array" in song_dict
 
                 onsets = song_dict.get("onsets", {})
                 if isinstance(onsets, np.ndarray):
-                    onsets = onsets.item()  # convert if stored as np.object
+                    onsets = onsets.item()
 
                 for diff in DIFFICULTIES:
                     expected = bool(meta_row[diff])
-                    exists = diff in onsets
+                    exists_in_onsets = diff in onsets
+                    exists_in_root = diff in song_dict
 
-                    if expected and not exists:
-                        onset_npy_path = os.path.join(base_path, diff, song_id)
-                        if not onset_npy_path.endswith(".npy"):
-                            onset_npy_path += ".npy"
+                    onset_data = (
+                        onsets.get(diff, {}).get("onsets_array", [])
+                        if exists_in_onsets
+                        else []
+                    )
 
-                        if os.path.exists(onset_npy_path):
-                            info[diff] = "onset npy exists"
-                        else:
-                            info[diff] = "onset npy missing"
-                    elif not expected and exists:
+                    if expected and not exists_in_onsets:
+                        onset_npy_path = os.path.join(base_path, diff, f"{song_id}.npy")
+                        info[diff] = (
+                            "onset npy exists"
+                            if os.path.exists(onset_npy_path)
+                            else "onset npy missing"
+                        )
+                    elif not expected and exists_in_onsets and not exists_in_root:
                         info[diff] = "unexpected"
-                    elif expected and exists:
-                        info[diff] = "ok"
-                    else:
+                    elif expected and exists_in_onsets:
+                        if isinstance(onset_data, np.ndarray) and len(onset_data) == 0:
+                            info[diff] = "empty"
+                        else:
+                            info[diff] = (
+                                "ok" if exists_in_root else "ok (but not in root)"
+                            )
+                    elif not expected and exists_in_onsets:
+                        if exists_in_root:
+                            info[diff] = "unexpected (but in root)"
+                        else:
+                            info[diff] = "ok (but not in root)"
+                    elif not expected and not exists_in_onsets:
                         info[diff] = "ok"
 
             except Exception as e:
                 info["error"] = str(e)
 
             results.append(info)
-
         pd.DataFrame(results).to_csv(f"{base_path}/check_data_report.csv", index=False)
         print("Check complete. Results saved to 'check_data_report.csv'")
 
