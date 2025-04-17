@@ -264,7 +264,10 @@ for type in ["color_notes"]:
                     mel_song_path = os.path.join(SONGS_PATH, song_id)
                     if not mel_song_path.endswith(".npz"):
                         mel_song_path += ".npz"
-                    info["mel_song_exists"] = os.path.exists(mel_song_path)
+                    if not os.path.exists(mel_song_path):
+                        info["mel_song_exists"] = False
+                    else:
+                        info["mel_song_exists"] = True
 
                 info["beats_array_exists"] = "beats_array" in song_dict
 
@@ -290,7 +293,7 @@ for type in ["color_notes"]:
                     elif expected and exists:
                         info[diff] = "ok"
                     else:
-                        info[diff] = "not expected and not present"
+                        info[diff] = "ok"
 
             except Exception as e:
                 info["error"] = str(e)
