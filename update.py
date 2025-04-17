@@ -39,7 +39,9 @@ for type in ["color_notes"]:
         df = pd.read_csv(CSV_PATH)
         if value == "beats":
 
-            for index, row in tqdm(df.iterrows(), total=len(df)):
+            for index, row in tqdm(
+                df.iterrows(), total=len(df), desc=f"Processing {value}"
+            ):
                 song = row["song"]
                 path = os.path.join(NPZ_DIR, song)
 
