@@ -43,7 +43,7 @@ for type in ["color_notes"]:
                 df.iterrows(), total=len(df), desc=f"Processing {value}"
             ):
                 song = row["song"]
-                path = os.path.join(NPZ_DIR, song)
+                path = os.path.join(NPZ_DIR, song + ".npz")
 
                 if row["automapper"]:
                     continue
@@ -90,7 +90,7 @@ for type in ["color_notes"]:
 
             for index, row in tqdm(df.iterrows(), total=len(df)):
                 song = row["song"]
-                path = os.path.join(NPZ_DIR, song)
+                path = os.path.join(NPZ_DIR, song + ".npz")
 
                 # Skip rows and leave 'npz_size_mb' as 0
                 if not os.path.exists(path):
@@ -114,7 +114,7 @@ for type in ["color_notes"]:
 
             for index, row in tqdm(df.iterrows(), total=len(df)):
                 song = row["song"]
-                path = os.path.join(NPZ_DIR, song)
+                path = os.path.join(NPZ_DIR, song + ".npz")
 
                 if not os.path.exists(path):
                     print(f"Missing: {path}")
