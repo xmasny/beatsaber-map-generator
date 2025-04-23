@@ -9,7 +9,7 @@ for type in ["color_notes"]:
     df = pd.read_csv(os.path.join(base_path, "metadata.csv"))
     df["missing_song"] = False
     df["missing_levels"] = False
-    df["frames"] = 0
+    # df["frames"] = 0
     df["npz_size_mb"] = 0.0
 
     path = os.path.join(base_path, "npz")
@@ -23,7 +23,7 @@ for type in ["color_notes"]:
             if "song" not in data:
                 df.at[index, "missing_song"] = True
             else:
-                df.at[index, "frames"] = np.shape(data["song"])[1]
+                # df.at[index, "frames"] = np.shape(data["song"])[1]
                 file_size = os.path.getsize(
                     os.path.join(path, song["song"])
                 )  # in bytes
