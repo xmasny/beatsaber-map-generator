@@ -43,7 +43,7 @@ for type in ["color_notes"]:
     df = pd.read_csv(os.path.join(base_path, "metadata.csv"))
     path = os.path.join(base_path, "npz")
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=8) as executor:
         futures = [executor.submit(process_song, row, path) for row in df.iterrows()]
 
         for future in tqdm(as_completed(futures), total=len(futures)):
