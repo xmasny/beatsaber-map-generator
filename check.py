@@ -17,7 +17,7 @@ for type in ["color_notes"]:
     for index, song in tqdm(df.iterrows(), total=len(df)):
         try:
             # Load the .npz file
-            data = np.load(os.path.join(path, song["song"]), allow_pickle=True)
+            data = np.load(os.path.join(path, song["song"] + ".npz"), allow_pickle=True)
 
             # Check if the song file is missing
             if "song" not in data:
@@ -25,7 +25,7 @@ for type in ["color_notes"]:
             else:
                 # df.at[index, "frames"] = np.shape(data["song"])[1]
                 file_size = os.path.getsize(
-                    os.path.join(path, song["song"])
+                    os.path.join(path, song["song"] + ".npz")
                 )  # in bytes
                 size_mb = file_size / (1024 * 1024)
                 df.at[index, "npz_size_mb"] = round(size_mb, 3)
