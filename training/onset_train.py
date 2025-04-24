@@ -29,7 +29,7 @@ def main(run_parameters: RunConfig):
             "seq_length": run_parameters.seq_length,
             "skip_step": run_parameters.skip_step,
             "with_beats": run_parameters.with_beats,
-            "batch_size": run_parameters.songs_batch_size,
+            "batch_size": run_parameters.train_batch_size,
             "num_workers": run_parameters.num_workers,
             # "split_seed": SEED,
         }

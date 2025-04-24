@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from dl.models.fuzzy_label import fuzzy_on_batch
+
 # from notes_generator.constants import *
 from dl.models.layers import BiLSTM, ConvStack
 from dl.models.merge_labels import merge_labels

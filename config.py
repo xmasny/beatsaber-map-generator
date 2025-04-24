@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 n_fft = 2048
 hop_length = 512
 sample_rate = 22050
-n_mels = 128
+n_mels = 229
 FRAME = 32
 
 DIFFICULTY_NAMES = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
@@ -69,7 +69,7 @@ class Data(TypedDict):
     condition: Optional[List[int]]
     onset: ndarray
     beats: Optional[ndarray]
-    mel: ndarray
+    song: ndarray
 
 
 class Beatmaps(TypedDict):

@@ -143,7 +143,7 @@ def ignite_train(
                     num_songs_pbar.update(1)
                 if "not_working" in song:
                     continue
-                for index, onset in song["data"]["onsets"].items():
+                for index, onset in song["data"]["onsets"].item().items():
                     for segment in train_dataset.process(
                         song_meta=song,
                         # beats_array=song["data"]["beats"],
@@ -151,7 +151,7 @@ def ignite_train(
                         # onsets=onset["onsets_array"],
                     ):
 
-                        segment_batch.append(segment)
+                        segment_batch.append(segment.values())
                         if len(segment_batch) == train_batch_size:
                             segment_batch = concatenate_tensors_by_key(segment_batch)
                             yield segment_batch

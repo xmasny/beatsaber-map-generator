@@ -2,6 +2,7 @@ import json
 import os
 from typing import Optional
 import numpy as np
+import torch
 from torch.nn import DataParallel
 from tqdm import tqdm
 
@@ -128,13 +129,14 @@ def loader_collate_fn(batch):
 
 
 def clean_data(df):
-    automapper = df["automapper"]
-    df = df[~automapper]
-    missing_levels = df["missing_levels"]
-    df = df[~missing_levels]
-    missing_song = df["missing_song"]
-    df = df[~missing_song]
-    df = df.drop(["missing_levels", "missing_song", "automapper"], axis=1)
+    df = df[~df["automapper"]]
+    df = df[~df["missing_levels"]]
+    df = df[~df["missing_song"]]
+    df = df[~df["default_skip"]]
+
+    df = df.drop(
+        ["missing_levels", "missing_song", "automapper", "default_skip"], axis=1
+    )
     return df
 
 

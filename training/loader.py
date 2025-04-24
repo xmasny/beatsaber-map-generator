@@ -95,7 +95,7 @@ class BaseLoader(Dataset):
 
     def process(self, song_meta):
         song_path = (
-            f"{base_dataset_path}/{self.object_type.value}/npz/{song_meta['song']}"
+            f"{base_dataset_path}/{self.object_type.value}/npz/{song_meta['song']}.npz"
         )
 
         try:
@@ -116,7 +116,7 @@ class BaseLoader(Dataset):
         if not self.with_beats and "not_working" not in song_meta:
             song_meta["data"].pop("beats_array")
 
-        return song_meta
+        yield song_meta
 
     def get_dataloader(self, shuffle=True):
         subset = Subset(self, self.indices[self.split.value])  # type: ignore
@@ -130,6 +130,43 @@ class BaseLoader(Dataset):
 
     def get_split_df(self, split: Split):
         return self.df.iloc[self.indices[split.value]]
+
+    def iter_audio(self, song: SongIteration):
+        """Iterate audio"""
+        seq_length = int(round(self.seq_length / FRAME))
+        song_mel = song["data"]["mel"].T  # type: ignore
+        skip_step = int(round(self.skip_step / FRAME))
+        for skip in range(0, seq_length, skip_step):
+            params = dict(skip=skip, seq_length=seq_length)
+            for data_tuple in iter_array(song_mel, seq_length, skip, params):
+                # Add debugging statement to print data_tuple
+                yield data_tuple
+
+    def cut_segment(
+        self, score_data: np.ndarray, start_index: int, end_index: int, length: int
+    ):
+        """Ensure the length of data array.
+
+        Parameters
+        ----------
+        score_data : np.ndarray
+            An array containing score data where the length will be adjusted.
+        start_index : int
+            The start index to cut the array.
+        end_index : int
+            The end index to cut the array.
+        length : length
+            The length of the array to be returned.
+
+        Returns
+        -------
+
+        """
+        # Cut the score data by specified length
+        score_segment = score_data[start_index:end_index]
+        # Pad if the length is insufficient
+        score_segment = assert_length(score_segment, length)
+        return score_segment
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
