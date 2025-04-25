@@ -221,7 +221,7 @@ def ignite_train(
 
         evaluator.run(
             cycle(valid_loader, valid_num_songs_pbar),
-            epoch_length=epoch_length_valid,
+            # epoch_length=epoch_length_valid,
         )
         model.eval()
         with torch.no_grad():
