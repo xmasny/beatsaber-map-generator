@@ -39,7 +39,7 @@ def main(run_parameters: RunConfig):
             "min_score": run_parameters.min_score,
             "min_bpm": run_parameters.min_bpm,
             "max_bpm": run_parameters.max_bpm,
-            # "split_seed": SEED,
+            "split_seed": SEED,
         }
 
         train_dataset = BaseLoader(split=Split.TRAIN, **common_dataset_args)

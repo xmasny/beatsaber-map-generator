@@ -23,4 +23,15 @@ if __name__ == "__main__":
     sys.argv.append("hydra.output_subdir=null")
     sys.argv.append("hydra/job_logging=stdout")
 
-    main()
+    repeats = int(input("Enter the number of times to repeat the training: "))
+
+    for i in range(repeats):
+        print(f"Training iteration {i + 1}/{repeats}")
+        try:
+            main()
+        except Exception as e:
+            print(f"Error during training iteration {i + 1}: {e}")
+            if os.path.exists("dataset/valid_dataset"):
+                shutil.rmtree("dataset/valid_dataset")
+                print("Removed dataset/valid_dataset")
+            continue
