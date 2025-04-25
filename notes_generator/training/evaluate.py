@@ -122,40 +122,26 @@ def prepare_mireval(target, pred):
 
 def concatenate_tensors_by_key(list_of_dicts, concat_dim=0):
     """
-    Group tensors from a list of dictionaries by their keys into a new dictionary.
+    Stack tensors from a list of dictionaries by key into batched tensors.
 
     Args:
-        list_of_dicts (list): A list of dictionaries where values are tensors.
+        list_of_dicts (list): A list of dictionaries with tensor values.
+        concat_dim (int): Dimension to concatenate along.
 
     Returns:
-        dict: A dictionary where each key maps to a list of tensors.
+        dict: A dictionary with keys mapped to stacked tensors.
     """
     grouped_dict = {}
+    keys = list_of_dicts[0].keys()
 
-    for d in list_of_dicts:
-        for key, value in d.items():
-            if key in grouped_dict:
-                if key == "condition":
-                    grouped_dict[key] = torch.cat(
-                        [grouped_dict[key], value], dim=concat_dim
-                    )
-                else:
-                    break
-            else:
-                grouped_dict[key] = value
-    grouped_dict["condition"] = grouped_dict["condition"].unsqueeze(-1)
+    for key in keys:
+        tensors = [d[key] for d in list_of_dicts]
 
-    tensors_audio = [d["audio"] for d in list_of_dicts]
-    stacked_tensor_audio = torch.stack(tensors_audio)
-    grouped_dict["audio"] = stacked_tensor_audio
+        # Special case: make sure 'condition' has the correct shape
+        if key == "condition":
+            tensors = [t.unsqueeze(-1) if t.ndim == 2 else t for t in tensors]
 
-    tensors_beats = [d["beats"] for d in list_of_dicts]
-    stacked_tensor_beats = torch.stack(tensors_beats)
-    grouped_dict["beats"] = stacked_tensor_beats
-
-    tensors_onset = [d["onset"] for d in list_of_dicts]
-    stacked_tensor_onset = torch.stack(tensors_onset)
-    grouped_dict["onset"] = stacked_tensor_onset
+        grouped_dict[key] = torch.stack(tensors, dim=concat_dim)
 
     return grouped_dict
 

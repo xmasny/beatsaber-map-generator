@@ -8,6 +8,7 @@ import librosa
 import numpy as np
 import pandas as pd
 import requests
+import torch
 from torch.utils.data import Dataset, DataLoader, Subset
 from tqdm import tqdm
 
@@ -36,6 +37,10 @@ _SPLIT_CACHE = {}
 class BaseLoader(Dataset):
     def __init__(
         self,
+        min_sum_votes: int,
+        min_score: float,
+        min_bpm: float,
+        max_bpm: float,
         difficulty: DifficultyName = DifficultyName.ALL,
         object_type: ObjectType = ObjectType.COLOR_NOTES,
         enable_condition: bool = True,
@@ -61,6 +66,10 @@ class BaseLoader(Dataset):
         self.split_seed = split_seed
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.min_sum_votes = min_sum_votes
+        self.min_score = min_score
+        self.min_bpm = min_bpm
+        self.max_bpm = max_bpm
 
         self.dataset = {}
         self.indices = {}
@@ -69,7 +78,13 @@ class BaseLoader(Dataset):
     def _load_and_split(self):
         dataset_path = f"{base_dataset_path}/{self.object_type.value}/metadata.csv"
         df = pd.read_csv(dataset_path)
-        df = clean_data(df)
+        df = clean_data(
+            df,
+            min_bpm=self.min_bpm,
+            max_bpm=self.max_bpm,
+            min_votes=self.min_sum_votes,
+            min_score=self.min_score,
+        )
         self.df = df
 
         cache_key = (self.object_type.value, self.split_seed)
@@ -100,23 +115,68 @@ class BaseLoader(Dataset):
 
         try:
             response = requests.get(song_path)
-            response.raise_for_status()  # raises error if 404 or similar
-            song = dict(np.load(BytesIO(response.content), allow_pickle=True))
-        except AssertionError as e:
-            logging.error(
-                f'song{song_meta["id"]}_{song_meta["song_id"]} difficulty {self.difficulty}: {e}'
+            response.raise_for_status()
+            song_npz = dict(np.load(BytesIO(response.content), allow_pickle=True))
+        except Exception as e:
+            logging.error(f'{song_meta["song"]}: {e}')
+            print(f'Error in {song_meta["song"]}: {e}')
+            return
+
+        song_meta["data"] = song_npz
+        if not self.with_beats:
+            song_meta["data"].pop("beats_array", None)
+
+        beats_array = song_npz.get("beats_array") if self.with_beats else None
+
+        onsets_raw = song_npz.get("onsets", None)
+        if isinstance(onsets_raw, np.ndarray) and onsets_raw.dtype == object:
+            onsets_dict = onsets_raw.item()
+        elif isinstance(onsets_raw, dict):
+            onsets_dict = onsets_raw
+        else:
+            logging.warning(
+                f"Invalid or missing onset data for song {song_meta['song']}"
             )
-            print(
-                f'Error in song{song_meta["id"]}_{song_meta["song_id"]} difficulty {self.difficulty}: {e}'
-            )
-            song_meta["not_working"] = True
+            return
 
-        song_meta["data"] = song
+        for difficulty_name, onset_info in onsets_dict.items():
+            # print(f'Processing {difficulty_name} for song {song_meta["song"]}')
+            if "onsets_array" not in onset_info or "condition" not in onset_info:
+                continue  # skip malformed entries
 
-        if not self.with_beats and "not_working" not in song_meta:
-            song_meta["data"].pop("beats_array")
+            condition = onset_info["condition"]
+            onsets_array = onset_info["onsets_array"]
 
-        yield song_meta
+            batch = []
+
+            for audio, start_index, end_index, params in self.iter_audio(song_meta):
+                score_segment = self.cut_segment(
+                    onsets_array, start_index, end_index, audio.shape[0]
+                )
+                data = {
+                    "condition": torch.tensor([condition]),
+                    "onset": torch.from_numpy(score_segment).float(),
+                    "audio": torch.from_numpy(audio).float(),
+                }
+
+                if self.with_beats and beats_array is not None:
+                    data["beats"] = torch.from_numpy(
+                        self.cut_segment(
+                            beats_array, start_index, end_index, audio.shape[0]
+                        )
+                    ).float()
+
+                batch.append(data)
+
+                if len(batch) == self.batch_size:
+                    yield self.collate_batch(batch)
+                    batch = []
+
+            if batch:
+                yield self.collate_batch(batch)
+
+    def collate_batch(self, batch: list[dict]):
+        return {key: torch.stack([item[key] for item in batch]) for key in batch[0]}
 
     def get_dataloader(self, shuffle=True):
         subset = Subset(self, self.indices[self.split.value])  # type: ignore
@@ -134,7 +194,7 @@ class BaseLoader(Dataset):
     def iter_audio(self, song: SongIteration):
         """Iterate audio"""
         seq_length = int(round(self.seq_length / FRAME))
-        song_mel = song["data"]["mel"].T  # type: ignore
+        song_mel = song["data"]["song"].T  # type: ignore
         skip_step = int(round(self.skip_step / FRAME))
         for skip in range(0, seq_length, skip_step):
             params = dict(skip=skip, seq_length=seq_length)
@@ -172,7 +232,7 @@ class BaseLoader(Dataset):
         row = self.df.iloc[idx]
         if self.skip_processing:
             return row
-        return self.process(row.to_dict())
+        return row.to_dict()
 
     def __len__(self):
         return len(self.indices[self.split.value])

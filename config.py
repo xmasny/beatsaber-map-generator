@@ -93,8 +93,7 @@ class RunConfig(DictConfig):
     object_type: str
     difficulty: str
     model_dir: str
-    songs_batch_size: int
-    train_batch_size: int
+    batch_size: int
     enable_condition: bool
     seq_length: int
     skip_step: int
@@ -120,3 +119,9 @@ class RunConfig(DictConfig):
     lr_scheduler_name: str
     weight_decay: float
     eta_min: float
+    min_sum_votes: int
+    min_score: float
+    min_bpm: float
+    max_bpm: float
+    gpu_index: int
+    wandb_project: str

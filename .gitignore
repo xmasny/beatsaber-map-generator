@@ -142,3 +142,5 @@ generator
 wandb
 dataset
 *.zip
+
+conf/params/servers**

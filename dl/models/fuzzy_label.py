@@ -49,7 +49,9 @@ def fuzzy_label(onset_label: torch.Tensor, width: int, scale: float) -> torch.Te
     """
     assert width > 0
     assert 0 <= scale <= 1
-    return round_decimal(gauss(onset_label.view(-1), width, scale), 2).view(len(onset_label), 1)
+    flattened = onset_label.view(-1)
+    smoothed = gauss(flattened, width, scale)
+    return round_decimal(smoothed, 2).view(*onset_label.shape)
 
 
 def fuzzy_on_batch(batch: torch.Tensor, width: int, scale: float) -> torch.Tensor:

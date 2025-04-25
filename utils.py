@@ -128,7 +128,12 @@ def loader_collate_fn(batch):
     return data_list
 
 
-def clean_data(df):
+def clean_data(df, **kwargs):
+    min_bpm = kwargs.get("min_bpm", 60.0)
+    max_bpm = kwargs.get("max_bpm", 300.0)
+    min_votes = kwargs.get("min_votes", 100)
+    min_score = kwargs.get("min_score", 0.95)
+
     df = df[~df["automapper"]]
     df = df[~df["missing_levels"]]
     df = df[~df["missing_song"]]
@@ -137,6 +142,11 @@ def clean_data(df):
     df = df.drop(
         ["missing_levels", "missing_song", "automapper", "default_skip"], axis=1
     )
+
+    df = df[(df["bpm"] >= min_bpm) & (df["bpm"] <= max_bpm)]
+    df = df[(df["upvotes"] + df["downvotes"]) > min_votes]
+    df = df[df["score"] > min_score]
+
     return df
 
 

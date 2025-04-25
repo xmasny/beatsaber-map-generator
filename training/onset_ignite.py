@@ -9,7 +9,6 @@ import torch
 import wandb
 
 from config import *
-from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 from torch.optim.optimizer import Optimizer
 
@@ -22,7 +21,7 @@ from ignite.metrics import Average
 
 from dl.models.onsets import OnsetsBase
 from dl.models.util import generate_window_data
-from notes_generator.training.evaluate import concatenate_tensors_by_key, evaluate
+from notes_generator.training.evaluate import evaluate
 from training.loader import BaseLoader
 
 from tqdm import tqdm
@@ -38,23 +37,24 @@ def get_number_of_difficulties(song):
 def generate_valid_length(
     valid_dataset: BaseLoader,
     valid_loader,
-    song_batch_num: int,
     batch_size: int,
 ):
     # Temporarily skip preprocessing
 
-    return 1504333
-
     valid_dataset.skip_processing = True
 
-    pbar = tqdm(valid_loader, total=song_batch_num, desc="Generate valid length")
+    pbar = tqdm(
+        valid_loader,
+        total=ceil(len(valid_dataset) / batch_size),
+        desc="Generate valid length",
+    )
     valid_dataset_len = 0
     for songs in pbar:
-        for batch in DataLoader(songs, collate_fn=collate_fn):
+        for song in songs:
             try:
                 song_iterations = generate_window_data(
-                    data_length=batch["frames"]
-                ) * get_number_of_difficulties(batch)
+                    data_length=song["frames"]
+                ) * get_number_of_difficulties(song)
                 valid_dataset_len += song_iterations
             except Exception as e:
                 print(e)
@@ -91,10 +91,6 @@ def score_function(engine):
     return -val_loss
 
 
-def collate_fn(batch):
-    return batch[0]
-
-
 def ignite_train(
     train_dataset: BaseLoader,
     valid_dataset: BaseLoader,
@@ -111,8 +107,7 @@ def ignite_train(
 ) -> None:
 
     resume_checkpoint = run_parameters.get("resume_checkpoint", None)
-    train_batch_size = run_parameters.get("train_batch_size", 20)
-    songs_batch_size = run_parameters.get("songs_batch_size", 20)
+    batch_size = run_parameters.get("batch_size", 20)
     fuzzy_width = run_parameters.get("fuzzy_width", 1)
     fuzzy_scale = run_parameters.get("fuzzy_scale", 1.0)
     enable_early_stop = run_parameters.get("enable_early_stop", True)
@@ -135,27 +130,14 @@ def ignite_train(
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
         if num_songs_pbar:
             num_songs_pbar.reset()
-        segment_batch = []
-        # while True:
         for index, songs in enumerate(iteration):
-            for song in DataLoader(songs, collate_fn=collate_fn):
+            for song in songs:
                 if num_songs_pbar:
                     num_songs_pbar.update(1)
                 if "not_working" in song:
                     continue
-                for index, onset in song["data"]["onsets"].item().items():
-                    for segment in train_dataset.process(
-                        song_meta=song,
-                        # beats_array=song["data"]["beats"],
-                        # condition=onset["condition"],
-                        # onsets=onset["onsets_array"],
-                    ):
-
-                        segment_batch.append(segment.values())
-                        if len(segment_batch) == train_batch_size:
-                            segment_batch = concatenate_tensors_by_key(segment_batch)
-                            yield segment_batch
-                            segment_batch = []
+                for segment in train_dataset.process(song_meta=song):
+                    yield segment
 
     # Define a function to handle a single training iteration
     def train_step(engine: Engine, batch):
@@ -362,13 +344,10 @@ def ignite_train(
     train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
     valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
 
-    valid_song_batch_num = ceil(valid_dataset_len / songs_batch_size)
-
     epoch_length_valid = generate_valid_length(
-        valid_dataset,
-        valid_loader,
-        valid_song_batch_num,
-        train_batch_size,
+        valid_dataset=valid_dataset,
+        valid_loader=valid_loader,
+        batch_size=batch_size,
     )
 
     logger.info(

@@ -20,6 +20,10 @@ def main(run_parameters: RunConfig):
     try:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        torch.cuda.set_device(
+            run_parameters.gpu_index if run_parameters.gpu_index >= 0 else -1
+        )
+
         SEED = random.randint(0, 2**32 - 1)  # or fix it for true reproducibility
 
         common_dataset_args = {
@@ -29,8 +33,12 @@ def main(run_parameters: RunConfig):
             "seq_length": run_parameters.seq_length,
             "skip_step": run_parameters.skip_step,
             "with_beats": run_parameters.with_beats,
-            "batch_size": run_parameters.train_batch_size,
+            "batch_size": run_parameters.batch_size,
             "num_workers": run_parameters.num_workers,
+            "min_sum_votes": run_parameters.min_sum_votes,
+            "min_score": run_parameters.min_score,
+            "min_bpm": run_parameters.min_bpm,
+            "max_bpm": run_parameters.max_bpm,
             # "split_seed": SEED,
         }
 
@@ -52,7 +60,7 @@ def main(run_parameters: RunConfig):
             model = MyDataParallel(model)
 
         wandb_logger = WandBLogger(
-            project="test-beat-saber-map-generator",
+            project=run_parameters.wandb_project,
             config={**run_parameters},
             mode=run_parameters.wandb_mode,
         )
