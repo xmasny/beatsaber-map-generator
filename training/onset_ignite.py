@@ -26,7 +26,7 @@ from training.loader import BaseLoader
 
 from tqdm import tqdm
 
-from utils import setup_checkpoint_upload
+from utils import setup_checkpoint_upload, upload_checkpoint_as_artifact
 
 
 logger = getLogger(__name__)
@@ -321,9 +321,17 @@ def ignite_train(
         score_name="validation_loss",
         greater_or_equal=True,
     )
+
+    def save_and_upload_best_model(engine: Engine):
+        saved_path = best_model(engine, {"mymodel": model})
+        if saved_path:
+            upload_checkpoint_as_artifact(
+                filepath=saved_path, epoch=engine.state.epoch, name_prefix="best-model"
+            )
+
     trainer.add_event_handler(
         Events.EPOCH_COMPLETED(every=validation_interval),
-        best_model,
+        save_and_upload_best_model,
         {"mymodel": model},
     )
 
