@@ -26,6 +26,8 @@ from training.loader import BaseLoader
 
 from tqdm import tqdm
 
+from utils import setup_checkpoint_upload
+
 
 logger = getLogger(__name__)
 
@@ -349,6 +351,8 @@ def ignite_train(
         valid_loader=valid_loader,
         batch_size=batch_size,
     )
+
+    setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=1)  # type: ignore
 
     logger.info(
         f"epoch_length: {epoch_length} epoch_length_valid: {epoch_length_valid}"
