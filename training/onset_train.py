@@ -59,6 +59,9 @@ def main(run_parameters: RunConfig):
         if run_parameters.is_parallel:
             model = MyDataParallel(model)
 
+        if wandb.run is not None:
+            wandb.finish()
+
         wandb_logger = WandBLogger(
             project=run_parameters.wandb_project,
             config={**run_parameters},
