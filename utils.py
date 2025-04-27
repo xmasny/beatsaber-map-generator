@@ -181,6 +181,7 @@ def upload_checkpoint_as_artifact(
     if not os.path.exists(filepath):
         return
 
+    print(f"Uploading checkpoint artifact: {filepath}")
     artifact = wandb.Artifact(name=f"{name_prefix}-epoch-{epoch}", type="model")
     artifact.add_file(filepath)
     wandb.log_artifact(artifact, aliases=["latest", f"epoch-{epoch}"])
