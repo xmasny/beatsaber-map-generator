@@ -1,8 +1,16 @@
 # auto_tune_training.py
+
+import sys
+import torch.multiprocessing as mp
+
+if sys.platform.startswith("linux"):
+    mp.set_start_method("spawn", force=True)
+
+print(f"🔵 Multiprocessing start method: {mp.get_start_method()}")
+
 import json
 import time
 import torch
-import sys
 import threading
 from typing import Optional
 from torch.utils.data import DataLoader
