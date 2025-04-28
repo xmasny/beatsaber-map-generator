@@ -5,7 +5,7 @@ import torch
 from torch.nn import DataParallel
 from tqdm import tqdm
 import wandb
-from ignite.engine import Events, Engine
+from ignite.engine import Events
 from typing import Optional, Dict
 from pathlib import Path
 
@@ -181,6 +181,7 @@ def upload_checkpoint_as_artifact(
     if not os.path.exists(filepath):
         return
 
+    print(f"Uploading checkpoint artifact: {filepath}")
     artifact = wandb.Artifact(name=f"{name_prefix}-epoch-{epoch}", type="model")
     artifact.add_file(filepath)
     wandb.log_artifact(artifact, aliases=["latest", f"epoch-{epoch}"])
@@ -204,7 +205,7 @@ def cleanup_old_artifacts(
 
 
 def setup_checkpoint_upload(
-    trainer: Engine,
+    trainer,
     objects_to_save: Dict[str, torch.nn.Module],
     wandb_dir: str,
     validation_interval: int = 1,
@@ -215,7 +216,7 @@ def setup_checkpoint_upload(
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
-    def save_and_upload(engine: Engine):
+    def save_and_upload(engine):
         epoch = engine.state.epoch
         for name, obj in objects_to_save.items():
             filename = f"{artifact_name_prefix}_{name}_epoch_{epoch}.pt"
@@ -234,6 +235,7 @@ def setup_checkpoint_upload(
                 str(save_path), epoch, name_prefix=f"{artifact_name_prefix}-{name}"
             )
 
+    @trainer.on(Events.COMPLETED)
     def final_cleanup(engine):
         if wandb.run is not None:
             cleanup_old_artifacts(
@@ -241,9 +243,6 @@ def setup_checkpoint_upload(
                 artifact_type="model",
                 max_to_keep=max_artifacts,
             )
-
-    trainer.add_event_handler(Events.COMPLETED, final_cleanup)
-    trainer.add_event_handler(Events.EXCEPTION_RAISED, final_cleanup)
 
 
 # Usage inside ignite_train()
