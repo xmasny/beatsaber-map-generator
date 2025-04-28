@@ -322,18 +322,13 @@ def ignite_train(
         greater_or_equal=True,
     )
 
+    @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval), {"mymodel": model})
     def save_and_upload_best_model(engine: Engine):
         saved_path = best_model(engine, {"mymodel": model})
         if saved_path:
             upload_checkpoint_as_artifact(
                 filepath=saved_path, epoch=engine.state.epoch, name_prefix="best-model"
             )
-
-    trainer.add_event_handler(
-        Events.EPOCH_COMPLETED(every=validation_interval),
-        save_and_upload_best_model,
-        {"mymodel": model},
-    )
 
     model_handler = ModelCheckpoint(
         dirname=os.path.join(wandb.run.dir, "model_checkpoints"),  # type: ignore
