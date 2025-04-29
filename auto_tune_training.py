@@ -301,7 +301,7 @@ if __name__ == "__main__":
             print("📂 Found existing auto_tune_results.json. Skipping batch search...")
             with open("auto_tune_results.json", "r") as f:
                 config = json.load(f)
-                best_batch_size = config["batch_size"]
+                best_batch_size = config["best_batch_size"]
         else:
             best_batch_size = binary_search_max_batch()
             print(f"🎯 Initial best batch size: {best_batch_size}")
