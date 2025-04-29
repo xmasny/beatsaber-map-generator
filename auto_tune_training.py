@@ -1,7 +1,9 @@
 # auto_tune_training.py
 
+import os
 import sys
 import torch.multiprocessing as mp
+import wandb
 
 if sys.platform.startswith("linux"):
     mp.set_start_method("spawn", force=True)
@@ -290,14 +292,21 @@ if __name__ == "__main__":
                 f,
             )
     elif mode == "4":
+        best_batch_size = None
         print(
             "\n🚀 Running fault-tolerant benchmark (batch size shrinking + workers fallback)..."
         )
 
-        best_batch_size = binary_search_max_batch()
-        print(f"🎯 Initial best batch size: {best_batch_size}")
+        if os.path.exists("training_config.json"):
+            print("📂 Found existing training_config.json. Skipping batch search...")
+            with open("training_config.json", "r") as f:
+                config = json.load(f)
+                best_batch_size = config["batch_size"]
+        else:
+            best_batch_size = binary_search_max_batch()
+            print(f"🎯 Initial best batch size: {best_batch_size}")
 
-        best_batch_size = auto_shrink_and_benchmark(best_batch_size)
+            best_batch_size = auto_shrink_and_benchmark(best_batch_size)
         if best_batch_size is None:
             print("❌ No valid batch size found after shrinking.")
             exit(1)
@@ -353,6 +362,8 @@ if __name__ == "__main__":
                     print("\n⏱ Running ignite_train() for 3 epochs...")
                     start = time.time()
 
+                    run_parameters = {"epochs": epochs, "wandb_mode": "disabled"}
+
                     ignite_train(
                         train_dataset,
                         valid_dataset,
@@ -366,6 +377,7 @@ if __name__ == "__main__":
                         lr_scheduler,
                         epochs=epochs,
                         wandb_logger=None,
+                        **run_parameters,
                     )
 
                     end = time.time()
