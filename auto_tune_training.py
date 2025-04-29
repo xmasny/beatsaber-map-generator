@@ -27,14 +27,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # --- Constants ---
 START_BATCH = 8
-MAX_SEARCH_BATCH = 256  # For local; change to 1024 for server
-DEFAULT_NUM_WORKERS = 4  # For local tuning
-BATCHES_TO_TEST = 5
+MAX_SEARCH_BATCH = 1024  # For local; change to 1024 for server
+DEFAULT_NUM_WORKERS = 8  # For local tuning
+BATCHES_TO_TEST = 10
 MAX_TOTAL_TIME = 30  # seconds
 MAX_TIME_PER_BATCH = 5  # seconds
 MIN_BATCH_SIZE = 16
 SHRINK_FACTOR = 0.9
-IS_PARALLEL = False  # Set to True if using multiple GPUs
+IS_PARALLEL = True  # Set to True if using multiple GPUs
 
 # --- Global flags ---
 search_history = []
