@@ -375,7 +375,6 @@ if __name__ == "__main__":
                         valid_dataset_len,
                         device,
                         lr_scheduler,
-                        epochs=epochs,
                         wandb_logger=None,
                         **run_parameters,
                     )
