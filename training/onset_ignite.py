@@ -88,7 +88,7 @@ def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
         )
 
 
-def score_function(engine):
+def score_function(engine: Engine):
     val_loss = engine.state.metrics["loss"]
     return -val_loss
 

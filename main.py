@@ -2,6 +2,13 @@ import shutil
 import sys
 import hydra
 import os
+import torch.multiprocessing as mp
+
+if sys.platform.startswith("linux"):
+    try:
+        mp.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass  # Start method was already set; that's OK
 
 from config import RunConfig
 from training.onset_train import main as train
