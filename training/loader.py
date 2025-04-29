@@ -178,7 +178,7 @@ class BaseLoader(Dataset):
     def collate_batch(self, batch: list[dict]):
         return {key: torch.stack([item[key] for item in batch]) for key in batch[0]}
 
-    def get_dataloader(self, shuffle=True):
+    def get_dataloader(self, shuffle=True, persistent_workers=False):
         subset = Subset(self, self.indices[self.split.value])  # type: ignore
         return DataLoader(
             subset,
@@ -186,6 +186,7 @@ class BaseLoader(Dataset):
             shuffle=shuffle,
             num_workers=self.num_workers,
             collate_fn=non_collate,
+            persistent_workers=persistent_workers,
         )
 
     def get_split_df(self, split: Split):

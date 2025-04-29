@@ -316,7 +316,7 @@ if __name__ == "__main__":
         epochs = 3
         success = False
 
-        worker_options = [8, 6, 4, 2]
+        worker_options = [4, 2]
 
         for num_workers in worker_options:
             batch_size = best_batch_size
@@ -336,8 +336,8 @@ if __name__ == "__main__":
                         batch_size=batch_size,
                     )
 
-                    train_loader = train_dataset.get_dataloader()
-                    valid_loader = valid_dataset.get_dataloader()
+                    train_loader = train_dataset.get_dataloader(persistent_workers=True)
+                    valid_loader = valid_dataset.get_dataloader(persistent_workers=True)
                     train_dataset_len = len(train_dataset)
                     valid_dataset_len = len(valid_dataset)
 
