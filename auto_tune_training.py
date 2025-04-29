@@ -297,9 +297,9 @@ if __name__ == "__main__":
             "\n🚀 Running fault-tolerant benchmark (batch size shrinking + workers fallback)..."
         )
 
-        if os.path.exists("training_config.json"):
-            print("📂 Found existing training_config.json. Skipping batch search...")
-            with open("training_config.json", "r") as f:
+        if os.path.exists("auto_tune_results.json"):
+            print("📂 Found existing auto_tune_results.json. Skipping batch search...")
+            with open("auto_tune_results.json", "r") as f:
                 config = json.load(f)
                 best_batch_size = config["batch_size"]
         else:
