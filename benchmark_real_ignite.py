@@ -1,5 +1,13 @@
 import json
+import sys
 import time
+import torch.multiprocessing as mp
+
+if sys.platform.startswith("linux"):
+    try:
+        mp.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass  # Start method was already set; that's OK
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import CyclicLR
