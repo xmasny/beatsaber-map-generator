@@ -164,7 +164,8 @@ def ignite_train(
 
         lr = [pg["lr"] for pg in optimizer.param_groups][-1]
 
-        wandb.log({"train/lr": lr, "train/step": i})
+        if wandb_mode != "disabled":
+            wandb.log({"train/lr": lr, "train/step": i})
 
         for key, value in losses.items():
             if wandb_mode != "disabled":
