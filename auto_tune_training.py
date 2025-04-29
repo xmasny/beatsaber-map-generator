@@ -342,14 +342,7 @@ if __name__ == "__main__":
                     train_dataset_len = len(train_dataset)
                     valid_dataset_len = len(valid_dataset)
 
-                    model = SimpleOnsets(
-                        input_features=n_mels,
-                        output_features=1,
-                        dropout=0.4,
-                        rnn_dropout=0.1,
-                        num_layers=2,
-                        inference_chunk_length=round(16000 / FRAME),
-                    ).to(device)
+                    model = setup_model()
 
                     optimizer = optim.Adam(model.parameters(), lr=1e-3)
                     lr_scheduler = CyclicLR(
@@ -368,7 +361,7 @@ if __name__ == "__main__":
                     ignite_train(
                         train_dataset,
                         valid_dataset,
-                        model,
+                        model,  # type: ignore
                         train_loader,
                         valid_loader,
                         optimizer,
