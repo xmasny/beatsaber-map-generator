@@ -15,6 +15,9 @@ from tqdm import tqdm
 from config import *
 from utils import clean_data
 
+import time
+
+
 base_dataset_path = (
     "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/dataset/beatmaps"
 )
@@ -77,7 +80,24 @@ class BaseLoader(Dataset):
 
     def _load_and_split(self):
         dataset_path = f"{base_dataset_path}/{self.object_type.value}/metadata.csv"
-        df = pd.read_csv(dataset_path)
+        max_retries = 7
+        retry_delay = 1  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                df = pd.read_csv(dataset_path)
+                break  # ✅ Success, break the retry loop
+            except Exception as e:
+                print(
+                    f"❌ Failed to read {dataset_path} (attempt {attempt+1}/{max_retries}): {e}"
+                )
+                if attempt == max_retries - 1:
+                    raise RuntimeError(
+                        f"Failed to load dataset after {max_retries} attempts."
+                    ) from e
+                time.sleep(retry_delay)  # ⏳ Wait and retry
+                retry_delay *= 2
+
         df = clean_data(
             df,
             min_bpm=self.min_bpm,
