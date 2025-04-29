@@ -17,7 +17,7 @@ MIN_BATCH_SIZE = 32
 SHRINK_FACTOR = 0.9
 WORKER_OPTIONS = [8, 6, 4, 2]
 EPOCHS = 2
-IS_PARALLEL = False
+IS_PARALLEL = True
 
 results = []
 benchmark_file = "real_ignite_benchmark.json"
