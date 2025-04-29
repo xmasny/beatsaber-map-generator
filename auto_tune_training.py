@@ -321,106 +321,104 @@ if __name__ == "__main__":
 
         for num_workers in worker_options:
             for batch_size in batch_sizes:
-                while batch_size >= min_batch_size:
-                    try:
-                        print(
-                            f"🔧 Trying batch_size={batch_size}, workers={num_workers}"
+                # while batch_size >= min_batch_size:
+                try:
+                    print(f"🔧 Trying batch_size={batch_size}, workers={num_workers}")
+
+                    train_dataset = BaseLoader(
+                        split=Split.TRAIN,
+                        num_workers=num_workers,
+                        batch_size=batch_size,
+                    )
+
+                    valid_dataset = BaseLoader(
+                        split=Split.VALIDATION,
+                        num_workers=num_workers,
+                        batch_size=batch_size,
+                    )
+
+                    train_loader = train_dataset.get_dataloader()
+                    valid_loader = valid_dataset.get_dataloader()
+                    train_dataset_len = len(train_dataset)
+                    valid_dataset_len = len(valid_dataset)
+
+                    model = SimpleOnsets(
+                        input_features=n_mels,
+                        output_features=1,
+                        dropout=0.4,
+                        rnn_dropout=0.1,
+                        num_layers=2,
+                        inference_chunk_length=round(16000 / FRAME),
+                    ).to(device)
+
+                    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+                    lr_scheduler = CyclicLR(
+                        optimizer,
+                        base_lr=0.000493,
+                        max_lr=0.00241,
+                        step_size_up=1000,
+                        cycle_momentum=False,
+                    )
+
+                    print("\n⏱ Running ignite_train() for 3 epochs...")
+                    start = time.time()
+
+                    run_parameters = {"epochs": epochs, "wandb_mode": "disabled"}
+
+                    ignite_train(
+                        train_dataset,
+                        valid_dataset,
+                        model,
+                        train_loader,
+                        valid_loader,
+                        optimizer,
+                        train_dataset_len,
+                        valid_dataset_len,
+                        device,
+                        lr_scheduler,
+                        wandb_logger=None,
+                        **run_parameters,
+                    )
+
+                    end = time.time()
+                    total_time = end - start
+                    avg_epoch_time = total_time / epochs
+
+                    print(f"✅ Total training time: {total_time:.2f}s")
+                    print(f"📊 Average epoch time: {avg_epoch_time:.2f}s")
+
+                    epoch_results = {
+                        "batch_size": batch_size,
+                        "num_workers": num_workers,
+                        "epoch_times": [avg_epoch_time] * epochs,
+                        "average_epoch_time": avg_epoch_time,
+                    }
+
+                    with open("epoch_times.json", "w") as f:
+                        json.dump(epoch_results, f, indent=4)
+
+                    with open("training_config.json", "w") as f:
+                        json.dump(
+                            {"batch_size": batch_size, "num_workers": num_workers},
+                            f,
+                            indent=4,
                         )
 
-                        train_dataset = BaseLoader(
-                            split=Split.TRAIN,
-                            num_workers=num_workers,
-                            batch_size=batch_size,
-                        )
-
-                        valid_dataset = BaseLoader(
-                            split=Split.VALIDATION,
-                            num_workers=num_workers,
-                            batch_size=batch_size,
-                        )
-
-                        train_loader = train_dataset.get_dataloader()
-                        valid_loader = valid_dataset.get_dataloader()
-                        train_dataset_len = len(train_dataset)
-                        valid_dataset_len = len(valid_dataset)
-
-                        model = SimpleOnsets(
-                            input_features=n_mels,
-                            output_features=1,
-                            dropout=0.4,
-                            rnn_dropout=0.1,
-                            num_layers=2,
-                            inference_chunk_length=round(16000 / FRAME),
-                        ).to(device)
-
-                        optimizer = optim.Adam(model.parameters(), lr=1e-3)
-                        lr_scheduler = CyclicLR(
-                            optimizer,
-                            base_lr=0.000493,
-                            max_lr=0.00241,
-                            step_size_up=1000,
-                            cycle_momentum=False,
-                        )
-
-                        print("\n⏱ Running ignite_train() for 3 epochs...")
-                        start = time.time()
-
-                        run_parameters = {"epochs": epochs, "wandb_mode": "disabled"}
-
-                        ignite_train(
-                            train_dataset,
-                            valid_dataset,
-                            model,
-                            train_loader,
-                            valid_loader,
-                            optimizer,
-                            train_dataset_len,
-                            valid_dataset_len,
-                            device,
-                            lr_scheduler,
-                            wandb_logger=None,
-                            **run_parameters,
-                        )
-
-                        end = time.time()
-                        total_time = end - start
-                        avg_epoch_time = total_time / epochs
-
-                        print(f"✅ Total training time: {total_time:.2f}s")
-                        print(f"📊 Average epoch time: {avg_epoch_time:.2f}s")
-
-                        epoch_results = {
-                            "batch_size": batch_size,
-                            "num_workers": num_workers,
-                            "epoch_times": [avg_epoch_time] * epochs,
-                            "average_epoch_time": avg_epoch_time,
-                        }
-
-                        with open("epoch_times.json", "w") as f:
-                            json.dump(epoch_results, f, indent=4)
-
-                        with open("training_config.json", "w") as f:
-                            json.dump(
-                                {"batch_size": batch_size, "num_workers": num_workers},
-                                f,
-                                indent=4,
-                            )
-
-                        print(
-                            "📄 Results saved to epoch_times.json and training_config.json"
-                        )
-                        success = True
-                        break
-
-                    except RuntimeError as e:
-                        print(
-                            f"❌ Failed at batch_size={batch_size}, workers={num_workers}: {e}"
-                        )
-                        torch.cuda.empty_cache()
-                        continue
-
-                if success:
+                    print(
+                        "📄 Results saved to epoch_times.json and training_config.json"
+                    )
+                    success = True
                     break
+
+                except RuntimeError as e:
+                    print(
+                        f"❌ Failed at batch_size={batch_size}, workers={num_workers}: {e}"
+                    )
+                    torch.cuda.empty_cache()
+                    continue
+
+            if success:
+                break
 
         if not success:
             print("❌ Could not find any working combination. Training failed.")
