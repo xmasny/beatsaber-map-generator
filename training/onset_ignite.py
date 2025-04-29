@@ -346,6 +346,8 @@ def ignite_train(
 
         wandb.watch(model, log="all", criterion=avg_loss)
 
+        setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=validation_interval)  # type: ignore
+
     train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
     valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
 
@@ -354,8 +356,6 @@ def ignite_train(
         valid_loader=valid_loader,
         batch_size=batch_size,
     )
-
-    setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=1)  # type: ignore
 
     logger.info(
         f"epoch_length: {epoch_length} epoch_length_valid: {epoch_length_valid}"
