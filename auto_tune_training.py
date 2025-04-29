@@ -234,7 +234,8 @@ if __name__ == "__main__":
     print("1. Search batch size only")
     print("2. Benchmark num_workers only")
     print("3. Full search (batch size + workers)")
-    mode = input("Select mode [1/2/3]: ").strip()
+    print("4. Fault-tolerant benchmark (batch size shrinking + workers fallback)")
+    mode = input("Select mode [1/2/3/4]: ").strip()
 
     listener = threading.Thread(target=keyboard_listener, daemon=True)
     listener.start()
