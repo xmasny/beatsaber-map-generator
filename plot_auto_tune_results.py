@@ -1,4 +1,3 @@
-# plot_auto_tune_results.py
 import json
 import matplotlib.pyplot as plt
 
@@ -39,21 +38,48 @@ def plot_worker_benchmark(worker_benchmarks):
     plt.show()
 
 
+def plot_epoch_times(epoch_data):
+    epochs = list(range(1, len(epoch_data["epoch_times"]) + 1))
+    times = epoch_data["epoch_times"]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, times, marker="o", color="red")
+    plt.xlabel("Epoch")
+    plt.ylabel("Time per Epoch (s)")
+    plt.title(
+        f"Epoch Times | Batch Size {epoch_data['batch_size']}, Workers {epoch_data['num_workers']}"
+    )
+    plt.grid(True)
+    plt.show()
+
+
 if __name__ == "__main__":
     print("🛎 Loading tuning results...")
+
+    # Try loading auto_tune_results.json
     try:
         with open("auto_tune_results.json", "r") as f:
             data = json.load(f)
     except FileNotFoundError:
-        print("❌ Cannot find auto_tune_results.json!")
-        exit(1)
+        data = {}
+        print("⚠️ Warning: Cannot find auto_tune_results.json!")
+
+    # Try loading epoch_times.json
+    try:
+        with open("epoch_times.json", "r") as f:
+            epoch_data = json.load(f)
+    except FileNotFoundError:
+        epoch_data = None
+        print("⚠️ Warning: Cannot find epoch_times.json!")
 
     print("\nAvailable plots:")
     print("1. Batch size search results")
     print("2. Worker benchmarks")
-    print("3. Both")
+    print("3. Both batch+worker benchmarks")
+    if epoch_data:
+        print("4. Epoch times (full train+validate benchmark)")
 
-    choice = input("Select [1/2/3]: ").strip()
+    choice = input("Select [1/2/3/4]: ").strip()
 
     if choice == "1" or choice == "3":
         if "search_history" in data:
@@ -66,3 +92,9 @@ if __name__ == "__main__":
             plot_worker_benchmark(data["worker_benchmarks"])
         else:
             print("❌ No worker benchmark data available.")
+
+    if choice == "4":
+        if epoch_data:
+            plot_epoch_times(epoch_data)
+        else:
+            print("❌ No epoch timing data available.")

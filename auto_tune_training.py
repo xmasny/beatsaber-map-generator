@@ -13,11 +13,13 @@ import time
 import torch
 import threading
 from typing import Optional
-from torch.utils.data import DataLoader
 from training.loader import BaseLoader
 from config import *
 from dl.models.onsets import SimpleOnsets
 from tqdm import tqdm
+from training.onset_ignite import ignite_train
+import torch.optim as optim
+from torch.optim.lr_scheduler import CyclicLR
 
 from utils import MyDataParallel
 
@@ -25,14 +27,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # --- Constants ---
 START_BATCH = 8
-MAX_SEARCH_BATCH = 1024  # For local; change to 1024 for server
-DEFAULT_NUM_WORKERS = 8  # For local tuning
-BATCHES_TO_TEST = 10
+MAX_SEARCH_BATCH = 256  # For local; change to 1024 for server
+DEFAULT_NUM_WORKERS = 4  # For local tuning
+BATCHES_TO_TEST = 5
 MAX_TOTAL_TIME = 30  # seconds
 MAX_TIME_PER_BATCH = 5  # seconds
 MIN_BATCH_SIZE = 16
 SHRINK_FACTOR = 0.9
-IS_PARALLEL = True  # Set to True if using multiple GPUs
+IS_PARALLEL = False  # Set to True if using multiple GPUs
 
 # --- Global flags ---
 search_history = []
@@ -286,6 +288,128 @@ if __name__ == "__main__":
                 },
                 f,
             )
+    elif mode == "4":
+        print(
+            "\n🚀 Running fault-tolerant benchmark (batch size shrinking + workers fallback)..."
+        )
+
+        best_batch_size = binary_search_max_batch()
+        print(f"🎯 Initial best batch size: {best_batch_size}")
+
+        best_batch_size = auto_shrink_and_benchmark(best_batch_size)
+        if best_batch_size is None:
+            print("❌ No valid batch size found after shrinking.")
+            exit(1)
+
+        shrink_step = max(16, int(best_batch_size * 0.1))
+        min_batch_size = 16
+        epochs = 3
+        success = False
+
+        worker_options = [8, 6, 4, 2]
+
+        for num_workers in worker_options:
+            batch_size = best_batch_size
+            while batch_size >= min_batch_size:
+                try:
+                    print(f"🔧 Trying batch_size={batch_size}, workers={num_workers}")
+
+                    train_dataset = BaseLoader(
+                        split=Split.TRAIN,
+                        num_workers=num_workers,
+                        batch_size=batch_size,
+                    )
+
+                    valid_dataset = BaseLoader(
+                        split=Split.VALIDATION,
+                        num_workers=num_workers,
+                        batch_size=batch_size,
+                    )
+
+                    train_loader = train_dataset.get_dataloader()
+                    valid_loader = valid_dataset.get_dataloader()
+                    train_dataset_len = len(train_dataset)
+                    valid_dataset_len = len(valid_dataset)
+
+                    model = SimpleOnsets(
+                        input_features=n_mels,
+                        output_features=1,
+                        dropout=0.4,
+                        rnn_dropout=0.1,
+                        num_layers=2,
+                        inference_chunk_length=round(16000 / FRAME),
+                    ).to(device)
+
+                    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+                    lr_scheduler = CyclicLR(
+                        optimizer,
+                        base_lr=0.000493,
+                        max_lr=0.00241,
+                        step_size_up=1000,
+                        cycle_momentum=False,
+                    )
+
+                    print("\n⏱ Running ignite_train() for 3 epochs...")
+                    start = time.time()
+
+                    ignite_train(
+                        train_dataset,
+                        valid_dataset,
+                        model,
+                        train_loader,
+                        valid_loader,
+                        optimizer,
+                        train_dataset_len,
+                        valid_dataset_len,
+                        device,
+                        lr_scheduler,
+                        epochs=epochs,
+                        wandb_logger=None,
+                    )
+
+                    end = time.time()
+                    total_time = end - start
+                    avg_epoch_time = total_time / epochs
+
+                    print(f"✅ Total training time: {total_time:.2f}s")
+                    print(f"📊 Average epoch time: {avg_epoch_time:.2f}s")
+
+                    epoch_results = {
+                        "batch_size": batch_size,
+                        "num_workers": num_workers,
+                        "epoch_times": [avg_epoch_time] * epochs,
+                        "average_epoch_time": avg_epoch_time,
+                    }
+
+                    with open("epoch_times.json", "w") as f:
+                        json.dump(epoch_results, f, indent=4)
+
+                    with open("training_config.json", "w") as f:
+                        json.dump(
+                            {"batch_size": batch_size, "num_workers": num_workers},
+                            f,
+                            indent=4,
+                        )
+
+                    print(
+                        "📄 Results saved to epoch_times.json and training_config.json"
+                    )
+                    success = True
+                    break
+
+                except RuntimeError as e:
+                    print(
+                        f"❌ Failed at batch_size={batch_size}, workers={num_workers}: {e}"
+                    )
+                    batch_size -= shrink_step
+                    torch.cuda.empty_cache()
+                    continue
+
+            if success:
+                break
+
+        if not success:
+            print("❌ Could not find any working combination. Training failed.")
 
     else:
         print("❌ Invalid mode selected.")

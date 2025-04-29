@@ -37,10 +37,10 @@ _SPLIT_CACHE = {}
 class BaseLoader(Dataset):
     def __init__(
         self,
-        min_sum_votes: int,
-        min_score: float,
-        min_bpm: float,
-        max_bpm: float,
+        min_sum_votes: int = 100,
+        min_score: float = 0.95,
+        min_bpm: float = 60.0,
+        max_bpm: float = 300.0,
         difficulty: DifficultyName = DifficultyName.ALL,
         object_type: ObjectType = ObjectType.COLOR_NOTES,
         enable_condition: bool = True,
