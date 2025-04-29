@@ -80,7 +80,6 @@ def setup_model():
     ).to(device)
     if IS_PARALLEL:
         model = MyDataParallel(model)
-    model.eval()
     return model
 
 
@@ -107,6 +106,7 @@ def test_batch(batch_size, num_workers, batches_to_test=BATCHES_TO_TEST):
 
         train_loader = train_dataset.get_dataloader()
         model = setup_model()
+        model.eval()
 
         iteration = iter(train_loader)
         song_batches = cycle(iteration, train_dataset)
