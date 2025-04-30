@@ -128,19 +128,29 @@ class BaseLoader(Dataset):
 
         _SPLIT_CACHE[cache_key] = self.indices
 
-    def process(self, song_meta):
+    def process(self, song_meta, max_retries=3, retry_delay=2):
         song_path = (
             f"{base_dataset_path}/{self.object_type.value}/npz/{song_meta['song']}.npz"
         )
 
-        try:
-            response = requests.get(song_path)
-            response.raise_for_status()
-            song_npz = dict(np.load(BytesIO(response.content), allow_pickle=True))
-        except Exception as e:
-            logging.error(f'{song_meta["song"]}: {e}')
-            print(f'Error in {song_meta["song"]}: {e}')
-            return
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = requests.get(song_path)
+                response.raise_for_status()
+                song_npz = dict(np.load(BytesIO(response.content), allow_pickle=True))
+                break  # success
+            except Exception as e:
+                logging.warning(
+                    f'Attempt {attempt} failed for {song_meta["song"]}: {e}'
+                )
+                if attempt == max_retries:
+                    logging.error(
+                        f'{song_meta["song"]} failed after {max_retries} attempts'
+                    )
+                    print(f'Error in {song_meta["song"]}: {e}')
+                    return
+                retry_delay *= 2
+                time.sleep(retry_delay)  # wait before retrying
 
         song_meta["data"] = song_npz
         if not self.with_beats:

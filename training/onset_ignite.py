@@ -36,39 +36,6 @@ def get_number_of_difficulties(song):
     return sum(bool(song.get(diff)) for diff in DIFFICULTY_NAMES)
 
 
-def generate_valid_length(
-    valid_dataset: BaseLoader,
-    valid_loader,
-    batch_size: int,
-):
-    # Temporarily skip preprocessing
-
-    valid_dataset.skip_processing = True
-
-    pbar = tqdm(
-        valid_loader,
-        total=ceil(len(valid_dataset) / batch_size),
-        desc="Generate valid length",
-    )
-    valid_dataset_len = 0
-    for songs in pbar:
-        for song in songs:
-            try:
-                song_iterations = generate_window_data(
-                    data_length=song["frames"]
-                ) * get_number_of_difficulties(song)
-                valid_dataset_len += song_iterations
-            except Exception as e:
-                print(e)
-                continue
-    pbar.close()
-
-    # Restore full preprocessing mode
-    valid_dataset.skip_processing = False
-
-    return ceil(valid_dataset_len / batch_size)
-
-
 def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
     loss = metrics["loss"]
     logger.info(f"{mode} Results - Epoch: {epoch}  " f"Avg loss: {loss:.4f}")
@@ -89,8 +56,26 @@ def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
 
 
 def score_function(engine: Engine):
-    val_loss = engine.state.metrics["loss"]
-    return -val_loss
+    metrics = engine.state.metrics
+    val_loss = metrics.get("loss", 1.0)
+    f1 = metrics.get("onset/f1", 0.0)
+
+    # Compute weighted combination
+    combined_score = f1 - 0.5 * val_loss
+
+    # Log all scores manually to WandB for monitoring
+    if wandb.run is not None:
+        wandb.log(
+            {
+                "scoring/validation_loss": val_loss,
+                "scoring/f1_score": f1,
+                "scoring/combined_score": combined_score,
+                "scoring/epoch": engine.state.epoch,
+            }
+        )
+
+    # Return the score you want to maximize!
+    return combined_score
 
 
 def ignite_train(
@@ -217,6 +202,8 @@ def ignite_train(
                     f"Loss: {loss:.4f}"
                 )
 
+    epoch_length_valid = [None]
+
     @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
     def log_validation_results(engine: Engine):
         i = engine.state.iteration
@@ -224,8 +211,12 @@ def ignite_train(
 
         evaluator.run(
             cycle(valid_loader, valid_num_songs_pbar),
-            # epoch_length=epoch_length_valid,
+            epoch_length=epoch_length_valid[0],
         )
+        if epoch_length_valid[0] is None:
+            epoch_length_valid[0] = evaluator.state.epoch_length  # type: ignore
+            print(f"Discovered real epoch_length_valid: {epoch_length_valid[0]}")
+
         model.eval()
         with torch.no_grad():
             if disable_eval:
@@ -235,7 +226,7 @@ def ignite_train(
                     model,
                     cycle(valid_loader),
                     device,
-                    epoch_length_valid,
+                    epoch_length_valid[0],
                     eval_tolerance,
                 ).items():
                     k = "validation/" + key.replace(" ", "_")
@@ -352,15 +343,7 @@ def ignite_train(
     train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
     valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
 
-    epoch_length_valid = generate_valid_length(
-        valid_dataset=valid_dataset,
-        valid_loader=valid_loader,
-        batch_size=batch_size,
-    )
-
-    logger.info(
-        f"epoch_length: {epoch_length} epoch_length_valid: {epoch_length_valid}"
-    )
+    logger.info(f"epoch_length: {epoch_length}")
     # Run the training process
     trainer.run(
         cycle(train_loader, train_num_songs_pbar),

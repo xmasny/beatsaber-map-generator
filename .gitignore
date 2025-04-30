@@ -144,3 +144,4 @@ dataset
 *.zip
 
 conf/params/servers**
+*.pt
