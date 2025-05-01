@@ -209,7 +209,6 @@ def setup_checkpoint_upload(
     objects_to_save: Dict[str, torch.nn.Module],
     wandb_dir: str,
     validation_interval: int = 1,
-    artifact_name_prefix: str = "model",
     max_artifacts: int = 5,
 ):
     checkpoint_dir = Path(wandb_dir) / "checkpoints"
@@ -219,7 +218,7 @@ def setup_checkpoint_upload(
     def save_and_upload(engine):
         epoch = engine.state.epoch
         for name, obj in objects_to_save.items():
-            filename = f"{artifact_name_prefix}_{name}_epoch_{epoch}.pt"
+            filename = f"{name}_epoch_{epoch}.pt"
             save_path = checkpoint_dir / filename
 
             if not isinstance(obj, (torch.nn.Module, torch.optim.Optimizer)):
@@ -231,9 +230,7 @@ def setup_checkpoint_upload(
                 obj.state_dict() if isinstance(obj, torch.nn.Module) else obj, save_path
             )
 
-            upload_checkpoint_as_artifact(
-                str(save_path), epoch, name_prefix=f"{artifact_name_prefix}-{name}"
-            )
+            upload_checkpoint_as_artifact(str(save_path), epoch, name_prefix=f"{name}")
 
     @trainer.on(Events.COMPLETED)
     def final_cleanup(engine):

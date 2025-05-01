@@ -74,7 +74,7 @@ def main(run_parameters: RunConfig):
         wandb.define_metric("metrics/*", step_metric="epoch")
         wandb.define_metric("weight_sum/*", step_metric="epoch")
         wandb.define_metric("validation/step")
-        wandb.define_metric("validation/*", step_metric="validation/step")
+        wandb.define_metric("validation/*", step_metric="epoch")
 
         train_dataset_len = len(train_dataset)
         valid_dataset_len = len(valid_dataset)

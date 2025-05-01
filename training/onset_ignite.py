@@ -1,7 +1,6 @@
 import os
 import shutil
 from logging import getLogger
-from math import ceil
 from pathlib import Path
 
 import numpy as np
@@ -17,10 +16,9 @@ from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoin
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 
-from ignite.metrics import Average
+from ignite.metrics import Average, Fbeta
 
 from dl.models.onsets import OnsetsBase
-from dl.models.util import generate_window_data
 from notes_generator.training.evaluate import evaluate
 from training.loader import BaseLoader
 
@@ -55,10 +53,15 @@ def write_metrics(metrics, mode: str, epoch: int, wandb_mode: str):
         )
 
 
+def early_stopping_function(engine: Engine):
+    val_loss = engine.state.metrics["loss"]
+    return -val_loss
+
+
 def score_function(engine: Engine):
     metrics = engine.state.metrics
     val_loss = metrics.get("loss", 1.0)
-    f1 = metrics.get("onset/f1", 0.0)
+    f1 = wandb.summary["validation/metric/onset/f1"]
 
     # Compute weighted combination
     combined_score = f1 - 0.5 * val_loss
@@ -175,9 +178,6 @@ def ignite_train(
     evaluator = Engine(eval_step)
     target_lr = [pg["lr"] for pg in optimizer.param_groups][-1]
 
-    ProgressBar(persist=True).attach(trainer, output_transform=lambda x: x[1]["loss"])
-    ProgressBar(persist=True).attach(evaluator, output_transform=lambda x: x[1]["loss"])
-
     checkpoint = Path(log_dir) / "checkpoint"
 
     @trainer.on(Events.STARTED)
@@ -206,7 +206,7 @@ def ignite_train(
 
     @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
     def log_validation_results(engine: Engine):
-        i = engine.state.iteration
+        i = engine.state.epoch
         lr = [pg["lr"] for pg in optimizer.param_groups][-1]
 
         evaluator.run(
@@ -232,10 +232,10 @@ def ignite_train(
                     k = "validation/" + key.replace(" ", "_")
                     v = np.mean(value)
                     if wandb_mode != "disabled":
-                        wandb.log({k: v, "validation/step": i})
+                        wandb.log({k: v, "epoch": i})
 
             if wandb_mode != "disabled":
-                wandb.log({"validation/lr": lr, "validation/step": i})
+                wandb.log({"validation/lr": lr, "epoch": i})
 
         metrics = evaluator.state.metrics
         write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
@@ -275,7 +275,7 @@ def ignite_train(
     avg_loss_onset.attach(evaluator, "loss-onset")
     if enable_early_stop:
         handler = EarlyStopping(
-            patience=patience, score_function=score_function, trainer=trainer
+            patience=patience, score_function=early_stopping_function, trainer=trainer
         )
         evaluator.add_event_handler(Events.COMPLETED, handler)
     to_save = {"trainer": trainer, "optimizer": optimizer}
@@ -339,6 +339,9 @@ def ignite_train(
         wandb.watch(model, log="all", criterion=avg_loss)
 
         setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=validation_interval)  # type: ignore
+
+    ProgressBar(persist=True).attach(trainer, output_transform=lambda x: x[1]["loss"])
+    ProgressBar(persist=True).attach(evaluator, output_transform=lambda x: x[1]["loss"])
 
     train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
     valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
