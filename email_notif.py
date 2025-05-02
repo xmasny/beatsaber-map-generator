@@ -67,7 +67,7 @@ while True:
         send_email(
             subject=f"🚀 GPU Available on {hostname}!",
             body=f"The following GPU(s) are idle on {hostname}:\n" + "\n".join(idle),
-            to_emails=[GMAIL_USER],
+            to_emails=recipients,
         )
         EMAIL_SENT = True
     elif not idle:
