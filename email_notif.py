@@ -41,11 +41,11 @@ def get_idle_gpus():
         return set()
 
 
-def send_email(subject, body):
+def send_email(subject, body, to_emails):
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = GMAIL_USER
-    msg["To"] = GMAIL_USER
+    msg["To"] = ", ".join(to_emails)
     msg.set_content(body)
 
     try:
@@ -62,10 +62,12 @@ print("🔄 Starting GPU idle checker...")
 while True:
     idle = get_idle_gpus()
     if idle and not EMAIL_SENT:
+        recipients = [GMAIL_USER, "masny5@uniba.sk"]
         print(f"✅ Idle GPU(s) found: {idle}")
         send_email(
             subject=f"🚀 GPU Available on {hostname}!",
             body=f"The following GPU(s) are idle on {hostname}:\n" + "\n".join(idle),
+            to_emails=[GMAIL_USER],
         )
         EMAIL_SENT = True
     elif not idle:
