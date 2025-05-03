@@ -192,21 +192,6 @@ def upload_checkpoint_as_artifact(
     os.remove(filepath)
 
 
-def cleanup_old_artifacts(
-    project_name: str, artifact_type: str = "model", max_to_keep: int = 5
-):
-    try:
-        api = wandb.Api()
-        artifacts = api.artifacts(type=artifact_type, project=project_name)  # type: ignore
-        artifacts = sorted(artifacts, key=lambda x: x.created_at, reverse=True)
-
-        for artifact in artifacts[max_to_keep:]:
-            print(f"Deleting old artifact: {artifact.name}")
-            artifact.delete()
-    except Exception as e:
-        print(f"Artifact cleanup failed: {e}")
-
-
 def setup_checkpoint_upload(
     trainer,
     objects_to_save: Dict[str, torch.nn.Module],
@@ -234,15 +219,6 @@ def setup_checkpoint_upload(
             )
 
             upload_checkpoint_as_artifact(str(save_path), epoch, name_prefix=f"{name}")
-
-    @trainer.on(Events.COMPLETED)
-    def final_cleanup(engine):
-        if wandb.run is not None:
-            cleanup_old_artifacts(
-                project_name=wandb.run.project,
-                artifact_type="model",
-                max_to_keep=max_artifacts,
-            )
 
 
 # Usage inside ignite_train()

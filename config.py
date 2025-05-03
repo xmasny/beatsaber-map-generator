@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, TypedDict, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig
+import scipy as sp
 
 # Constants
 
@@ -20,6 +21,11 @@ class ObjectType(enum.Enum):
     BOMB_NOTES = "bomb_notes"
     COLOR_NOTES = "color_notes"
     OBSTACLES = "obstacles"
+
+
+class ModelType(enum.Enum):
+    ONSETS = "onsets"
+    NOTES = "notes"
 
 
 class DifficultyName(enum.Enum):
@@ -89,8 +95,13 @@ class SongIteration(TypedDict):
     not_working: Optional[bool]
 
 
-class RunConfig(DictConfig):
+class RunParams(DictConfig):
+    wandb_resume: str | None
+    wandb_resume_id: str | None
+    song_reset_number: int
+    split_seed: int
     object_type: str
+    model_type: str
     difficulty: str
     model_dir: str
     batch_size: int
@@ -125,3 +136,7 @@ class RunConfig(DictConfig):
     max_bpm: float
     gpu_index: int
     wandb_project: str
+
+
+class RunConfig(DictConfig):
+    params: RunParams

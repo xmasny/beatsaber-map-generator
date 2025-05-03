@@ -116,6 +116,7 @@ def ignite_train(
     warmup_steps = run_parameters.get("warmup_steps", 0)
     epochs = run_parameters.get("epochs", 100)
     wandb_mode = run_parameters.get("wandb_mode", "online")
+    song_reset_number = run_parameters.get("song_reset_number", 0)
 
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
         if num_songs_pbar:
@@ -185,6 +186,11 @@ def ignite_train(
         if resume_checkpoint:
             engine.state.iteration = resume_checkpoint
             engine.state.epoch = int(resume_checkpoint / engine.state.epoch_length)
+
+            for song in train_loader:
+                train_num_songs_pbar.update(1)
+                if song_reset_number < train_num_songs_pbar.n:
+                    break
 
     @trainer.on(Events.ITERATION_COMPLETED(every=loss_interval))
     def log_training_loss(engine: Engine):
@@ -291,19 +297,27 @@ def ignite_train(
         shutil.rmtree(str(checkpoint))
     if wandb_mode != "disabled":
 
+        if resume_checkpoint:
+            checkpoint_path = os.path.join(wandb.run.dir, "checkpoints", f"checkpoint_<X>.pth")  # type: ignore
+            Checkpoint.load_objects(
+                to_load={"model": model, "optimizer": optimizer},
+                checkpoint=torch.load(checkpoint_path),
+            )
+
         handler = Checkpoint(
             to_save,
             DiskSaver(os.path.join(wandb.run.dir, "checkpoints"), create_dir=True, require_empty=False),  # type: ignore
             n_saved=n_saved_checkpoint,
         )
         trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=checkpoint_interval), handler
+            Events.ITERATION_COMPLETED(every=(validation_interval * epoch_length)),
+            handler,
         )
 
         best_checkpoint = Checkpoint(
             to_save,
             DiskSaver(os.path.join(wandb.run.dir), create_dir=False, require_empty=False),  # type: ignore
-            n_saved=1,
+            n_saved=2,
             score_function=score_function,
             score_name="validation_loss",
             greater_or_equal=True,
@@ -316,7 +330,7 @@ def ignite_train(
         best_model = ModelCheckpoint(
             dirname=os.path.join(wandb.run.dir),  # type: ignore
             filename_prefix="model",
-            n_saved=1,
+            n_saved=2,
             create_dir=True,
             require_empty=False,
             score_function=score_function,

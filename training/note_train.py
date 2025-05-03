@@ -1,37 +1,31 @@
 import os
 import shutil
-
 import torch
 import wandb
+import random
+
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
-from torch.utils.data import DataLoader
 
 from config import *
-from dl.models.onsets import SimpleOnsets
 from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
-import random
+from dl.models.layers import AudioSymbolicNoteSelectorMultiHead
 
 
 def main(run_parameters: RunParams):
     try:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         torch.cuda.set_device(
             run_parameters.gpu_index if run_parameters.gpu_index >= 0 else -1
         )
-
-        SEED = random.randint(0, 2**32 - 1)  # or fix it for true reproducibility
-
-        if run_parameters.split_seed:
-            SEED = run_parameters.split_seed
+        SEED = random.randint(0, 2**32 - 1)
 
         common_dataset_args = {
             "difficulty": DifficultyName[run_parameters.difficulty.upper()],
-            "object_type": ObjectType[run_parameters.object_type.upper()],
+            "object_type": ObjectType.COLOR_NOTES,
             "enable_condition": run_parameters.enable_condition,
             "seq_length": run_parameters.seq_length,
             "skip_step": run_parameters.skip_step,
@@ -48,15 +42,8 @@ def main(run_parameters: RunParams):
         train_dataset = BaseLoader(split=Split.TRAIN, **common_dataset_args)
         valid_dataset = BaseLoader(split=Split.VALIDATION, **common_dataset_args)
 
-        model = SimpleOnsets(
-            input_features=n_mels,
-            output_features=1,
-            dropout=run_parameters.dropout,
-            rnn_dropout=run_parameters.rnn_dropout,
-            enable_condition=run_parameters.enable_condition,
-            num_layers=run_parameters.num_layers,
-            enable_beats=run_parameters.with_beats,
-            inference_chunk_length=round(run_parameters.seq_length / FRAME),
+        model = AudioSymbolicNoteSelectorMultiHead(
+            n_mels=n_mels, symbolic_size=1, hidden_size=128
         ).to(device)
 
         if run_parameters.is_parallel:
@@ -69,8 +56,8 @@ def main(run_parameters: RunParams):
             project=run_parameters.wandb_project,
             config={**run_parameters},
             mode=run_parameters.wandb_mode,
-            id=run_parameters.wandb_resume_id,
             resume=run_parameters.wandb_resume,
+            id=run_parameters.wandb_resume_id,
         )
 
         wandb.define_metric("train/step")
@@ -87,7 +74,6 @@ def main(run_parameters: RunParams):
         train_loader = train_dataset.get_dataloader()
         valid_loader = valid_dataset.get_dataloader()
 
-        # Define your optimizer
         optimizer = Adam(
             model.parameters(),
             run_parameters.start_lr,
@@ -119,11 +105,9 @@ def main(run_parameters: RunParams):
             }
         )
 
-    except KeyboardInterrupt as e:
-        print(e)
+    except KeyboardInterrupt:
         if os.path.exists("dataset/valid_dataset"):
             shutil.rmtree("dataset/valid_dataset")
-            print("Removed dataset/valid_dataset")
 
     try:
         ignite_train(
@@ -140,8 +124,6 @@ def main(run_parameters: RunParams):
             wandb_logger,
             **run_parameters,  # type: ignore
         )
-    except KeyboardInterrupt as e:
-        print(e)
+    except KeyboardInterrupt:
         if os.path.exists("dataset/valid_dataset"):
             shutil.rmtree("dataset/valid_dataset")
-            print("Removed dataset/valid_dataset")

@@ -12,6 +12,7 @@ from torch.nn import (
     AvgPool2d,
     Upsample,
 )
+import torch.nn.functional as F
 import torch
 import typing
 
@@ -136,15 +137,15 @@ class BiLSTM(Module):
 
         """
         if self.training:
-            self.rnn.flatten_parameters()
+            self.rflatten_parameters()
             val = self.rnn(x, hc)[0]
             return val
         else:
-            self.rnn.flatten_parameters()
+            self.rflatten_parameters()
             # evaluation mode: support for longer sequences that do not fit in memory
             batch_size, sequence_length, input_features = x.shape
-            hidden_size = self.rnn.hidden_size
-            num_directions = 2 if self.rnn.bidirectional else 1
+            hidden_size = self.rhidden_size
+            num_directions = 2 if self.rbidirectional else 1
 
             if hc:
                 h, c = hc
@@ -175,7 +176,7 @@ class BiLSTM(Module):
                 output[:, start:end, :], (h, c) = self.rnn(x[:, start:end, :], (h, c))
 
             # reverse direction
-            if self.rnn.bidirectional:
+            if self.rbidirectional:
                 h.zero_()
                 c.zero_()
 
@@ -408,3 +409,97 @@ class ConvStack(Module):
         # x: B, C, H, W
         x = x.transpose(1, 2).flatten(-2)
         return x
+
+
+class AudioSymbolicNoteSelector(Module):
+    def __init__(self, n_mels, symbolic_size=3, hidden_size=128, output_size=256):
+        super().__init__()
+
+        self.conv_stack = ConvStack(input_features=n_mels, output_features=128)
+        self.lstm = LSTM(
+            input_size=128 + symbolic_size, hidden_size=hidden_size, batch_first=True
+        )
+        self.fc = Linear(hidden_size, output_size)
+
+    def forward(self, mel, symbolic):
+        """
+        mel: (B, T, n_mels)
+        symbolic: (B, T, symbolic_size)
+        """
+        conv_feat = self.conv_stack(mel)  # → (B, T, 128)
+        x = torch.cat([conv_feat, symbolic], dim=-1)  # → (B, T, 128 + symbolic_size)
+        x, _ = self.lstm(x)
+        out = self.fc(x)  # → (B, T, output_size)
+        return out
+
+
+class AudioSymbolicNoteSelectorMultiHead(Module):
+    def __init__(self, n_mels, symbolic_size=3, hidden_size=128):
+        super().__init__()
+
+        self.conv_stack = ConvStack(input_features=n_mels, output_features=128)
+        self.lstm = LSTM(
+            input_size=128 + symbolic_size, hidden_size=hidden_size, batch_first=True
+        )
+
+        # Separate heads
+        self.color_head = Linear(hidden_size, 2)
+        self.direction_head = Linear(hidden_size, 9)
+        self.x_head = Linear(hidden_size, 4)
+        self.y_head = Linear(hidden_size, 3)
+
+    def forward(self, mel, symbolic):
+        """
+        mel: (B, T, n_mels)
+        symbolic: (B, T, symbolic_size)
+        Returns:
+            Dict of logits per head
+        """
+        conv_feat = self.conv_stack(mel)  # (B, T, 128)
+        x = torch.cat([conv_feat, symbolic], dim=-1)  # (B, T, 128 + symbolic_size)
+        x, _ = self.lstm(x)  # (B, T, hidden)
+
+        return {
+            "color": self.color_head(x),  # (B, T, 2)
+            "direction": self.direction_head(x),  # (B, T, 9)
+            "x": self.x_head(x),  # (B, T, 4)
+            "y": self.y_head(x),  # (B, T, 3)
+        }
+
+    def run_on_batch(self, batch, fuzzy_width=1, fuzzy_scale=1.0):
+        """
+        Args:
+            batch: dict with keys 'audio', 'onset', 'labels'
+            fuzzy_width and fuzzy_scale are unused here but kept for compatibility
+        Returns:
+            preds: dict of logits
+            losses: dict of loss components including total
+        """
+        device = next(self.parameters()).device
+        mel = batch["audio"].to(device)  # (B, T, n_mels)
+        symbolic = batch["onset"].to(device)  # (B, T, 1)
+
+        labels = batch["labels"]
+        for key in labels:
+            labels[key] = labels[key].to(device)
+
+        preds = self.forward(mel, symbolic)  # dict of (B, T, C)
+
+        loss_color = F.cross_entropy(
+            preds["color"].view(-1, 2), labels["color"].view(-1)
+        )
+        loss_dir = F.cross_entropy(
+            preds["direction"].view(-1, 9), labels["direction"].view(-1)
+        )
+        loss_x = F.cross_entropy(preds["x"].view(-1, 4), labels["x"].view(-1))
+        loss_y = F.cross_entropy(preds["y"].view(-1, 3), labels["y"].view(-1))
+
+        total_loss = loss_color + loss_dir + loss_x + loss_y
+
+        return preds, {
+            "loss-color": loss_color,
+            "loss-direction": loss_dir,
+            "loss-x": loss_x,
+            "loss-y": loss_y,
+            "loss": total_loss,
+        }
