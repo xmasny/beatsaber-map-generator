@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 from typing import Optional
 import torch
 from torch.nn import DataParallel
@@ -176,7 +177,9 @@ class MyDataParallel(DataParallel):
 
 
 def upload_checkpoint_as_artifact(
-    filepath: str, epoch: int, name_prefix: str = "model"
+    filepath: str,
+    epoch: int,
+    name_prefix: str = f"model-{wandb.run.name if wandb.run else socket.gethostname()}",
 ):
     if not os.path.exists(filepath):
         return

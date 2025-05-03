@@ -235,7 +235,13 @@ def ignite_train(
                         wandb.log({k: v, "epoch": i})
 
             if wandb_mode != "disabled":
-                wandb.log({"validation/lr": lr, "epoch": i})
+                wandb.log(
+                    {
+                        "validation/lr": lr,
+                        "epoch": i,
+                        "train/song": train_num_songs_pbar.n,
+                    }
+                )
 
         metrics = evaluator.state.metrics
         write_metrics(metrics, "validation", engine.state.epoch, wandb_mode)
