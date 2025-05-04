@@ -335,14 +335,18 @@ for type in ["color_notes"]:
                     print(f"Missing: {path}")
                     log_error("MISSING", path)
                     continue
+
+                data_dict = np.load(path, allow_pickle=True)
+                data_dict = dict(data_dict)
+
                 notes = {}
 
                 for key in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
-                    if row[key] and key in song:
-                        diff = song[key]
+                    if row[key] and key in data_dict:
+                        diff = data_dict[key]
                         diff = diff[:, 1:]
                         list_of_dicts = [dict(zip(column_names, row)) for row in diff]
                         notes[key] = list_of_dicts
-                song["notes"] = notes
+                data_dict["notes"] = notes
 
-                np.savez(path, **song)
+                np.savez(path, **data_dict)
