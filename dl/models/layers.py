@@ -137,15 +137,15 @@ class BiLSTM(Module):
 
         """
         if self.training:
-            self.rflatten_parameters()
+            self.rnn.flatten_parameters()
             val = self.rnn(x, hc)[0]
             return val
         else:
-            self.rflatten_parameters()
+            self.rnn.flatten_parameters()
             # evaluation mode: support for longer sequences that do not fit in memory
             batch_size, sequence_length, input_features = x.shape
-            hidden_size = self.rhidden_size
-            num_directions = 2 if self.rbidirectional else 1
+            hidden_size = self.rnn.hidden_size
+            num_directions = 2 if self.rnn.bidirectional else 1
 
             if hc:
                 h, c = hc
@@ -176,7 +176,7 @@ class BiLSTM(Module):
                 output[:, start:end, :], (h, c) = self.rnn(x[:, start:end, :], (h, c))
 
             # reverse direction
-            if self.rbidirectional:
+            if self.rnn.bidirectional:
                 h.zero_()
                 c.zero_()
 
