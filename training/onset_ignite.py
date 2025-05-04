@@ -104,7 +104,6 @@ def ignite_train(
     patience = run_parameters.get("patience", 10)
     loss_interval = run_parameters.get("loss_interval", 100)
     validation_interval = run_parameters.get("validation_interval", 100)
-    checkpoint_interval = run_parameters.get("checkpoint_interval", 200)
     n_saved_checkpoint = run_parameters.get("n_saved_checkpoint", 10)
     n_saved_model = run_parameters.get("n_saved_model", 40)
     disable_eval = run_parameters.get("disable_eval", False)
@@ -351,7 +350,7 @@ def ignite_train(
             require_empty=False,
         )
         trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=checkpoint_interval),
+            Events.ITERATION_COMPLETED(every=validation_interval * epoch_length),
             model_handler,
             {"mymodel": model},
         )

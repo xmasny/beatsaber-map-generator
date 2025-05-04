@@ -26,7 +26,7 @@ def main(run_parameters: RunParams):
 
         SEED = random.randint(0, 2**32 - 1)  # or fix it for true reproducibility
 
-        if run_parameters.split_seed:
+        if "split_seed" in run_parameters:
             SEED = run_parameters.split_seed
 
         common_dataset_args = {
@@ -69,8 +69,16 @@ def main(run_parameters: RunParams):
             project=run_parameters.wandb_project,
             config={**run_parameters},
             mode=run_parameters.wandb_mode,
-            id=run_parameters.wandb_resume_id,
-            resume=run_parameters.wandb_resume,
+            id=(
+                run_parameters.wandb_resume_id
+                if "wandb_resume_id" in run_parameters
+                else None
+            ),
+            resume=(
+                run_parameters.wandb_resume
+                if "wandb_resume" in run_parameters
+                else "never"
+            ),
         )
 
         wandb.define_metric("train/step")
