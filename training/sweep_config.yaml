@@ -1,14 +1,14 @@
 method: bayes
 metric:
   goal: maximize
-  name: weight_sum/f1/train_loss/val_loss
+  name: scoring/combined_score
 parameters:
   warmup_steps:
-    values: [400, 800]
+    values: [0.05,0.08, 0.1]
   epoch_length:
-    value: 400
+    value: 500
   fuzzy_width:
-    min: 2
+    min: 4
     max: 6
     distribution: int_uniform
   fuzzy_scale:
@@ -26,49 +26,19 @@ parameters:
     distribution: uniform
   dropout:
     max: 0.5
-    min: 0.0
+    min: 0.3
     q: 0.1
     distribution: q_uniform
   lr_scheduler_name:
     values: [CyclicLR, CosineAnnealingLR]
   rnn_dropout:  
-    max: 0.5
-    min: 0.0
+    max: 0.2
+    min: 0.1
     q: 0.1
     distribution: q_uniform
   weight_decay:
     max: 1e-6
     min: 0.0
     distribution: uniform
-  object_type:  
-    value: color_notes
-  difficulty:  
-    value: Easy
-  log_dir:  
-    value: ./logs
-  train_batch_size: 
-    value: 30
-  enable_condition: 
-    value: true
-  seq_length: 
-    value: 16000
-  skip_step:  
-    value: 2000
-  with_beats: 
-    value: true
-  num_layers:  
-    value: 2
-  loss_interval:  
+  epochs:
     value: 100
-  checkpoint_interval:  
-    value: 400
-  validation_interval:  
-    value: 1
-  epochs: 
-    value: 100
-  is_parallel: 
-    value: true
-  save_valid_dataset: 
-    value: true
-  eta_min: 
-    value: 1e-6

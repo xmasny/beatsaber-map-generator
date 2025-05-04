@@ -10,4 +10,4 @@ for c in range(2):
 
 labels = np.array(labels)
 
-np.save("dataset/beatmaps/color_notes/labels.npz", labels)
+np.savez("dataset/beatmaps/color_notes/labels.npz", labels)

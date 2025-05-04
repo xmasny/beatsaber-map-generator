@@ -1,3 +1,4 @@
+import random
 import torch
 import wandb
 from torch.optim import Adam
@@ -6,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from config import *
 from dl.models.onsets import SimpleOnsets
-from training.loader import BaseLoader, SavedValidDataloader
+from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
 
@@ -28,70 +29,62 @@ def non_collate(batch):
     return batch
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dataset = BaseLoader()
 
-songs_batch_size = int(input("Enter the song batch size: "))
-num_workers = int(input("Enter the number of workers: "))
-
 sweep_id = input("Enter the sweep id: ")
-train_batch_size = int(input("Enter the train batch size: "))
+batch_size = int(input("Enter the batch size: "))
 
-use_same_shuffle = input("Use the same shuffle for whole sweep run? (y/n): ")
+is_parallel = input("Is parallel? (True/False): ").lower() == "true"
 
+if not is_parallel:
+    gpu_index = int(input("Enter the GPU index: "))
+else:
+    gpu_index = -1
 
-if use_same_shuffle == "y":
-    run_parameters = AttributeDict()
-    run_parameters.difficulty = "Easy"
-    run_parameters.object_type = "color_notes"
-    dataset.load()
-
-    train_dataset = dataset[Split.TRAIN]
-    valid_dataset = dataset[Split.VALIDATION]
-
-    train_dataset_len = train_dataset.n_shards
-    valid_dataset_len = valid_dataset.n_shards
-
-    valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
-
-    dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters)  # type: ignore
-
-    valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
-    valid_dataset_len = len(valid_dataset)
-    valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu", gpu_index)
 
 
 def sweep_train(config=None):
-    if use_same_shuffle != "y":
-        run_parameters = AttributeDict()
-        run_parameters.difficulty = "Easy"
-        run_parameters.object_type = "color_notes"
+    SEED = random.randint(0, 2**32 - 1)  # or fix it for true reproducibility
 
-        dataset.load()
+    common_dataset_args = {
+        "difficulty": DifficultyName.ALL,
+        "object_type": ObjectType.COLOR_NOTES,
+        "enable_condition": True,
+        "seq_length": 16384,
+        "skip_step": 2000,
+        "with_beats": True,
+        "batch_size": batch_size,
+        "min_sum_votes": 100,
+        "min_score": 0.92,
+        "min_bpm": 60.0,
+        "max_bpm": 300.0,
+        "split_seed": SEED,
+    }
 
-        train_dataset = dataset[Split.TRAIN]
-        valid_dataset = dataset[Split.VALIDATION]
+    train_dataset = BaseLoader(split=Split.TRAIN, **common_dataset_args)
+    valid_dataset = BaseLoader(split=Split.VALIDATION, **common_dataset_args)
 
-        train_dataset_len = train_dataset.n_shards
-        valid_dataset_len = valid_dataset.n_shards
+    train_dataset_len = len(train_dataset)
+    valid_dataset_len = len(valid_dataset)
 
-        valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
+    train_loader = train_dataset.get_dataloader()
+    valid_loader = valid_dataset.get_dataloader()
 
-        dataset.save_valid_data(valid_loader, valid_dataset_len, run_parameters, default_delete=True)  # type: ignore
-
-        valid_dataset = SavedValidDataloader(run_parameters)  # type: ignore
-        valid_dataset_len = len(valid_dataset)
-        valid_loader = DataLoader(valid_dataset, batch_size=songs_batch_size, collate_fn=non_collate)  # type: ignore
-
-        train_loader = DataLoader(train_dataset, batch_size=songs_batch_size, collate_fn=non_collate, num_workers=num_workers)  # type: ignore
     with wandb.init(config=config):  # type: ignore
         config = wandb.config
 
+        warmup_steps = config.epoch_length * config.epochs * config.warmup_steps
+
         run_parameters = {
+            **common_dataset_args,
             **config,
-            "songs_batch_size": songs_batch_size,
-            "num_workers": num_workers,
-            "train_batch_size": train_batch_size,
+            "model_type": "onsets",
+            "batch_size": batch_size,
+            "warmup_steps": warmup_steps,
+            "num_layers": 2,
+            "patience": 3,
+            "eta_min": 1e-6,
         }
 
         wandb.config.update(
@@ -99,8 +92,6 @@ def sweep_train(config=None):
                 "train_dataset_len": train_dataset_len,
                 "valid_dataset_len": valid_dataset_len,
                 "wandb_mode": "online",
-                "songs_batch_size": songs_batch_size,
-                "num_workers": num_workers,
             },
         )
 
@@ -108,12 +99,13 @@ def sweep_train(config=None):
             input_features=n_mels,
             output_features=1,
             dropout=config.dropout,
-            num_layers=config.num_layers,
+            num_layers=run_parameters["num_layers"],
             rnn_dropout=config.rnn_dropout,
-            inference_chunk_length=round(config.seq_length / FRAME),
+            inference_chunk_length=round(run_parameters["seq_length"] / FRAME),
         ).to(device)
 
-        model = MyDataParallel(model)
+        if is_parallel:
+            model = MyDataParallel(model)
 
         optimizer = Adam(
             model.parameters(),
@@ -133,7 +125,7 @@ def sweep_train(config=None):
             lr_scheduler = CosineAnnealingLR(
                 optimizer,
                 config.epochs * config.epoch_length,
-                eta_min=config.eta_min,
+                eta_min=run_parameters["eta_min"],
             )
         else:
             raise ValueError
@@ -150,7 +142,8 @@ def sweep_train(config=None):
         wandb.define_metric("validation/*", step_metric="validation/step")
 
         ignite_train(
-            dataset,
+            train_dataset,
+            valid_dataset,
             model,  # type: ignore
             train_loader,
             valid_loader,

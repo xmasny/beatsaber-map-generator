@@ -16,7 +16,7 @@ from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoin
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 
-from ignite.metrics import Average, Fbeta
+from ignite.metrics import Average
 
 from dl.models.onsets import OnsetsBase
 from notes_generator.training.evaluate import evaluate
