@@ -12,8 +12,8 @@ parameters:
     max: 6
     distribution: int_uniform
   fuzzy_scale:
-    min: 0.1
-    max: 0.7
+    min: 0.3
+    max: 0.6
     q: 0.1
     distribution: q_uniform
   start_lr:
@@ -32,8 +32,8 @@ parameters:
   lr_scheduler_name:
     values: [CyclicLR, CosineAnnealingLR]
   rnn_dropout:  
-    max: 0.2
-    min: 0.1
+    max: 0.3
+    min: 0
     q: 0.1
     distribution: q_uniform
   weight_decay:
