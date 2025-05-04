@@ -4,6 +4,7 @@ import socket
 from typing import Optional
 import torch
 from torch.nn import DataParallel
+import numpy as np
 from tqdm import tqdm
 import wandb
 from ignite.engine import Events
@@ -221,6 +222,53 @@ def setup_checkpoint_upload(
             upload_checkpoint_as_artifact(str(save_path), epoch, name_prefix=f"{name}")
 
 
-# Usage inside ignite_train()
+labels = np.load("dataset/labels.npz")
 
-# setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=1)
+
+def encode_label(
+    x: int,
+    y: int,
+    color: int | None = None,
+    direction: int | None = None,
+    type: str = "color_notes",
+) -> int:
+    """
+    This file contains the functions to encode the labels for the dataset.
+    color_notes and bomb_notes are the labels for the dataset.
+
+    All array columns are in order.
+
+    color_notes is a 2D array of shape (216, 4) with the following columns:
+        - color: 0 or 1
+        - direction: 0 to 8 (0 = up, 1 = right, 2 = down, 3 = left, 4 = up-right, 5 = down-right, 6 = down-left, 7 = up-left, 8 = none)
+        - x: 0 to 3 (x coordinate of the note)
+        - y: 0 to 2 (y coordinate of the note)
+    bomb_notes is a 2D array of shape (12, 2) with the following columns:
+        - x: 0 to 3 (x coordinate of the note)
+        - y: 0 to 2 (y coordinate of the note)
+    """
+    assert type in [
+        "bomb_notes",
+        "color_notes",
+    ], "Type must be 'bomb_notes' or 'color_notes'"
+
+    data = []
+
+    if type == "color_notes":
+        assert color in range(2), "Color must be 0 or 1"
+        assert direction in range(9), "Direction must be between 0 and 8"
+
+        data.append(color)
+        data.append(direction)
+
+    assert x in range(4), "X must be between 0 and 3"
+    assert y in range(3), "Y must be between 0 and 2"
+
+    data.append(x)
+    data.append(y)
+
+    return np.where((labels[type] == data).all(axis=1))[0][0]
+
+
+def decode_label(label: int, type: str = "color_notes") -> list:
+    return labels[type][label]

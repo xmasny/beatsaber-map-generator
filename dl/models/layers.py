@@ -411,8 +411,9 @@ class ConvStack(Module):
         return x
 
 
+# Flattened Multi-Class Classification Head 216
 class AudioSymbolicNoteSelector(Module):
-    def __init__(self, n_mels, symbolic_size=3, hidden_size=128, output_size=256):
+    def __init__(self, n_mels, symbolic_size=3, hidden_size=128, output_size=216):
         super().__init__()
 
         self.conv_stack = ConvStack(input_features=n_mels, output_features=128)
@@ -433,6 +434,7 @@ class AudioSymbolicNoteSelector(Module):
         return out
 
 
+# Multi-Label Classification Head 2*9*4*3
 class AudioSymbolicNoteSelectorMultiHead(Module):
     def __init__(self, n_mels, symbolic_size=3, hidden_size=128):
         super().__init__()

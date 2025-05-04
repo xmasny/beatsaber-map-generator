@@ -16,6 +16,7 @@ for type in ["color_notes"]:
     CSV_PATH = f"{base_path}/metadata.csv"  # Path to your CSV file
     NPZ_DIR = f"{base_path}/npz"  # Folder containing .npz files
     LOG_PATH = "error_log.log"
+    column_names = ["b", "c", "d", "x", "y"]
     SONGS_PATH = f"dataset/songs/mel229"  # Path to your songs folder
 
     def get_bpm_info(meta, song):
@@ -35,7 +36,7 @@ for type in ["color_notes"]:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_file.write(f"[{timestamp}] {tag} {path} {message}\n")
 
-    for value in ["beats", "onset", "size", "validate_onsets", "check_data"]:
+    for value in ["notes"]:
         df = pd.read_csv(CSV_PATH)
         if value == "beats":
 
@@ -319,3 +320,29 @@ for type in ["color_notes"]:
                 f"{base_path}/check_data_report.csv", index=False
             )
             print("Check complete. Results saved to 'check_data_report.csv'")
+
+        elif value == "notes":
+            df = pd.read_csv(CSV_PATH)
+            missing_song = df["missing_song"]
+            df = df[~missing_song].reset_index(drop=True)
+            df = df[~df["automapper"]].reset_index(drop=True)
+
+            for index, row in tqdm(df.iterrows(), total=len(df)):
+                song = row["song"]
+                path = os.path.join(NPZ_DIR, song + ".npz")
+
+                if not os.path.exists(path):
+                    print(f"Missing: {path}")
+                    log_error("MISSING", path)
+                    continue
+                notes = {}
+
+                for key in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
+                    if row[key] and key in song:
+                        diff = song[key]
+                        diff = diff[:, 1:]
+                        list_of_dicts = [dict(zip(column_names, row)) for row in diff]
+                        notes[key] = list_of_dicts
+                song["notes"] = notes
+
+                np.savez(path, **song)
