@@ -6,6 +6,8 @@ from training.loader import gen_beats_array, get_onset_array
 import librosa
 from tqdm import tqdm
 from datetime import datetime
+from utils import clean_data, stack_mel_frames, encode_label
+from config import *
 
 
 # for type in ["color_notes", "bomb_notes", "obstacles"]:
@@ -18,6 +20,7 @@ for type in ["color_notes"]:
     LOG_PATH = "error_log.log"
     column_names = ["b", "c", "d", "x", "y"]
     SONGS_PATH = f"dataset/songs/mel229"  # Path to your songs folder
+    difficulties = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
 
     def get_bpm_info(meta, song):
         bpm = meta["bpm"]
@@ -38,6 +41,7 @@ for type in ["color_notes"]:
 
     for value in ["notes"]:
         df = pd.read_csv(CSV_PATH)
+        df = clean_data(df)
         if value == "beats":
 
             for index, row in tqdm(
@@ -108,11 +112,6 @@ for type in ["color_notes"]:
             df.to_csv(CSV_PATH, index=False)
 
         elif value == "onset":
-
-            missing_song = df["missing_song"]
-            df = df[~missing_song].reset_index(drop=True)
-            df = df[~df["automapper"]].reset_index(drop=True)
-
             for index, row in tqdm(df.iterrows(), total=len(df)):
                 song = row["song"]
                 path = os.path.join(NPZ_DIR, song + ".npz")
@@ -322,31 +321,71 @@ for type in ["color_notes"]:
             print("Check complete. Results saved to 'check_data_report.csv'")
 
         elif value == "notes":
-            df = pd.read_csv(CSV_PATH)
-            missing_song = df["missing_song"]
-            df = df[~missing_song].reset_index(drop=True)
-            df = df[~df["automapper"]].reset_index(drop=True)
+            MEL_WINDOW = 3
 
-            for index, row in tqdm(df.iterrows(), total=len(df)):
+            for _, row in tqdm(df.iterrows(), total=len(df)):
                 song = row["song"]
                 path = os.path.join(NPZ_DIR, song + ".npz")
-
                 if not os.path.exists(path):
-                    print(f"Missing: {path}")
                     log_error("MISSING", path)
                     continue
 
-                data_dict = np.load(path, allow_pickle=True)
-                data_dict = dict(data_dict)
+                try:
+                    data_dict = dict(np.load(path, allow_pickle=True))
+                except Exception as e:
+                    log_error("LOAD_FAIL", path)
+                    continue
 
-                notes = {}
+                mel = data_dict.get("song")
+                if mel is None:
+                    log_error("NO_MEL", path)
+                    continue
 
-                for key in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
-                    if row[key] and key in data_dict:
-                        diff = data_dict[key]
-                        diff = diff[:, 1:]
-                        list_of_dicts = [dict(zip(column_names, row)) for row in diff]
-                        notes[key] = list_of_dicts
-                data_dict["notes"] = notes
+                n_mels, T = mel.shape
+                stacked_mel = stack_mel_frames(mel, MEL_WINDOW)
+                data_dict["stacked_mel_3"] = stacked_mel
+                timestamps = librosa.times_like(mel, sr=sample_rate)
+                notes_out = {}
+                note_labels = {}
 
+                for key in difficulties:
+                    if row.get(key) and key in data_dict:
+                        try:
+                            diff = np.array(data_dict[key])
+                            if diff.ndim != 2 or diff.shape[1] < len(column_names):
+                                continue
+
+                            note_rows = diff[:, 1:]
+                            note_list = [
+                                dict(zip(column_names, note)) for note in note_rows
+                            ]
+                            notes_out[key] = note_list
+
+                            # === Encode frame-aligned labels ===
+                            label_arr = np.zeros((T,), dtype=np.int64)
+                            for note in note_list:
+                                try:
+                                    beat_time_to_sec = (
+                                        note["b"] / float(data_dict["bpm"]) * 60
+                                    )
+                                    frame = np.argmin(
+                                        np.abs(timestamps - beat_time_to_sec)
+                                    )
+                                    if 0 <= frame < T:
+                                        label_arr[frame] = encode_label(
+                                            int(note["x"]),
+                                            int(note["y"]),
+                                            int(note["c"]),
+                                            int(note["d"]),
+                                        )
+                                except Exception:
+                                    continue
+
+                            note_labels[key] = label_arr
+
+                        except Exception:
+                            continue
+
+                data_dict["notes"] = notes_out
+                data_dict["note_labels"] = note_labels
                 np.savez(path, **data_dict)

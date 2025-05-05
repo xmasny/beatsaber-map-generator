@@ -2,6 +2,7 @@ import json
 import os
 import socket
 from typing import Optional
+import pandas as pd
 import torch
 from torch.nn import DataParallel
 import numpy as np
@@ -133,7 +134,7 @@ def loader_collate_fn(batch):
     return data_list
 
 
-def clean_data(df, **kwargs):
+def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     min_bpm = kwargs.get("min_bpm", 60.0)
     max_bpm = kwargs.get("max_bpm", 300.0)
     min_votes = kwargs.get("min_votes", 100)
@@ -267,8 +268,18 @@ def encode_label(
     data.append(x)
     data.append(y)
 
-    return np.where((labels[type] == data).all(axis=1))[0][0]
+    return np.where((labels[type] == data).all(axis=1))[0][0] + 1
 
 
-def decode_label(label: int, type: str = "color_notes") -> list:
-    return labels[type][label]
+def decode_label(label: int, type: str = "color_notes") -> list | None:
+    if label == 0:
+        return None  # no note
+    return labels[type][label - 1]
+
+
+def stack_mel_frames(mel, window=3):
+    n_mels, T = mel.shape
+    pad = np.pad(mel, ((0, 0), (window, window)), mode="edge")
+    stacked = np.stack([pad[:, i : i + T] for i in range(2 * window + 1)], axis=-1)
+    stacked = np.transpose(stacked, (1, 0, 2))
+    return stacked.reshape(T, -1)

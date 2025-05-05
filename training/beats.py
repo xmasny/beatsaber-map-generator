@@ -10,7 +10,7 @@ import json
 import numpy as np
 from config import hop_length, sample_rate
 
-FRAME = 32
+FRAME = round((hop_length / sample_rate) * 1000, 2)
 
 
 class TimeUnit(enum.Enum):
