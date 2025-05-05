@@ -5,7 +5,6 @@ import re
 from typing import Tuple
 
 # import librosa
-import librosa
 import numpy as np
 import pandas as pd
 import requests
@@ -279,6 +278,8 @@ def iter_array(array, length, skip, params):
 
 
 def get_bpm_info(song):
+    return NotImplementedError
+
     bpm = song["meta"]["bpm"]
 
     energy = np.sum(song["data"]["mel"], axis=0)
@@ -292,6 +293,8 @@ def get_bpm_info(song):
 
 
 def get_onset_array(song: dict, difficulty: DifficultyName = DifficultyName.ALL):
+    return NotImplementedError
+
     def get_onsets_for_beatmap(beatmap, timestamps, bpm):
         onsets_array = np.zeros_like(timestamps, dtype=np.float32)
         for obj in beatmap:
