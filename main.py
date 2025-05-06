@@ -10,7 +10,7 @@ from training.note_train import main as note_train
 
 @hydra.main(version_base=None, config_path="./conf", config_name="config")
 def main(cfg: RunConfig):
-    if "model_type" not in cfg.params:
+    if not cfg.params.model_type:
         cfg.params.model_type = (
             input("Enter the model type (onsets/notes): ").strip().lower()
         )
