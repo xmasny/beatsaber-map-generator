@@ -10,9 +10,9 @@ from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 
 from config import *
 from training.loader import BaseLoader
-from training.onset_ignite import ignite_train
+from training.note_ignite import ignite_train
 from utils import MyDataParallel
-from dl.models.layers import AudioSymbolicNoteSelectorMultiHead
+from dl.models.layers import SparseNoteClassifier
 
 
 def main(run_parameters: RunParams):
@@ -36,14 +36,19 @@ def main(run_parameters: RunParams):
             "min_score": run_parameters.min_score,
             "min_bpm": run_parameters.min_bpm,
             "max_bpm": run_parameters.max_bpm,
+            "model_type": run_parameters.model_type,
+            "mel_window": run_parameters.mel_window,
             "split_seed": SEED,
         }
 
         train_dataset = BaseLoader(split=Split.TRAIN, **common_dataset_args)
         valid_dataset = BaseLoader(split=Split.VALIDATION, **common_dataset_args)
 
-        model = AudioSymbolicNoteSelectorMultiHead(
-            n_mels=n_mels, symbolic_size=1, hidden_size=128
+        model = SparseNoteClassifier(
+            window=run_parameters.mel_window,
+            n_mels=n_mels,
+            symbolic_dim=1,
+            hidden_dim=128,
         ).to(device)
 
         if run_parameters.is_parallel:

@@ -56,6 +56,8 @@ class BaseLoader(Dataset):
         split_seed: int = 42,
         batch_size: int = 2,
         num_workers: int = 0,
+        mel_window: int = 0,
+        model_type: str = "onsets",
     ):
         self.difficulty = difficulty
         self.object_type = object_type
@@ -73,6 +75,8 @@ class BaseLoader(Dataset):
         self.min_score = min_score
         self.min_bpm = min_bpm
         self.max_bpm = max_bpm
+        self.model_type = model_type
+        self.mel_window = mel_window
 
         self.dataset = {}
         self.indices = {}
@@ -129,6 +133,7 @@ class BaseLoader(Dataset):
         _SPLIT_CACHE[cache_key] = self.indices
 
     def process(self, song_meta, max_retries=3, retry_delay=2):
+        # Load .npz from remote
         song_path = (
             f"{base_dataset_path}/{self.object_type.value}/npz/{song_meta['song']}.npz"
         )
@@ -138,7 +143,7 @@ class BaseLoader(Dataset):
                 response = requests.get(song_path)
                 response.raise_for_status()
                 song_npz = dict(np.load(BytesIO(response.content), allow_pickle=True))
-                break  # success
+                break
             except Exception as e:
                 logging.warning(
                     f'Attempt {attempt} failed for {song_meta["song"]}: {e}'
@@ -147,14 +152,87 @@ class BaseLoader(Dataset):
                     logging.error(
                         f'{song_meta["song"]} failed after {max_retries} attempts'
                     )
-                    print(f'Error in {song_meta["song"]}: {e}')
                     return
                 retry_delay *= 2
-                time.sleep(retry_delay)  # wait before retrying
+                time.sleep(retry_delay)
 
         song_meta["data"] = song_npz
+
+        # Delegate to onset or note processing
+        if self.model_type == "onsets":
+            yield from self.process_onsets(song_meta)
+        elif self.model_type == "notes":
+            yield from self.process_sparse_notes(song_meta)
+        else:
+            raise ValueError(f"Unsupported mode: {self.model_type}")
+
+    def process_sparse_notes(self, song_meta):
+        song_npz = song_meta["data"]
+
+        if (
+            f"stacked_mel_{self.mel_window}" not in song_npz
+            or "note_labels" not in song_npz
+        ):
+            logging.warning(
+                f"Missing stacked_mel_{self.mel_window} or note_labels in {song_meta['song']}"
+            )
+            return
+
+        stacked_mel = song_npz[
+            f"stacked_mel_{self.mel_window}"
+        ]  # shape: (T, input_dim)
+        label_dict = (
+            song_npz["note_labels"].item()
+            if isinstance(song_npz["note_labels"], np.ndarray)
+            else song_npz["note_labels"]
+        )
+
+        if not isinstance(label_dict, dict):
+            logging.warning(f"Expected dict of note_labels in {song_meta['song']}")
+            return
+
+        onsets_raw = song_npz.get("onsets", None)
+        onsets_dict = (
+            onsets_raw.item() if isinstance(onsets_raw, np.ndarray) else onsets_raw
+        )
+
+        for difficulty_name, labels in label_dict.items():
+            if difficulty_name not in song_npz["notes"].item():
+                continue
+
+            if stacked_mel.shape[0] != labels.shape[0]:
+                logging.warning(
+                    f"Shape mismatch in {song_meta['song']}:{difficulty_name}"
+                )
+                continue
+
+            condition = (
+                onsets_dict[difficulty_name]["condition"]
+                if onsets_dict and difficulty_name in onsets_dict
+                else 0
+            )
+
+            batch = []
+            for t in np.nonzero(labels)[0]:
+                data = {
+                    "mel": torch.from_numpy(stacked_mel[t]).float(),
+                    "label": torch.tensor(labels[t], dtype=torch.long),
+                    "condition": torch.tensor([condition], dtype=torch.long),
+                }
+
+                batch.append(data)
+                if len(batch) == self.batch_size:
+                    yield self.collate_batch(batch)
+                    batch = []
+
+            if batch:
+                yield self.collate_batch(batch)
+
+    def process_onsets(self, song_meta):
+        song_npz = song_meta["data"]
+
         if not self.with_beats:
-            song_meta["data"].pop("beats_array", None)
+            song_npz.pop("beats_array", None)
 
         beats_array = song_npz.get("beats_array") if self.with_beats else None
 
@@ -170,19 +248,18 @@ class BaseLoader(Dataset):
             return
 
         for difficulty_name, onset_info in onsets_dict.items():
-            # print(f'Processing {difficulty_name} for song {song_meta["song"]}')
             if "onsets_array" not in onset_info or "condition" not in onset_info:
-                continue  # skip malformed entries
+                continue
 
             condition = onset_info["condition"]
             onsets_array = onset_info["onsets_array"]
 
             batch = []
-
             for audio, start_index, end_index, params in self.iter_audio(song_meta):
                 score_segment = self.cut_segment(
                     onsets_array, start_index, end_index, audio.shape[0]
                 )
+
                 data = {
                     "condition": torch.tensor([condition]),
                     "onset": torch.from_numpy(score_segment).float(),
@@ -197,7 +274,6 @@ class BaseLoader(Dataset):
                     ).float()
 
                 batch.append(data)
-
                 if len(batch) == self.batch_size:
                     yield self.collate_batch(batch)
                     batch = []

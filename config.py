@@ -136,6 +136,7 @@ class RunParams(DictConfig):
     max_bpm: float
     gpu_index: int
     wandb_project: str
+    mel_window: int
 
 
 class RunConfig(DictConfig):

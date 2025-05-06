@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from typing import Optional
 import numpy as np
 import torch
 from torch.nn import functional as F
@@ -13,15 +14,16 @@ from ignite.handlers import Checkpoint, DiskSaver
 from ignite.metrics import Average
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.wandb_logger import WandBLogger
+from tqdm import tqdm
 
-from dl.models.layers import (
-    AudioSymbolicNoteSelectorMultiHead,
-    AudioSymbolicNoteSelector,
-)
+from dl.models.layers import SparseNoteClassifier
+from training.loader import BaseLoader
 
 
-def ignite_note_train(
-    model: AudioSymbolicNoteSelectorMultiHead | AudioSymbolicNoteSelector,
+def ignite_train(
+    train_dataset: BaseLoader,
+    valid_dataset: BaseLoader,
+    model: SparseNoteClassifier,
     train_loader,
     valid_loader,
     optimizer: Optimizer,
@@ -34,12 +36,24 @@ def ignite_note_train(
 ):
     epochs = run_parameters.get("epochs", 100)
     epoch_length = run_parameters.get("epoch_length", 100)
-    checkpoint_interval = run_parameters.get("checkpoint_interval", 200)
+    checkpoint_interval = run_parameters.get("checkpoint_interval", 100)
     validation_interval = run_parameters.get("validation_interval", 100)
     warmup_steps = run_parameters.get("warmup_steps", 0)
     wandb_mode = run_parameters.get("wandb_mode", "online")
 
     target_lr = optimizer.param_groups[0]["lr"]
+
+    def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
+        if num_songs_pbar:
+            num_songs_pbar.reset()
+        for index, songs in enumerate(iteration):
+            for song in songs:
+                if num_songs_pbar:
+                    num_songs_pbar.update(1)
+                if "not_working" in song:
+                    continue
+                for segment in train_dataset.process(song_meta=song):
+                    yield segment
 
     def train_step(engine: Engine, batch):
         model.train()
@@ -70,19 +84,26 @@ def ignite_note_train(
     # Attach metrics
     Average(output_transform=lambda x: x[1]["loss"]).attach(trainer, "loss")
     Average(output_transform=lambda x: x[1]["loss"]).attach(evaluator, "loss")
-    Average(output_transform=lambda x: x[1]["loss-color"]).attach(
-        evaluator, "loss-color"
-    )
-    Average(output_transform=lambda x: x[1]["loss-direction"]).attach(
-        evaluator, "loss-direction"
-    )
-    Average(output_transform=lambda x: x[1]["loss-x"]).attach(evaluator, "loss-x")
-    Average(output_transform=lambda x: x[1]["loss-y"]).attach(evaluator, "loss-y")
+    # Average(output_transform=lambda x: x[1]["loss-color"]).attach(evaluator, "loss-color")
+    # Average(output_transform=lambda x: x[1]["loss-direction"]).attach(evaluator, "loss-direction")
+    # Average(output_transform=lambda x: x[1]["loss-x"]).attach(evaluator, "loss-x")
+    # Average(output_transform=lambda x: x[1]["loss-y"]).attach(evaluator, "loss-y")
+
+    epoch_length_valid = [None]
+    epoch_length_train = [None]
 
     # Logging
     @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
     def log_validation(engine: Engine):
-        evaluator.run(valid_loader)
+        evaluator.run(
+            cycle(valid_loader, valid_num_songs_pbar),
+            epoch_length=epoch_length_valid[0] or None,
+        )
+
+        if epoch_length_valid[0] is None:
+            epoch_length_valid[0] = evaluator.state.epoch_length  # type: ignore
+            print(f"Discovered real epoch_length_valid: {epoch_length_valid[0]}")
+
         metrics = evaluator.state.metrics
         epoch = engine.state.epoch
 
@@ -94,16 +115,28 @@ def ignite_note_train(
     # Checkpointing
     checkpoint_dir = Path("logs") / "checkpoints"
     to_save = {"model": model, "optimizer": optimizer}
-    trainer.add_event_handler(
-        Events.ITERATION_COMPLETED(every=checkpoint_interval),
-        Checkpoint(to_save, DiskSaver(checkpoint_dir, create_dir=True), n_saved=5),
-    )
+    # trainer.add_event_handler(
+    #     Events.ITERATION_COMPLETED(every=checkpoint_interval),
+    #     Checkpoint(to_save, DiskSaver(checkpoint_dir, create_dir=True), n_saved=5),
+    # )
 
     # Progress bars
     ProgressBar(persist=True).attach(trainer, output_transform=lambda x: x[1]["loss"])
     ProgressBar(persist=True).attach(evaluator, output_transform=lambda x: x[1]["loss"])
 
-    trainer.run(train_loader, max_epochs=epochs, epoch_length=epoch_length)
+    train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
+    valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
+
+    for epoch in range(epochs):
+        trainer.run(
+            cycle(train_loader, train_num_songs_pbar),
+            max_epochs=1,
+            epoch_length=epoch_length_train[0] or None,
+        )
+
+        if epoch_length_train[0] is None:
+            epoch_length_train[0] = trainer.state.epoch_length  # type: ignore
+            print(f"Discovered real epoch_length_train: {epoch_length_train[0]}")
 
     if wandb_mode != "disabled":
         wandb_logger.close()

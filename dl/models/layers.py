@@ -505,3 +505,78 @@ class AudioSymbolicNoteSelectorMultiHead(Module):
             "loss-y": loss_y,
             "loss": total_loss,
         }
+
+
+class SparseNoteClassifier(Module):
+    def __init__(
+        self,
+        window: int = 0,
+        n_mels: int = 229,
+        hidden_dim: int = 128,
+        symbolic_dim: int = 1,
+        output_dim: int = 216,
+        dropout: float = 0.2,
+    ):
+        super().__init__()
+
+        self.symbolic_dim = symbolic_dim
+        self.input_dim = n_mels * (2 * window + 1)
+
+        total_input = self.input_dim + symbolic_dim
+
+        self.model = Sequential(
+            Linear(total_input, hidden_dim),
+            ReLU(),
+            Dropout(dropout),
+            Linear(hidden_dim, output_dim),
+        )
+
+    def forward(self, mel, symbolic=None):
+        """
+        Inputs:
+            mel: (B, input_dim)
+            symbolic: (B, symbolic_dim) or None
+
+        Output:
+            logits: (B, output_dim)
+        """
+        if self.symbolic_dim > 0 and symbolic is not None:
+            x = torch.cat([mel, symbolic], dim=-1)  # (B, input_dim + symbolic_dim)
+        else:
+            x = mel
+        return self.model(x)  # (B, output_dim)
+
+    import torch.nn.functional as F
+
+    def run_on_batch(self, batch, fuzzy_width=1, fuzzy_scale=1.0):
+        """
+        Run one batch through SparseNoteClassifier.
+
+        Args:
+            batch: dict with keys:
+                - 'mel': (B, input_dim)
+                - 'label': (B,)
+                - optional 'symbolic': (B, symbolic_dim)
+            fuzzy_width, fuzzy_scale: unused, kept for compatibility
+
+        Returns:
+            preds: logits (B, num_classes)
+            losses: dict with 'loss' key
+        """
+        device = next(self.parameters()).device
+
+        mel = batch["mel"].to(device)  # (B, input_dim)
+        label = (batch["label"] - 1).to(device)  # (B,)
+        condition = batch["condition"]
+
+        if condition is not None:
+            condition = condition.to(device)
+
+        logits = self.forward(mel, condition)  # (B, num_classes)
+        assert torch.all(
+            (label >= 0) & (label < logits.size(1))
+        ), f"Invalid label in batch! label range: {label.min()}–{label.max()}, expected: 0–{logits.size(1)-1}"
+
+        loss = F.cross_entropy(logits, label)
+
+        return logits, {"loss": loss}
