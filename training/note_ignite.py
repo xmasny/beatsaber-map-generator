@@ -124,12 +124,7 @@ def ignite_train(
                 wandb_logger.log({f"validation/{k}": v, "epoch": epoch})
 
     # Checkpointing
-    checkpoint_dir = Path("logs") / "checkpoints"
     to_save = {"model": model, "optimizer": optimizer}
-    trainer.add_event_handler(
-        Events.ITERATION_COMPLETED(every=checkpoint_interval),
-        Checkpoint(to_save, DiskSaver(checkpoint_dir, create_dir=True), n_saved=5),
-    )
     if wandb_mode != "disabled":
 
         if resume_checkpoint:
