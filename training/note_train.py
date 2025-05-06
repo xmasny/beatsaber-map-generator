@@ -30,7 +30,7 @@ def main(run_parameters: RunParams):
             "seq_length": run_parameters.seq_length,
             "skip_step": run_parameters.skip_step,
             "with_beats": run_parameters.with_beats,
-            "batch_size": run_parameters.batch_size,
+            "batch_size": run_parameters.notes_batch_size,
             "num_workers": run_parameters.num_workers,
             "min_sum_votes": run_parameters.min_sum_votes,
             "min_score": run_parameters.min_score,

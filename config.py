@@ -105,6 +105,7 @@ class RunParams(DictConfig):
     difficulty: str
     model_dir: str
     batch_size: int
+    notes_batch_size: int
     enable_condition: bool
     seq_length: int
     skip_step: int

@@ -10,14 +10,21 @@ from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 from pathlib import Path
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint, DiskSaver
+from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint
 from ignite.metrics import Average
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 from tqdm import tqdm
+import wandb
 
 from dl.models.layers import SparseNoteClassifier
 from training.loader import BaseLoader
+from utils import setup_checkpoint_upload
+
+
+def score_function(engine: Engine):
+    val_loss = engine.state.metrics["loss"]
+    return -val_loss
 
 
 def ignite_train(
@@ -40,6 +47,9 @@ def ignite_train(
     validation_interval = run_parameters.get("validation_interval", 100)
     warmup_steps = run_parameters.get("warmup_steps", 0)
     wandb_mode = run_parameters.get("wandb_mode", "online")
+    n_saved_model = run_parameters.get("n_saved_model", 10)
+    n_saved_checkpoint = run_parameters.get("n_saved_checkpoint", 10)
+    resume_checkpoint = run_parameters.get("resume_checkpoint", None)
 
     target_lr = optimizer.param_groups[0]["lr"]
 
@@ -82,8 +92,9 @@ def ignite_train(
     evaluator = Engine(eval_step)
 
     # Attach metrics
-    Average(output_transform=lambda x: x[1]["loss"]).attach(trainer, "loss")
-    Average(output_transform=lambda x: x[1]["loss"]).attach(evaluator, "loss")
+    avg_loss = Average(output_transform=lambda output: output[1]["loss"])
+    avg_loss.attach(trainer, "loss")
+    avg_loss.attach(evaluator, "loss")
     # Average(output_transform=lambda x: x[1]["loss-color"]).attach(evaluator, "loss-color")
     # Average(output_transform=lambda x: x[1]["loss-direction"]).attach(evaluator, "loss-direction")
     # Average(output_transform=lambda x: x[1]["loss-x"]).attach(evaluator, "loss-x")
@@ -115,10 +126,74 @@ def ignite_train(
     # Checkpointing
     checkpoint_dir = Path("logs") / "checkpoints"
     to_save = {"model": model, "optimizer": optimizer}
-    # trainer.add_event_handler(
-    #     Events.ITERATION_COMPLETED(every=checkpoint_interval),
-    #     Checkpoint(to_save, DiskSaver(checkpoint_dir, create_dir=True), n_saved=5),
-    # )
+    trainer.add_event_handler(
+        Events.ITERATION_COMPLETED(every=checkpoint_interval),
+        Checkpoint(to_save, DiskSaver(checkpoint_dir, create_dir=True), n_saved=5),
+    )
+    if wandb_mode != "disabled":
+
+        if resume_checkpoint:
+            checkpoint_path = os.path.join(wandb.run.dir, "checkpoints", f"checkpoint_<X>.pth")  # type: ignore
+            Checkpoint.load_objects(
+                to_load={"model": model, "optimizer": optimizer},
+                checkpoint=torch.load(checkpoint_path),
+            )
+
+        handler = Checkpoint(
+            to_save,
+            DiskSaver(os.path.join(wandb.run.dir, "checkpoints"), create_dir=True, require_empty=False),  # type: ignore
+            n_saved=n_saved_checkpoint,
+        )
+        trainer.add_event_handler(
+            Events.ITERATION_COMPLETED(every=(validation_interval * epoch_length)),
+            handler,
+        )
+
+        best_checkpoint = Checkpoint(
+            to_save,
+            DiskSaver(os.path.join(wandb.run.dir), create_dir=False, require_empty=False),  # type: ignore
+            n_saved=2,
+            score_function=score_function,
+            score_name="validation_loss",
+            greater_or_equal=True,
+        )
+
+        trainer.add_event_handler(
+            Events.EPOCH_COMPLETED(every=validation_interval), best_checkpoint
+        )
+
+        best_model = ModelCheckpoint(
+            dirname=os.path.join(wandb.run.dir),  # type: ignore
+            filename_prefix="model",
+            n_saved=2,
+            create_dir=True,
+            require_empty=False,
+            score_function=score_function,
+            score_name="validation_loss",
+            greater_or_equal=True,
+        )
+        trainer.add_event_handler(
+            Events.EPOCH_COMPLETED(every=validation_interval),
+            best_model,
+            {"mymodel": model},
+        )
+
+        model_handler = ModelCheckpoint(
+            dirname=os.path.join(wandb.run.dir, "model_checkpoints"),  # type: ignore
+            filename_prefix="model",
+            n_saved=n_saved_model,
+            create_dir=True,
+            require_empty=False,
+        )
+        trainer.add_event_handler(
+            Events.ITERATION_COMPLETED(every=validation_interval * epoch_length),
+            model_handler,
+            {"mymodel": model},
+        )
+
+        wandb.watch(model, log="all", criterion=avg_loss)
+
+        setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=validation_interval)  # type: ignore
 
     # Progress bars
     ProgressBar(persist=True).attach(trainer, output_transform=lambda x: x[1]["loss"])
