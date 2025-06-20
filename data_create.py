@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import os
 import pandas as pd
@@ -27,10 +28,9 @@ def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     return df
 
 
-meta_df = pd.read_csv("../dataset/beatmaps/color_notes/metadata.csv")
+base_path = Path("dataset/beatmaps/color_notes")
+meta_df = pd.read_csv(f"{base_path}/metadata.csv")
 meta_df = clean_data(meta_df)
-
-base_path = "../dataset/beatmaps/color_notes"
 
 
 def clean_data_notes(df):
@@ -76,5 +76,5 @@ for _, row in tqdm(meta_df.iterrows(), total=len(meta_df), desc="Processing file
     except FileNotFoundError:
         continue
 
-df.to_csv("../dataset/beatmaps/color_notes/notes.csv", index=False)
-print("CSV written to ../dataset/beatmaps/color_notes/notes.csv")
+df.to_csv("dataset/beatmaps/color_notes/notes.csv", index=False)
+print("CSV written to dataset/beatmaps/color_notes/notes.csv")
