@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import os
+from tqdm import tqdm
 
 
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -30,7 +31,7 @@ data = []
 all_keys = set()
 
 # Extract keys from each file
-for _, row in meta_df.iterrows():
+for _, row in tqdm(meta_df.iterrows(), total=len(meta_df), desc="Processing files"):
     try:
         with np.load(
             os.path.join(npz_dir, f"{row['song']}.npz"), allow_pickle=True
