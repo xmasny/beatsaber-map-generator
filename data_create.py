@@ -58,11 +58,6 @@ def process_chunk(chunk_df, base_path, chunk_id):
             if mel_stack is None:
                 continue
 
-            # Flatten mel_stack into a dictionary of columns
-            mel_stack_flat = {
-                f"mel_stack_{i}": mel_stack[i] for i in range(len(mel_stack))
-            }
-
             for level in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
                 try:
                     notes = data["notes"].item().get(level)
@@ -80,17 +75,29 @@ def process_chunk(chunk_df, base_path, chunk_id):
                         np.abs(timestamps - t).argmin() for t in beat_time_to_sec
                     ]
 
+                    # ✅ Assign mel_stack_3 value by stack index
+                    mel_values = df_level["stack"].apply(
+                        lambda idx: (
+                            mel_stack[idx]
+                            if 0 <= idx < len(mel_stack)
+                            else [np.nan] * mel_stack.shape[1]
+                        )
+                    )
+                    mel_df = pd.DataFrame(
+                        mel_values.tolist(),
+                        columns=[f"mel_{i}" for i in range(mel_stack.shape[1])],
+                    )
+                    df_level = pd.concat(
+                        [df_level.reset_index(drop=True), mel_df], axis=1
+                    )
+
                     df_level["name"] = row["song"]
                     df_level["difficulty"] = level
-
-                    # Add flattened mel_stack to every row (same values)
-                    for col, value in mel_stack_flat.items():
-                        df_level[col] = value
 
                     rows.append(
                         df_level[
                             ["name", "difficulty", "b", "word", "stack"]
-                            + list(mel_stack_flat.keys())
+                            + [f"mel_{i}" for i in range(mel_stack.shape[1])]
                         ]
                     )
                 except Exception:
