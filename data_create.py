@@ -76,5 +76,5 @@ for _, row in tqdm(meta_df.iterrows(), total=len(meta_df), desc="Processing file
     except FileNotFoundError:
         continue
 
-df.to_csv("dataset/beatmaps/color_notes/notes.csv", index=False)
-print("CSV written to dataset/beatmaps/color_notes/notes.csv")
+df.to_parquet("dataset/beatmaps/color_notes/notes.parquet", index=False)
+print("PARQUET written to dataset/beatmaps/color_notes/notes.parquet")
