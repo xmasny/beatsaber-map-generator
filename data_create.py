@@ -14,11 +14,6 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    min_bpm = kwargs.get("min_bpm", 60.0)
-    max_bpm = kwargs.get("max_bpm", 300.0)
-    min_votes = kwargs.get("min_votes", 100)
-    min_score = kwargs.get("min_score", 0.95)
-
     df = df[~df["automapper"]]
     df = df[~df["missing_levels"]]
     df = df[~df["missing_song"]]
@@ -27,9 +22,6 @@ def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     df = df.drop(
         ["missing_levels", "missing_song", "automapper", "default_skip"], axis=1
     )
-    df = df[(df["bpm"] >= min_bpm) & (df["bpm"] <= max_bpm)]
-    df = df[(df["upvotes"] + df["downvotes"]) > min_votes]
-    df = df[df["score"] > min_score]
 
     return df
 
@@ -54,9 +46,6 @@ def process_chunk(chunk_df, base_path, chunk_id):
             data = np.load(
                 os.path.join(base_path, "npz", f"{row['song']}.npz"), allow_pickle=True
             )
-            mel_stack = data.get("stacked_mel_3", None)
-            if mel_stack is None:
-                continue
 
             for level in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
                 try:
@@ -74,32 +63,12 @@ def process_chunk(chunk_df, base_path, chunk_id):
                     df_level["stack"] = [
                         np.abs(timestamps - t).argmin() for t in beat_time_to_sec
                     ]
-
-                    # ✅ Assign mel_stack_3 value by stack index
-                    mel_values = df_level["stack"].apply(
-                        lambda idx: (
-                            mel_stack[idx]
-                            if 0 <= idx < len(mel_stack)
-                            else [np.nan] * mel_stack.shape[1]
-                        )
-                    )
-                    mel_df = pd.DataFrame(
-                        mel_values.tolist(),
-                        columns=[f"mel_{i}" for i in range(mel_stack.shape[1])],
-                    )
-                    df_level = pd.concat(
-                        [df_level.reset_index(drop=True), mel_df], axis=1
-                    )
-
-                    df_level["name"] = row["song"]
+                    df_level[["song", "upvotes", "downvotes", "score", "bpm"]] = row[
+                        ["name", "upvotes", "downvotes", "score", "bpm"]
+                    ]
                     df_level["difficulty"] = level
 
-                    rows.append(
-                        df_level[
-                            ["name", "difficulty", "b", "word", "stack"]
-                            + [f"mel_{i}" for i in range(mel_stack.shape[1])]
-                        ]
-                    )
+                    rows.append(df_level[["name", "difficulty", "b", "word", "stack"]])
                 except Exception:
                     continue
         except FileNotFoundError:
