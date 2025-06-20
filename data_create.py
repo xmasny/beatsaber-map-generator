@@ -63,12 +63,29 @@ def process_chunk(chunk_df, base_path, chunk_id):
                     df_level["stack"] = [
                         np.abs(timestamps - t).argmin() for t in beat_time_to_sec
                     ]
-                    df_level[["song", "upvotes", "downvotes", "score", "bpm"]] = row[
-                        ["name", "upvotes", "downvotes", "score", "bpm"]
-                    ]
+                    df_level["name"] = row["song"]
+                    df_level["upvotes"] = row["upvotes"]
+                    df_level["downvotes"] = row["downvotes"]
+                    df_level["score"] = row["score"]
+                    df_level["bpm"] = row["bpm"]
+
                     df_level["difficulty"] = level
 
-                    rows.append(df_level[["name", "difficulty", "b", "word", "stack"]])
+                    rows.append(
+                        df_level[
+                            [
+                                "name",
+                                "upvotes",
+                                "downvotes",
+                                "bpm",
+                                "score",
+                                "difficulty",
+                                "b",
+                                "word",
+                                "stack",
+                            ]
+                        ]
+                    )
                 except Exception:
                     continue
         except FileNotFoundError:
