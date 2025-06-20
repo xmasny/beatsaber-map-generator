@@ -1,3 +1,4 @@
+import glob
 from pathlib import Path
 import numpy as np
 import os
@@ -53,7 +54,7 @@ def process_chunk(chunk_df, base_path, chunk_id):
             data = np.load(
                 os.path.join(base_path, "npz", f"{row['song']}.npz"), allow_pickle=True
             )
-            mel_stack = data.get("mel_stack_3", None)
+            mel_stack = data.get("stacked_mel_3", None)
             if mel_stack is None:
                 continue
 
@@ -122,3 +123,8 @@ if __name__ == "__main__":
             _.result()
 
     print("✅ All chunks saved to:", OUTPUT_DIR)
+
+    files = glob.glob("dataset/beatmaps/color_notes/notes_chunks/*.parquet")
+    df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
+    df.to_parquet("dataset/beatmaps/color_notes/notes.parquet", index=False)
+    print("✅ Combined Parquet written.")
