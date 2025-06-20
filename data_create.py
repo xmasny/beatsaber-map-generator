@@ -1,11 +1,10 @@
-# %%
 import numpy as np
 import os
 import pandas as pd
 import librosa
+from tqdm import tqdm
 
 
-# %%
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     min_bpm = kwargs.get("min_bpm", 60.0)
     max_bpm = kwargs.get("max_bpm", 300.0)
@@ -28,15 +27,12 @@ def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     return df
 
 
-# %%
 meta_df = pd.read_csv("../dataset/beatmaps/color_notes/metadata.csv")
 meta_df = clean_data(meta_df)
 
-# %%
 base_path = "../dataset/beatmaps/color_notes"
 
 
-# %%
 def clean_data_notes(df):
     # Add column 'word' combining c, d, x, y
     df["word"] = (
@@ -51,11 +47,9 @@ def clean_data_notes(df):
     return df
 
 
-# %%
 df = pd.DataFrame(columns=["name", "difficulty", "b", "word", "stack"])
 
-# %%
-for _, row in meta_df.iterrows():
+for _, row in tqdm(meta_df.iterrows(), total=len(meta_df), desc="Processing files"):
     try:
         data = np.load(
             os.path.join(base_path, "npz", f"{row['song']}.npz"), allow_pickle=True
@@ -82,5 +76,5 @@ for _, row in meta_df.iterrows():
     except FileNotFoundError:
         continue
 
-# %%
-df
+df.to_csv("../dataset/beatmaps/color_notes/notes.csv", index=False)
+print("CSV written to ../dataset/beatmaps/color_notes/notes.csv")
