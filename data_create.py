@@ -68,10 +68,10 @@ for _, row in tqdm(meta_df.iterrows(), total=len(meta_df), desc="Processing file
                 new_df["difficulty"] = level
                 df = pd.concat([df, new_df], ignore_index=True)
             except KeyError:
-                print(f"Level {level} not found for song {row['song']}")
+                # print(f"Level {level} not found for song {row['song']}")
                 continue
             except Exception as e:
-                print(f"Error processing song {row['song']} at level {level}: {e}")
+                # print(f"Error processing song {row['song']} at level {level}: {e}")
                 continue
     except FileNotFoundError:
         continue
