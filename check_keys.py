@@ -1,7 +1,7 @@
-# %%
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import os
 
 
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -17,7 +17,6 @@ def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     return df
 
 
-# %%
 meta_df = pd.read_csv("dataset/beatmaps/color_notes/metadata.csv")
 meta_df = clean_data(meta_df)
 
@@ -33,7 +32,9 @@ all_keys = set()
 # Extract keys from each file
 for _, row in meta_df.iterrows():
     try:
-        with np.load(f"{row['song']}.npz") as npz:
+        with np.load(
+            os.path.join(npz_dir, f"{row['song']}.npz"), allow_pickle=True
+        ) as npz:
             keys = list(npz.files)
             all_keys.update(keys)
             data.append({"filename": row["song"], "keys": keys})
@@ -54,5 +55,3 @@ df = pd.DataFrame(rows)
 output_path = "npz_keys_summary.csv"
 df.to_csv(output_path, index=False)
 print(f"CSV written to {output_path}")
-
-# %%
