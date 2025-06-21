@@ -7,27 +7,29 @@ import librosa
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
+import re
 
-CHUNK_SIZE = 100  # Number of songs per chunk
+CHUNK_SIZE = 100
 OUTPUT_DIR = Path("dataset/beatmaps/color_notes/notes_chunks")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+pattern = r"^(?:[LR][0-8][0-3][0-2])(?:_(?:[LR][0-8][0-3][0-2]))*$"
+
 
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    df = df[~df["automapper"]]
-    df = df[~df["missing_levels"]]
-    df = df[~df["missing_song"]]
-    df = df[~df["default_skip"]]
-
+    df = df[
+        ~df["automapper"]
+        & ~df["missing_levels"]
+        & ~df["missing_song"]
+        & ~df["default_skip"]
+    ]
     df = df.drop(
         ["missing_levels", "missing_song", "automapper", "default_skip"], axis=1
     )
-
     return df
 
 
-def clean_data_notes(df):
-    # Create the 'word' column
+def add_combined_word_column(df):
     df["word"] = (
         df["c"].replace({0.0: "L", 1.0: "R"}).astype(str)
         + df["d"].astype(int).astype(str)
@@ -35,7 +37,6 @@ def clean_data_notes(df):
         + df["y"].astype(int).astype(str)
     )
 
-    # Create a new DataFrame with combined words per beat, without dropping original columns
     df_combined = (
         df.groupby("b")["word"]
         .apply(lambda x: "_".join(sorted(x)))
@@ -43,20 +44,24 @@ def clean_data_notes(df):
         .rename(columns={"word": "combined_word"})
     )
 
-    # Merge back to original df (optional, if you want both word and combined_word)
     df = df.merge(df_combined, on="b")
-
     return df
 
 
-pattern = r"^(?:[LR][0-8][0-3][0-2])(?:_(?:[LR][0-8][0-3][0-2]))*$"
-
-full_meta_df = pd.read_csv("dataset/beatmaps/color_notes/metadata.csv")
-full_meta_df["incorrect_word"] = False
+def is_valid_combined_word(series: pd.Series) -> bool:
+    if not series.str.match(pattern).all(bool_only=True):
+        return False
+    split_words = series.str.split("_")
+    if (split_words.apply(len) > 12).any(bool_only=True):
+        return False
+    if split_words.apply(lambda x: len(x) != len(set(x))).any(bool_only=True):
+        return False
+    return True
 
 
 def process_chunk(chunk_df, base_path, chunk_id):
     rows = []
+    failed_indices = []
 
     for index, row in chunk_df.iterrows():
         try:
@@ -71,26 +76,10 @@ def process_chunk(chunk_df, base_path, chunk_id):
                         continue
 
                     df_level = pd.DataFrame(notes)
-                    df_level = clean_data_notes(df_level)
-                    # If incorrect word pattern
-                    if (
-                        not df_level["combined_word"]
-                        .str.match(pattern)
-                        .all(bool_only=True)
-                    ):
-                        full_meta_df.loc[index, "incorrect_word"] = True
-                        continue
-                    # If combined_word has more than 12 parts
-                    word_split = df_level["combined_word"].str.split("_")
-                    if (word_split.apply(len) > 12).any(bool_only=True):
-                        full_meta_df.loc[index, "incorrect_word"] = True
-                        continue
+                    df_level = add_combined_word_column(df_level)
 
-                    # If combined_word has duplicate parts
-                    if word_split.apply(lambda x: len(x) != len(set(x))).any(
-                        bool_only=True
-                    ):
-                        full_meta_df.loc[index, "incorrect_word"] = True
+                    if not is_valid_combined_word(df_level["combined_word"]):
+                        failed_indices.append(index)
                         continue
 
                     mel = data["song"]
@@ -105,7 +94,6 @@ def process_chunk(chunk_df, base_path, chunk_id):
                     df_level["downvotes"] = row["downvotes"]
                     df_level["score"] = row["score"]
                     df_level["bpm"] = row["bpm"]
-
                     df_level["difficulty"] = level
 
                     rows.append(
@@ -136,19 +124,23 @@ def process_chunk(chunk_df, base_path, chunk_id):
         df_out = pd.concat(rows, ignore_index=True)
         out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
         df_out.to_parquet(out_path, index=False)
-        return out_path
-    return None
+        return out_path, failed_indices
+    return None, failed_indices
 
 
 # === Main script ===
 if __name__ == "__main__":
     base_path = Path("dataset/beatmaps/color_notes")
     meta_df = pd.read_csv(base_path / "metadata.csv")
+    full_meta_df = meta_df.copy()
     meta_df = clean_data(meta_df)
+    full_meta_df["incorrect_word"] = False
 
     song_chunks = [
         meta_df.iloc[i : i + CHUNK_SIZE] for i in range(0, len(meta_df), CHUNK_SIZE)
     ]
+
+    all_failed_indices = []
 
     with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
         futures = [
@@ -156,12 +148,15 @@ if __name__ == "__main__":
             for i, chunk_df in enumerate(song_chunks)
         ]
 
-        for _ in tqdm(futures, total=len(futures), desc="Processing song chunks"):
-            _.result()
+        for f in tqdm(futures, total=len(futures), desc="Processing song chunks"):
+            out_path, failed = f.result()
+            all_failed_indices.extend(failed)
+
+    full_meta_df.loc[all_failed_indices, "incorrect_word"] = True
 
     print("✅ All chunks saved to:", OUTPUT_DIR)
 
-    files = glob.glob("dataset/beatmaps/color_notes/notes_chunks/*.parquet")
+    files = glob.glob(str(OUTPUT_DIR / "*.parquet"))
     df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
     df.to_parquet("dataset/beatmaps/color_notes/notes.parquet", index=False)
     print("✅ Combined Parquet written.")
