@@ -5,15 +5,16 @@ import os
 import pandas as pd
 import librosa
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
-import re
 
 CHUNK_SIZE = 100
 OUTPUT_DIR = Path("dataset/beatmaps/color_notes/notes_chunks")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 pattern = r"^(?:[LR][0-8][0-3][0-2])(?:_(?:[LR][0-8][0-3][0-2]))*$"
+
+base_path = Path("dataset/beatmaps/color_notes")
+other_meta_df = pd.read_csv(base_path / "metadata.csv")
+other_meta_df["incorrect_word"] = False
 
 
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -78,6 +79,7 @@ def process_chunk(chunk_df, base_path, chunk_id):
                     df_level = add_combined_word_column(df_level)
 
                     if not is_valid_combined_word(df_level["combined_word"]):
+                        other_meta_df.loc[index, "incorrect_word"] = True
                         continue
 
                     mel = data["song"]
@@ -128,7 +130,6 @@ def process_chunk(chunk_df, base_path, chunk_id):
 
 # === Main script ===
 if __name__ == "__main__":
-    base_path = Path("dataset/beatmaps/color_notes")
     meta_df = pd.read_csv(base_path / "metadata.csv")
     meta_df = clean_data(meta_df)
 
@@ -136,14 +137,12 @@ if __name__ == "__main__":
         meta_df.iloc[i : i + CHUNK_SIZE] for i in range(0, len(meta_df), CHUNK_SIZE)
     ]
 
-    with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-        futures = [
-            executor.submit(process_chunk, chunk_df, base_path, i)
-            for i, chunk_df in enumerate(song_chunks)
-        ]
-
-        for _ in tqdm(futures, total=len(futures), desc="Processing song chunks"):
-            _.result()
+    for i, chunk_df in tqdm(
+        list(enumerate(song_chunks)),
+        total=len(song_chunks),
+        desc="Processing song chunks",
+    ):
+        process_chunk(chunk_df, base_path, i)
 
     print("✅ All chunks saved to:", OUTPUT_DIR)
 
@@ -151,3 +150,8 @@ if __name__ == "__main__":
     df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
     df.to_parquet("dataset/beatmaps/color_notes/notes.parquet", index=False)
     print("✅ Combined Parquet written.")
+
+    other_meta_df.to_parquet(
+        "dataset/beatmaps/color_notes/metadata.parquet", index=False
+    )
+    print("✅ Metadata Parquet written.")
