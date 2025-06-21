@@ -27,21 +27,38 @@ def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
 
 
 def clean_data_notes(df):
+    # Create the 'word' column
     df["word"] = (
         df["c"].replace({0.0: "L", 1.0: "R"}).astype(str)
         + df["d"].astype(int).astype(str)
         + df["x"].astype(int).astype(str)
         + df["y"].astype(int).astype(str)
     )
-    df = df.drop(columns=["c", "d", "x", "y"])
-    df = df.groupby("b")["word"].apply(lambda x: "_".join(sorted(x))).reset_index()
+
+    # Create a new DataFrame with combined words per beat, without dropping original columns
+    df_combined = (
+        df.groupby("b")["word"]
+        .apply(lambda x: "_".join(sorted(x)))
+        .reset_index()
+        .rename(columns={"word": "combined_word"})
+    )
+
+    # Merge back to original df (optional, if you want both word and combined_word)
+    df = df.merge(df_combined, on="b")
+
     return df
+
+
+pattern = r"^(?:[LR][0-8][0-3][0-2])(?:_(?:[LR][0-8][0-3][0-2]))*$"
+
+full_meta_df = pd.read_csv("dataset/beatmaps/color_notes/metadata.csv")
+full_meta_df["incorrect_word"] = False
 
 
 def process_chunk(chunk_df, base_path, chunk_id):
     rows = []
 
-    for _, row in chunk_df.iterrows():
+    for index, row in chunk_df.iterrows():
         try:
             data = np.load(
                 os.path.join(base_path, "npz", f"{row['song']}.npz"), allow_pickle=True
@@ -55,6 +72,26 @@ def process_chunk(chunk_df, base_path, chunk_id):
 
                     df_level = pd.DataFrame(notes)
                     df_level = clean_data_notes(df_level)
+                    # If incorrect word pattern
+                    if (
+                        not df_level["combined_word"]
+                        .str.match(pattern)
+                        .all(bool_only=True)
+                    ):
+                        full_meta_df.loc[index, "incorrect_word"] = True
+                        continue
+                    # If combined_word has more than 12 parts
+                    word_split = df_level["combined_word"].str.split("_")
+                    if (word_split.apply(len) > 12).any(bool_only=True):
+                        full_meta_df.loc[index, "incorrect_word"] = True
+                        continue
+
+                    # If combined_word has duplicate parts
+                    if word_split.apply(lambda x: len(x) != len(set(x))).any(
+                        bool_only=True
+                    ):
+                        full_meta_df.loc[index, "incorrect_word"] = True
+                        continue
 
                     mel = data["song"]
                     timestamps = librosa.times_like(mel, sr=22050)
@@ -81,7 +118,11 @@ def process_chunk(chunk_df, base_path, chunk_id):
                                 "score",
                                 "difficulty",
                                 "b",
-                                "word",
+                                "c",
+                                "d",
+                                "x",
+                                "y",
+                                "combined_word",
                                 "stack",
                             ]
                         ]
@@ -124,3 +165,8 @@ if __name__ == "__main__":
     df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
     df.to_parquet("dataset/beatmaps/color_notes/notes.parquet", index=False)
     print("✅ Combined Parquet written.")
+
+    full_meta_df.to_parquet(
+        "dataset/beatmaps/color_notes/metadata.parquet", index=False
+    )
+    print("✅ Metadata Parquet written.")
