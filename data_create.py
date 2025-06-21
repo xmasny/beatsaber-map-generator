@@ -61,7 +61,6 @@ def is_valid_combined_word(series: pd.Series) -> bool:
 
 def process_chunk(chunk_df, base_path, chunk_id):
     rows = []
-    failed_indices = []
 
     for index, row in chunk_df.iterrows():
         try:
@@ -79,7 +78,6 @@ def process_chunk(chunk_df, base_path, chunk_id):
                     df_level = add_combined_word_column(df_level)
 
                     if not is_valid_combined_word(df_level["combined_word"]):
-                        failed_indices.append(index)
                         continue
 
                     mel = data["song"]
@@ -124,23 +122,19 @@ def process_chunk(chunk_df, base_path, chunk_id):
         df_out = pd.concat(rows, ignore_index=True)
         out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
         df_out.to_parquet(out_path, index=False)
-        return out_path, failed_indices
-    return None, failed_indices
+        return out_path
+    return None
 
 
 # === Main script ===
 if __name__ == "__main__":
     base_path = Path("dataset/beatmaps/color_notes")
     meta_df = pd.read_csv(base_path / "metadata.csv")
-    full_meta_df = meta_df.copy()
     meta_df = clean_data(meta_df)
-    full_meta_df["incorrect_word"] = False
 
     song_chunks = [
         meta_df.iloc[i : i + CHUNK_SIZE] for i in range(0, len(meta_df), CHUNK_SIZE)
     ]
-
-    all_failed_indices = []
 
     with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
         futures = [
@@ -148,11 +142,8 @@ if __name__ == "__main__":
             for i, chunk_df in enumerate(song_chunks)
         ]
 
-        for f in tqdm(futures, total=len(futures), desc="Processing song chunks"):
-            out_path, failed = f.result()
-            all_failed_indices.extend(failed)
-
-    full_meta_df.loc[all_failed_indices, "incorrect_word"] = True
+        for _ in tqdm(futures, total=len(futures), desc="Processing song chunks"):
+            _.result()
 
     print("✅ All chunks saved to:", OUTPUT_DIR)
 
@@ -160,8 +151,3 @@ if __name__ == "__main__":
     df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
     df.to_parquet("dataset/beatmaps/color_notes/notes.parquet", index=False)
     print("✅ Combined Parquet written.")
-
-    full_meta_df.to_parquet(
-        "dataset/beatmaps/color_notes/metadata.parquet", index=False
-    )
-    print("✅ Metadata Parquet written.")
