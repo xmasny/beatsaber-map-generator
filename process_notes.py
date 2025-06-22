@@ -117,8 +117,8 @@ if __name__ == "__main__":
 
     print(f"📦 Processing {len(chunk_inputs)} chunks...")
     if USE_MULTIPROCESSING:
-        print(f"⚙️ Using multiprocessing with {multiprocessing.cpu_count()} workers.")
-        with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+        print(f"⚙️ Using multiprocessing with {4} workers.")
+        with ProcessPoolExecutor(max_workers=4) as executor:
             results = list(
                 tqdm(
                     executor.map(process_chunk_wrapper, chunk_inputs),
