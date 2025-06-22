@@ -7,6 +7,7 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 import argparse
+import psutil, os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--parallel", action="store_true", help="Enable multiprocessing")
@@ -39,6 +40,10 @@ def add_combined_word_column(df):
 
 
 def process_chunk(chunk_df, base_path, chunk_id, skip_existing=True):
+    print(
+        f"🔍 Memory: {psutil.Process(os.getpid()).memory_info().rss / 1024**2:.2f} MB"
+    )
+
     print("Processing chunk:", chunk_id)
     out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
     if skip_existing and out_path.exists():
