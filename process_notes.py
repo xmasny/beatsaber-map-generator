@@ -7,16 +7,19 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 import argparse
-import psutil, os
+import gc
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--parallel", action="store_true", help="Enable multiprocessing")
+parser.add_argument(
+    "--skip-existing", action="store_true", help="Skip already processed songs"
+)
 args = parser.parse_args()
 
 USE_MULTIPROCESSING = args.parallel
+SKIP_EXISTING = args.skip_existing
 
 # === Config ===
-CHUNK_SIZE = 100
 base_path = Path("dataset/beatmaps/color_notes")
 OUTPUT_DIR = base_path / "notes_chunks"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -39,116 +42,92 @@ def add_combined_word_column(df):
     return df.merge(df_combined, on="b")
 
 
-def process_chunk(chunk_df, base_path, chunk_id, skip_existing=True):
+def process_song(row_dict):
+    row = pd.Series(row_dict)
+    song_name = row["song"]
+    out_path = OUTPUT_DIR / f"{song_name}.parquet"
 
-    print("Processing chunk:", chunk_id)
-    out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
-    if skip_existing and out_path.exists():
-        return out_path  # Already processed
-    rows = []
+    if SKIP_EXISTING and out_path.exists():
+        return str(out_path)
 
-    for _, row in chunk_df.iterrows():
-        print(f"Processing song: {row['song']}", flush=True)
-        print(
-            f"🔍 Memory: {psutil.Process(os.getpid()).memory_info().rss / 1024**2:.2f} MB"
-        )
-        try:
-            data = np.load(base_path / "npz" / f"{row['song']}.npz", allow_pickle=True)
-            for level in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
-                notes = data["notes"].item().get(level)
-                if notes is None:
-                    continue
-
-                df_level = pd.DataFrame(notes)
-                df_level = add_combined_word_column(df_level)
-
-                mel = data["song"]
-                timestamps = librosa.times_like(mel, sr=22050)
-                beat_time_to_sec = df_level["b"] / float(data["bpm"]) * 60
-                df_level["stack"] = [
-                    np.abs(timestamps - t).argmin() for t in beat_time_to_sec
-                ]
-
-                df_level["name"] = row["song"]
-                df_level["upvotes"] = row["upvotes"]
-                df_level["downvotes"] = row["downvotes"]
-                df_level["score"] = row["score"]
-                df_level["bpm"] = row["bpm"]
-                df_level["difficulty"] = level
-
-                rows.append(df_level)
-        except FileNotFoundError:
-            continue
-        except Exception as e:
-            print(f"❌ Failed to process song: {row['song']} — {type(e).__name__}: {e}")
-            continue
-
-    if rows:
-        df_out = pd.concat(rows, ignore_index=True)
-        out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
-        df_out.to_parquet(out_path, index=False)
-        return out_path
-    return None
-
-
-def process_chunk_wrapper(args):
     try:
-        return process_chunk(*args)
+        npz_path = base_path / "npz" / f"{song_name}.npz"
+        if not npz_path.exists():
+            print(f"⚠️ Missing file: {npz_path}")
+            return None
+
+        data = np.load(npz_path, allow_pickle=True)
+        notes_dict = data["notes"].item()
+        mel = data["song"]
+        timestamps = librosa.times_like(mel, sr=22050)
+
+        rows = []
+        for level in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
+            notes = notes_dict.get(level)
+            if notes is None:
+                continue
+
+            df_level = pd.DataFrame(notes)
+            df_level = add_combined_word_column(df_level)
+
+            beat_time_to_sec = df_level["b"] / float(data["bpm"]) * 60
+            df_level["stack"] = [
+                np.abs(timestamps - t).argmin() for t in beat_time_to_sec
+            ]
+
+            df_level["name"] = song_name
+            df_level["upvotes"] = row["upvotes"]
+            df_level["downvotes"] = row["downvotes"]
+            df_level["score"] = row["score"]
+            df_level["bpm"] = row["bpm"]
+            df_level["difficulty"] = level
+
+            rows.append(df_level)
+
+        if rows:
+            df_out = pd.concat(rows, ignore_index=True)
+            df_out.to_parquet(out_path, index=False)
+            del df_out, rows
+            gc.collect()
+            return str(out_path)
+
     except Exception as e:
-        print(f"❌ Chunk-level failure: {args[2]} — {type(e).__name__}: {e}")
+        print(f"❌ Failed: {song_name} — {type(e).__name__}: {e}")
         return None
-
-
-def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    df = df[
-        ~df["automapper"]
-        & ~df["missing_levels"]
-        & ~df["missing_song"]
-        & ~df["default_skip"]
-        & ~df["incorrect_word"]  # include this filter
-    ]
-    df = df.drop(
-        ["missing_levels", "missing_song", "automapper", "default_skip"], axis=1
-    )
-    return df
 
 
 # === Main script ===
 if __name__ == "__main__":
-    print("🚀 Starting note generation...")
+    print("🚀 Starting memory-safe parallel note processing...")
 
-    # Load metadata
     meta_df = pd.read_parquet(base_path / "metadata.parquet")
-    meta_df = clean_data(meta_df).reset_index(drop=True)
-    # Split into chunks
-    song_chunks = [
-        meta_df.iloc[i : i + CHUNK_SIZE] for i in range(0, len(meta_df), CHUNK_SIZE)
-    ]
-    chunk_inputs = [(chunk_df, base_path, i) for i, chunk_df in enumerate(song_chunks)]
+    meta_df = (
+        meta_df[
+            ~meta_df["automapper"]
+            & ~meta_df["missing_levels"]
+            & ~meta_df["missing_song"]
+            & ~meta_df["default_skip"]
+            & ~meta_df["incorrect_word"]
+        ]
+        .drop(["missing_levels", "missing_song", "automapper", "default_skip"], axis=1)
+        .reset_index(drop=True)
+    )
 
-    print(f"📦 Processing {len(chunk_inputs)} chunks...")
+    print(f"🎧 Processing {len(meta_df)} songs...")
+    rows = meta_df.to_dict(orient="records")
+
     if USE_MULTIPROCESSING:
         print(f"⚙️ Using multiprocessing with {multiprocessing.cpu_count()} workers.")
         with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-            results = list(
-                tqdm(
-                    executor.map(process_chunk_wrapper, chunk_inputs),
-                    total=len(chunk_inputs),
-                    desc="Processing valid chunks",
-                )
-            )
+            list(tqdm(executor.map(process_song, rows), total=len(rows), desc="Songs"))
     else:
-        print(
-            "⚙️ Running single-threaded chunk processing (set USE_MULTIPROCESSING = True for Linux)."
-        )
-        results = []
-        for args in tqdm(
-            chunk_inputs, desc="Processing valid chunks (single-threaded)"
-        ):
-            results.append(process_chunk_wrapper(args))
+        print("⚙️ Running single-threaded processing.")
+        for row in tqdm(rows, desc="Songs"):
+            process_song(row)
 
-    # Combine final output
-    files = glob.glob(str(OUTPUT_DIR / "*.parquet"))
-    df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
-    df.to_parquet(base_path / "notes.parquet", index=False)
-    print("✅ Combined notes.parquet saved.")
+    # Combine all per-song parquet files
+    print("🧩 Combining .parquet files...")
+    parquet_files = glob.glob(str(OUTPUT_DIR / "*.parquet"))
+    df_all = pd.concat([pd.read_parquet(f) for f in parquet_files], ignore_index=True)
+    df_all.to_parquet(base_path / "notes.parquet", index=False)
+    print("✅ Saved: notes.parquet")
