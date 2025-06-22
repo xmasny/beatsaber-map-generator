@@ -82,14 +82,27 @@ def process_chunk_wrapper(args):
     return process_chunk(*args)
 
 
+def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    df = df[
+        ~df["automapper"]
+        & ~df["missing_levels"]
+        & ~df["missing_song"]
+        & ~df["default_skip"]
+        & ~df["incorrect_word"]  # include this filter
+    ]
+    df = df.drop(
+        ["missing_levels", "missing_song", "automapper", "default_skip"], axis=1
+    )
+    return df
+
+
 # === Main script ===
 if __name__ == "__main__":
     print("🚀 Starting note generation...")
 
     # Load metadata
     meta_df = pd.read_parquet(base_path / "metadata.parquet")
-    meta_df = meta_df[meta_df["incorrect_word"] == False].reset_index(drop=True)
-
+    meta_df = clean_data(meta_df).reset_index(drop=True)
     # Split into chunks
     song_chunks = [
         meta_df.iloc[i : i + CHUNK_SIZE] for i in range(0, len(meta_df), CHUNK_SIZE)
