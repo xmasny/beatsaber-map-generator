@@ -1,7 +1,7 @@
 import subprocess
 import sys
 
-USE_PARALLEL = False  # Set to False to disable multiprocessing
+USE_PARALLEL = True  # Set to False to disable multiprocessing
 
 parallel_flag = ["--parallel"] if USE_PARALLEL else []
 
