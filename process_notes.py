@@ -38,7 +38,10 @@ def add_combined_word_column(df):
     return df.merge(df_combined, on="b")
 
 
-def process_chunk(chunk_df, base_path, chunk_id):
+def process_chunk(chunk_df, base_path, chunk_id, skip_existing=False):
+    out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
+    if skip_existing and out_path.exists():
+        return out_path  # Already processed
     rows = []
 
     for _, row in chunk_df.iterrows():
@@ -68,6 +71,9 @@ def process_chunk(chunk_df, base_path, chunk_id):
 
                 rows.append(df_level)
         except FileNotFoundError:
+            continue
+        except Exception as e:
+            print(f"❌ Failed to process song: {row['song']} — {type(e).__name__}: {e}")
             continue
 
     if rows:
