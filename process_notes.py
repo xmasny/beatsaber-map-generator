@@ -38,7 +38,7 @@ def add_combined_word_column(df):
     return df.merge(df_combined, on="b")
 
 
-def process_chunk(chunk_df, base_path, chunk_id, skip_existing=False):
+def process_chunk(chunk_df, base_path, chunk_id, skip_existing=True):
     out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
     if skip_existing and out_path.exists():
         return out_path  # Already processed
