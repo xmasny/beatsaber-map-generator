@@ -40,9 +40,6 @@ def add_combined_word_column(df):
 
 
 def process_chunk(chunk_df, base_path, chunk_id, skip_existing=True):
-    print(
-        f"🔍 Memory: {psutil.Process(os.getpid()).memory_info().rss / 1024**2:.2f} MB"
-    )
 
     print("Processing chunk:", chunk_id)
     out_path = OUTPUT_DIR / f"chunk_{chunk_id}.parquet"
@@ -52,6 +49,9 @@ def process_chunk(chunk_df, base_path, chunk_id, skip_existing=True):
 
     for _, row in chunk_df.iterrows():
         print(f"Processing song: {row['song']}", flush=True)
+        print(
+            f"🔍 Memory: {psutil.Process(os.getpid()).memory_info().rss / 1024**2:.2f} MB"
+        )
         try:
             data = np.load(base_path / "npz" / f"{row['song']}.npz", allow_pickle=True)
             for level in ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]:
