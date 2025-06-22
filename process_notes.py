@@ -85,7 +85,11 @@ def process_chunk(chunk_df, base_path, chunk_id, skip_existing=True):
 
 
 def process_chunk_wrapper(args):
-    return process_chunk(*args)
+    try:
+        return process_chunk(*args)
+    except Exception as e:
+        print(f"❌ Chunk-level failure: {args[2]} — {type(e).__name__}: {e}")
+        return None
 
 
 def clean_data(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -117,8 +121,8 @@ if __name__ == "__main__":
 
     print(f"📦 Processing {len(chunk_inputs)} chunks...")
     if USE_MULTIPROCESSING:
-        print(f"⚙️ Using multiprocessing with {4} workers.")
-        with ProcessPoolExecutor(max_workers=4) as executor:
+        print(f"⚙️ Using multiprocessing with {multiprocessing.cpu_count()} workers.")
+        with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
             results = list(
                 tqdm(
                     executor.map(process_chunk_wrapper, chunk_inputs),
