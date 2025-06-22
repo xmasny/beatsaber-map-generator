@@ -2,18 +2,18 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, TimeoutError
 import multiprocessing
 import argparse
 
 # === CLI Arguments ===
 parser = argparse.ArgumentParser()
 parser.add_argument("--parallel", action="store_true", help="Enable multiprocessing")
-
 args = parser.parse_args()
 
 USE_MULTIPROCESSING = args.parallel
 SAVE_EVERY = 1000  # Save progress every N songs
+TIMEOUT = 30  # seconds
 
 # === Config ===
 base_path = Path("dataset/beatmaps/color_notes")
@@ -73,21 +73,20 @@ def validate_song_wrapper(args):
 if __name__ == "__main__":
     print("🚀 Starting metadata validation...")
 
-    # Load metadata
     if metadata_path.exists():
         meta_df = pd.read_parquet(metadata_path)
     else:
         meta_df = pd.read_csv(base_path / "metadata.csv")
 
-    # Ensure tracking columns exist
     if "incorrect_word" not in meta_df.columns:
         meta_df["incorrect_word"] = False
     if "validated" not in meta_df.columns:
         meta_df["validated"] = False
+    if "timed_out" not in meta_df.columns:
+        meta_df["timed_out"] = False
 
     full_meta_df = meta_df.copy()
 
-    # Filter unvalidated, unskipped songs
     df = meta_df[
         ~meta_df["automapper"]
         & ~meta_df["missing_levels"]
@@ -98,36 +97,46 @@ if __name__ == "__main__":
 
     song_inputs = [(i, row["song"]) for i, row in df.iterrows()]
 
-    # Storage for tracking progress
     results = []
     validated_indices = []
     invalid_indices = []
+    timed_out_indices = []
 
     def save_progress():
         if validated_indices:
             full_meta_df.loc[validated_indices, "validated"] = True
         if invalid_indices:
             full_meta_df.loc[invalid_indices, "incorrect_word"] = True
+        if timed_out_indices:
+            full_meta_df.loc[timed_out_indices, "timed_out"] = True
         full_meta_df.to_parquet(metadata_path, index=False)
+        print(f"📅 Saved progress.")
         validated_indices.clear()
         invalid_indices.clear()
+        timed_out_indices.clear()
 
-    # === Validation loop ===
     if USE_MULTIPROCESSING:
         print(f"⚙️ Using multiprocessing with {multiprocessing.cpu_count()} workers.")
         with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-            for i, result in enumerate(
-                tqdm(
-                    executor.map(validate_song_wrapper, song_inputs),
-                    total=len(song_inputs),
-                    desc="Validating beatmaps",
-                )
+            futures = {
+                executor.submit(validate_song_wrapper, args): args[0]
+                for args in song_inputs
+            }
+            for i, (future, index) in enumerate(
+                tqdm(futures.items(), total=len(futures), desc="Validating beatmaps")
             ):
-                index, _ = song_inputs[i]
-                validated_indices.append(index)
-                if result is not None:
-                    invalid_indices.append(result)
-                if (i + 1) % SAVE_EVERY == 0 or (i + 1) == len(song_inputs):
+                try:
+                    result = future.result(timeout=TIMEOUT)
+                    validated_indices.append(index)
+                    if result is not None:
+                        invalid_indices.append(result)
+                except TimeoutError:
+                    print(f"⏱️ Timeout on song index {index}")
+                    timed_out_indices.append(index)
+                except Exception as e:
+                    print(f"⚠️ Error on song index {index}: {e}")
+                    validated_indices.append(index)
+                if (i + 1) % SAVE_EVERY == 0 or (i + 1) == len(futures):
                     save_progress()
     else:
         print("⚙️ Running single-threaded validation.")
@@ -135,10 +144,14 @@ if __name__ == "__main__":
             tqdm(song_inputs, desc="Validating beatmaps (single-threaded)")
         ):
             index = args[0]
-            result = validate_song_wrapper(args)
-            validated_indices.append(index)
-            if result is not None:
-                invalid_indices.append(result)
+            try:
+                result = validate_song_wrapper(args)
+                validated_indices.append(index)
+                if result is not None:
+                    invalid_indices.append(result)
+            except Exception as e:
+                print(f"⚠️ Error on song index {index}: {e}")
+                validated_indices.append(index)
             if (i + 1) % SAVE_EVERY == 0 or (i + 1) == len(song_inputs):
                 save_progress()
 
