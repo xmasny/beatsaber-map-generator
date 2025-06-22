@@ -6,18 +6,22 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 import argparse
 
+# === CLI Arguments ===
 parser = argparse.ArgumentParser()
 parser.add_argument("--parallel", action="store_true", help="Enable multiprocessing")
+
 args = parser.parse_args()
 
 USE_MULTIPROCESSING = args.parallel
+SAVE_EVERY = 1000  # Save progress every N songs
 
 # === Config ===
 base_path = Path("dataset/beatmaps/color_notes")
 pattern = r"^(?:[LR][0-8][0-3][0-2])(?:_(?:[LR][0-8][0-3][0-2]))*$"
+metadata_path = base_path / "metadata.parquet"
 
 
-# === Helper functions ===
+# === Helper Functions ===
 def is_valid_combined_word(series: pd.Series) -> bool:
     if not series.str.match(pattern).all(bool_only=True):
         return False
@@ -65,51 +69,77 @@ def validate_song_wrapper(args):
     return validate_song(*args)
 
 
-# === Main script ===
+# === Main Script ===
 if __name__ == "__main__":
     print("🚀 Starting metadata validation...")
 
     # Load metadata
-    meta_df = pd.read_csv(base_path / "metadata.csv")
-    full_meta_df = meta_df.copy()
-    full_meta_df["incorrect_word"] = False
+    if metadata_path.exists():
+        meta_df = pd.read_parquet(metadata_path)
+    else:
+        meta_df = pd.read_csv(base_path / "metadata.csv")
 
-    # Filter out songs to skip
+    # Ensure tracking columns exist
+    if "incorrect_word" not in meta_df.columns:
+        meta_df["incorrect_word"] = False
+    if "validated" not in meta_df.columns:
+        meta_df["validated"] = False
+
+    full_meta_df = meta_df.copy()
+
+    # Filter unvalidated, unskipped songs
     df = meta_df[
         ~meta_df["automapper"]
         & ~meta_df["missing_levels"]
         & ~meta_df["missing_song"]
         & ~meta_df["default_skip"]
+        & ~meta_df["validated"]
     ].copy()
 
     song_inputs = [(i, row["song"]) for i, row in df.iterrows()]
 
-    # Run validation
-    print(f"🔍 Validating {len(song_inputs)} songs...")
+    # Storage for tracking progress
+    results = []
+    validated_indices = []
+    invalid_indices = []
+
+    def save_progress():
+        if validated_indices:
+            full_meta_df.loc[validated_indices, "validated"] = True
+        if invalid_indices:
+            full_meta_df.loc[invalid_indices, "incorrect_word"] = True
+        full_meta_df.to_parquet(metadata_path, index=False)
+        validated_indices.clear()
+        invalid_indices.clear()
+
+    # === Validation loop ===
     if USE_MULTIPROCESSING:
         print(f"⚙️ Using multiprocessing with {multiprocessing.cpu_count()} workers.")
         with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-            results = list(
+            for i, result in enumerate(
                 tqdm(
                     executor.map(validate_song_wrapper, song_inputs),
                     total=len(song_inputs),
                     desc="Validating beatmaps",
                 )
-            )
+            ):
+                index, _ = song_inputs[i]
+                validated_indices.append(index)
+                if result is not None:
+                    invalid_indices.append(result)
+                if (i + 1) % SAVE_EVERY == 0 or (i + 1) == len(song_inputs):
+                    save_progress()
     else:
-        print(
-            "⚙️ Running single-threaded validation (set USE_MULTIPROCESSING = True for faster runs on Linux)."
-        )
-        results = []
-        for args in tqdm(song_inputs, desc="Validating beatmaps (single-threaded)"):
-            results.append(validate_song_wrapper(args))
+        print("⚙️ Running single-threaded validation.")
+        for i, args in enumerate(
+            tqdm(song_inputs, desc="Validating beatmaps (single-threaded)")
+        ):
+            index = args[0]
+            result = validate_song_wrapper(args)
+            validated_indices.append(index)
+            if result is not None:
+                invalid_indices.append(result)
+            if (i + 1) % SAVE_EVERY == 0 or (i + 1) == len(song_inputs):
+                save_progress()
 
-    # Mark invalid songs
-    invalid_indices = [i for i in results if i is not None]
-    full_meta_df.loc[invalid_indices, "incorrect_word"] = True
-
-    # Save metadata
-    out_path = base_path / "metadata.parquet"
-    full_meta_df.to_parquet(out_path, index=False)
-    print(f"✅ Validation complete. Invalid songs: {len(invalid_indices)}")
-    print(f"✅ Metadata written to {out_path}")
+    print("✅ Validation finished.")
