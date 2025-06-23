@@ -50,14 +50,14 @@ def add_combined_word_column(df):
     return df.merge(df_combined, on="b")
 
 
-def process_song(row):
+def process_song(row_tuple):
+    song_name, upvotes, downvotes, score, bpm = row_tuple
+    out_path = OUTPUT_DIR / f"{song_name}.parquet"
+
+    if SKIP_EXISTING and out_path.exists():
+        return str(out_path)
+
     try:
-        song_name = row.song
-        out_path = OUTPUT_DIR / f"{song_name}.parquet"
-
-        if SKIP_EXISTING and out_path.exists():
-            return str(out_path)
-
         npz_path = base_path / "npz" / f"{song_name}.npz"
         if not npz_path.exists():
             print(f"⚠️ Missing file: {npz_path}")
@@ -77,7 +77,7 @@ def process_song(row):
             df_level = pd.DataFrame(notes)
             df_level = add_combined_word_column(df_level)
 
-            beat_time_to_sec = df_level["b"] / float(data["bpm"]) * 60
+            beat_time_to_sec = df_level["b"] / float(bpm) * 60
             stack_indices = (
                 np.searchsorted(timestamps, beat_time_to_sec, side="right") - 1
             )
@@ -85,10 +85,10 @@ def process_song(row):
             df_level["stack"] = stack_indices
 
             df_level["name"] = song_name
-            df_level["upvotes"] = row.upvotes
-            df_level["downvotes"] = row.downvotes
-            df_level["score"] = row.score
-            df_level["bpm"] = row.bpm
+            df_level["upvotes"] = upvotes
+            df_level["downvotes"] = downvotes
+            df_level["score"] = score
+            df_level["bpm"] = bpm
             df_level["difficulty"] = level
 
             rows.append(df_level)
@@ -101,7 +101,7 @@ def process_song(row):
             return str(out_path)
 
     except Exception as e:
-        print(f"❌ Failed: {row.song} — {type(e).__name__}: {e}")
+        print(f"❌ Failed: {song_name} — {type(e).__name__}: {e}")
         return None
 
 
@@ -126,19 +126,19 @@ if __name__ == "__main__":
     log_mem("After filtering metadata")
     print(f"🎧 Processing {len(meta_df)} songs...")
 
+    # Convert rows to picklable format (tuples)
+    rows = [
+        (row.song, row.upvotes, row.downvotes, row.score, row.bpm)
+        for row in meta_df.itertuples(index=False)
+    ]
+
     if USE_MULTIPROCESSING:
-        print(f"⚙️ Using multiprocessing with up to 4 workers")
+        print("⚙️ Using multiprocessing with up to 4 workers")
         with ProcessPoolExecutor(max_workers=4) as executor:
-            list(
-                tqdm(
-                    executor.map(process_song, meta_df.itertuples(index=False)),
-                    total=len(meta_df),
-                    desc="Songs",
-                )
-            )
+            list(tqdm(executor.map(process_song, rows), total=len(rows), desc="Songs"))
     else:
         print("⚙️ Running single-threaded processing.")
-        for row in tqdm(meta_df.itertuples(index=False), desc="Songs"):
+        for row in tqdm(rows, desc="Songs"):
             process_song(row)
 
     print("✅ Done processing.")
