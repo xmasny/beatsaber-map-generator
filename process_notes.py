@@ -9,6 +9,8 @@ import argparse
 import gc
 import psutil
 import os
+import time
+import sys
 
 # === CLI Args ===
 parser = argparse.ArgumentParser()
@@ -26,11 +28,14 @@ base_path = Path("dataset/beatmaps/color_notes")
 OUTPUT_DIR = base_path / "notes_chunks"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# 🚨 Log files
+SKIPPED_RAM_LOG = "skipped_due_to_ram.txt"
+SKIPPED_USER_LOG = "skipped_by_user.txt"
 
-# === Optional: Memory Logger ===
-def log_mem(note=""):
-    mem = psutil.Process(os.getpid()).memory_info().rss / 1024**2
-    print(f"[{note}] RAM: {mem:.2f} MB")
+
+# === Memory Helper ===
+def current_ram_mb():
+    return psutil.Process(os.getpid()).memory_info().rss / 1024**2
 
 
 # === Helpers ===
@@ -58,6 +63,8 @@ def process_song(row_tuple):
         return str(out_path)
 
     try:
+        ram_before = current_ram_mb()
+
         npz_path = base_path / "npz" / f"{song_name}.npz"
         if not npz_path.exists():
             print(f"⚠️ Missing file: {npz_path}")
@@ -93,6 +100,16 @@ def process_song(row_tuple):
 
             rows.append(df_level)
 
+            # 🚨 RAM check after each difficulty
+            ram_now = current_ram_mb()
+            if ram_now - ram_before > 500:
+                print(
+                    f"🚨 Skipping {song_name} during {level}: RAM grew by {ram_now - ram_before:.2f} MB"
+                )
+                with open(SKIPPED_RAM_LOG, "a") as f:
+                    f.write(f"{song_name}\n")
+                return None
+
         if rows:
             df_out = pd.concat(rows, ignore_index=True)
             df_out.to_parquet(out_path, index=False)
@@ -105,10 +122,30 @@ def process_song(row_tuple):
         return None
 
 
+# === Safe wrapper for KeyboardInterrupt skipping ===
+last_interrupt_time = [0]
+
+
+def safe_process_song(row):
+    try:
+        return process_song(row)
+    except KeyboardInterrupt:
+        song_name = row[0]
+        now = time.time()
+        if now - last_interrupt_time[0] < 2:
+            print("\n⏹️  Ctrl+C again — exiting.")
+            sys.exit(0)
+        else:
+            print(f"\n⏭️  Skipping {song_name}. Press Ctrl+C again quickly to quit.")
+            last_interrupt_time[0] = now  # type: ignore
+            with open(SKIPPED_USER_LOG, "a") as f:
+                f.write(f"{song_name}\n")
+            return None
+
+
 # === Main script ===
 if __name__ == "__main__":
     print("🚀 Starting memory-safe note processing...")
-    log_mem("Start")
 
     meta_df = pd.read_parquet(base_path / "metadata.parquet")
     meta_df = (
@@ -123,10 +160,8 @@ if __name__ == "__main__":
         .reset_index(drop=True)
     )
 
-    log_mem("After filtering metadata")
     print(f"🎧 Processing {len(meta_df)} songs...")
 
-    # Convert rows to picklable format (tuples)
     rows = [
         (row.song, row.upvotes, row.downvotes, row.score, row.bpm)
         for row in meta_df.itertuples(index=False)
@@ -137,8 +172,8 @@ if __name__ == "__main__":
         with ProcessPoolExecutor(max_workers=4) as executor:
             list(tqdm(executor.map(process_song, rows), total=len(rows), desc="Songs"))
     else:
-        print("⚙️ Running single-threaded processing.")
+        print("⚙️ Running single-threaded with Ctrl+C skip support.")
         for row in tqdm(rows, desc="Songs"):
-            process_song(row)
+            safe_process_song(row)
 
     print("✅ Done processing.")
