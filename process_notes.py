@@ -1,3 +1,4 @@
+import glob
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -175,5 +176,12 @@ if __name__ == "__main__":
         print("⚙️ Running single-threaded with Ctrl+C skip support.")
         for row in tqdm(rows, desc="Songs"):
             safe_process_song(row)
+
+    # Combine all per-song parquet files
+    print("🧩 Combining .parquet files...")
+    parquet_files = glob.glob(str(OUTPUT_DIR / "*.parquet"))
+    df_all = pd.concat([pd.read_parquet(f) for f in parquet_files], ignore_index=True)
+    df_all.to_parquet(base_path / "notes.parquet", index=False)
+    print("✅ Saved: notes.parquet")
 
     print("✅ Done processing.")
