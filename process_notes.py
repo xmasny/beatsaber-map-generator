@@ -169,8 +169,10 @@ if __name__ == "__main__":
     ]
 
     if USE_MULTIPROCESSING:
-        print("⚙️ Using multiprocessing with up to 4 workers")
-        with ProcessPoolExecutor(max_workers=4) as executor:
+        print(
+            f"⚙️ Using multiprocessing with up to {multiprocessing.cpu_count()} workers"
+        )
+        with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
             list(tqdm(executor.map(process_song, rows), total=len(rows), desc="Songs"))
     else:
         print("⚙️ Running single-threaded with Ctrl+C skip support.")
