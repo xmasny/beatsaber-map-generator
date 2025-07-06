@@ -170,7 +170,7 @@ class OnsetsBase(nn.Module):
         return predictions, losses
 
 
-class SimpleOnsets(OnsetsBase):
+class OnsetFeatureExtractor(OnsetsBase):
     """Model for onset prediction
 
     Parameters

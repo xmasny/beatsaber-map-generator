@@ -4,7 +4,7 @@ import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import CyclicLR
 from training.loader import BaseLoader
-from dl.models.onsets import SimpleOnsets
+from dl.models.onsets import OnsetFeatureExtractor
 from training.onset_ignite import ignite_train
 from config import *
 from utils import MyDataParallel
@@ -27,7 +27,7 @@ best_result = None
 
 
 def setup_model():
-    model = SimpleOnsets(
+    model = OnsetFeatureExtractor(
         input_features=n_mels,
         output_features=1,
         dropout=0.3,

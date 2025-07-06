@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from dl.models.onsets import SimpleOnsets
+from dl.models.onsets import OnsetFeatureExtractor
 import seaborn as sns
 from config import *
 
@@ -10,7 +10,7 @@ USE_BERNOULLI_SAMPLING = True  # ← set to False for thresholding (evaluation)
 
 
 # Load model
-model = SimpleOnsets(
+model = OnsetFeatureExtractor(
     input_features=n_mels,
     output_features=1,
     dropout=0.3,

@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from config import *
-from dl.models.onsets import SimpleOnsets
+from dl.models.onsets import OnsetFeatureExtractor
 from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
@@ -95,7 +95,7 @@ def sweep_train(config=None):
             },
         )
 
-        model = SimpleOnsets(
+        model = OnsetFeatureExtractor(
             input_features=n_mels,
             output_features=1,
             dropout=config.dropout,

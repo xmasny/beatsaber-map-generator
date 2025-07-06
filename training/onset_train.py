@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 from torch.utils.data import DataLoader
 
 from config import *
-from dl.models.onsets import SimpleOnsets
+from dl.models.onsets import OnsetFeatureExtractor
 from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
@@ -48,7 +48,7 @@ def main(run_parameters: RunParams):
         train_dataset = BaseLoader(split=Split.TRAIN, **common_dataset_args)
         valid_dataset = BaseLoader(split=Split.VALIDATION, **common_dataset_args)
 
-        model = SimpleOnsets(
+        model = OnsetFeatureExtractor(
             input_features=n_mels,
             output_features=1,
             dropout=run_parameters.dropout,
