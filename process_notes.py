@@ -186,4 +186,5 @@ if __name__ == "__main__":
     df_all.to_parquet(base_path / "notes.parquet", index=False)
     print("✅ Saved: notes.parquet")
 
+    df_all.columns
     print("✅ Done processing.")

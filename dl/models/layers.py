@@ -367,7 +367,7 @@ class ConvStack(Module):
                     ReLU(),
                     MaxPool2d((1, 4)),
                     AvgPool2d((1, n_mels // 64)),
-                    Upsample(scale_factor=(128, 1)),
+                    Upsample(scale_factor=(229, 1)),
                 ),
             ]
         )
@@ -389,8 +389,8 @@ class ConvStack(Module):
 
         """
         padding = 0
-        if mel.shape[1] % 128 != 0:
-            padding = 128 - mel.shape[1] % 128
+        if mel.shape[1] % 229 != 0:
+            padding = 229 - mel.shape[1] % 229
             mel = torch.cat(
                 [
                     mel,
@@ -413,12 +413,12 @@ class ConvStack(Module):
 
 # Flattened Multi-Class Classification Head 216
 class AudioSymbolicNoteSelector(Module):
-    def __init__(self, n_mels, symbolic_size=3, hidden_size=128, output_size=216):
+    def __init__(self, n_mels, symbolic_size=3, hidden_size=229, output_size=216):
         super().__init__()
 
-        self.conv_stack = ConvStack(input_features=n_mels, output_features=128)
+        self.conv_stack = ConvStack(input_features=n_mels, output_features=229)
         self.lstm = LSTM(
-            input_size=128 + symbolic_size, hidden_size=hidden_size, batch_first=True
+            input_size=229 + symbolic_size, hidden_size=hidden_size, batch_first=True
         )
         self.fc = Linear(hidden_size, output_size)
 
@@ -427,8 +427,8 @@ class AudioSymbolicNoteSelector(Module):
         mel: (B, T, n_mels)
         symbolic: (B, T, symbolic_size)
         """
-        conv_feat = self.conv_stack(mel)  # → (B, T, 128)
-        x = torch.cat([conv_feat, symbolic], dim=-1)  # → (B, T, 128 + symbolic_size)
+        conv_feat = self.conv_stack(mel)  # → (B, T, 229)
+        x = torch.cat([conv_feat, symbolic], dim=-1)  # → (B, T, 229 + symbolic_size)
         x, _ = self.lstm(x)
         out = self.fc(x)  # → (B, T, output_size)
         return out
@@ -436,12 +436,12 @@ class AudioSymbolicNoteSelector(Module):
 
 # Multi-Label Classification Head 2*9*4*3
 class AudioSymbolicNoteSelectorMultiHead(Module):
-    def __init__(self, n_mels, symbolic_size=3, hidden_size=128):
+    def __init__(self, n_mels, symbolic_size=3, hidden_size=229):
         super().__init__()
 
-        self.conv_stack = ConvStack(input_features=n_mels, output_features=128)
+        self.conv_stack = ConvStack(input_features=n_mels, output_features=229)
         self.lstm = LSTM(
-            input_size=128 + symbolic_size, hidden_size=hidden_size, batch_first=True
+            input_size=229 + symbolic_size, hidden_size=hidden_size, batch_first=True
         )
 
         # Separate heads
@@ -457,8 +457,8 @@ class AudioSymbolicNoteSelectorMultiHead(Module):
         Returns:
             Dict of logits per head
         """
-        conv_feat = self.conv_stack(mel)  # (B, T, 128)
-        x = torch.cat([conv_feat, symbolic], dim=-1)  # (B, T, 128 + symbolic_size)
+        conv_feat = self.conv_stack(mel)  # (B, T, 229)
+        x = torch.cat([conv_feat, symbolic], dim=-1)  # (B, T, 229 + symbolic_size)
         x, _ = self.lstm(x)  # (B, T, hidden)
 
         return {
@@ -512,7 +512,7 @@ class SparseNoteClassifier(Module):
         self,
         window: int = 0,
         n_mels: int = 229,
-        hidden_dim: int = 128,
+        hidden_dim: int = 229,
         symbolic_dim: int = 1,
         output_dim: int = 216,
         dropout: float = 0.2,

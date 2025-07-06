@@ -48,7 +48,7 @@ def main(run_parameters: RunParams):
             window=run_parameters.mel_window,
             n_mels=n_mels,
             symbolic_dim=1,
-            hidden_dim=128,
+            hidden_dim=229,
         ).to(device)
 
         if run_parameters.is_parallel:
