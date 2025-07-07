@@ -1,11 +1,13 @@
-import gc
+import os
 import numpy as np
 import pandas as pd
+import gc
 from tqdm import tqdm
-import os
 
 type = "Easy"
-batch_size = 100
+intermediate_batch_size = 25
+final_batch_size = 100
+combine_factor = final_batch_size // intermediate_batch_size
 
 base_path = "dataset/beatmaps/color_notes"
 filename = f"{base_path}/notes_dataset/notes_{type.lower()}.parquet"
@@ -21,6 +23,12 @@ keys_to_drop = [
     "stacked_mel_3",
     "note_labels",
 ]
+
+# Directories
+intermediate_path = "dataset/batch/intermediate"
+final_path = "dataset/batch/final"
+os.makedirs(intermediate_path, exist_ok=True)
+os.makedirs(final_path, exist_ok=True)
 
 
 def word_to_one_hot(combined_word: str):
@@ -51,106 +59,118 @@ def extract_window(mel: np.ndarray, index: int, window_size: int):
     return window
 
 
-# --- LOAD PARQUET AND DROP DUPLICATES ---
+# Load dataset
 df = pd.read_parquet(filename)
 df_files = df.drop_duplicates(subset=["name"], keep="first").reset_index(drop=True)
-print(f"Loaded {filename} with {len(df)} unique rows.")
 
-# --- PREPARE OUTPUT DIRS ---
-for sub in ["onsets", "classification"]:
-    for ctype in ["compressed", "uncompressed"]:
-        os.makedirs(f"dataset/batch/{sub}/train/{ctype}", exist_ok=True)
+intermediate_files = []
+file_counter = 0
+intermediate_counter = 0
+final_batch_counter = 0
 
-# --- PROCESS .NPZ FILES IN BATCHES ---
 onsets_combined_data = {}
 classification_combined_data = {}
-file_counter = 0
-batch_counter = 0
 
 for row in tqdm(df_files.itertuples(), total=len(df_files), desc="Processing rows"):
     npz_path = os.path.join(npz_dir, f"{row.name}.npz")
-
     if not os.path.exists(npz_path):
-        print(f"Missing file: {npz_path}")
         continue
 
     try:
         data = np.load(npz_path, allow_pickle=True)
-
         for key in data.files:
             if key not in keys_to_drop:
                 unique_key = f"{row.name}_{key}"
                 onsets_combined_data[unique_key] = data[key]
 
-        # Onsets array
         onsets_key = f"{row.name}_onsets_{type.lower()}"
         onsets_combined_data[onsets_key] = data["onsets"].item()[type]["onsets_array"]
 
         song_steps = df[df["name"] == f"{row.name}"]
-
-        for step in tqdm(
-            song_steps.itertuples(),
-            total=len(song_steps),
-            desc=f"Processing steps for {row.name}",
-        ):
+        for step in song_steps.itertuples():
             classification_combined_data[f"{row.name}_{step.stack}_classes"] = (
                 word_to_one_hot(str(step.combined_word))
             )
             classification_combined_data[f"{row.name}_{step.stack}_mel"] = (
                 extract_window(data["song"], int(str(step.stack)), 45)
             )
+
         del data
         gc.collect()
-
     except Exception as e:
-        print(f"Error with {npz_path}: {e}")
+        print(f"Error processing {npz_path}: {e}")
         continue
 
     file_counter += 1
 
-    # Save batch
-    if file_counter % batch_size == 0:
-        # --- Save Onsets ---
-        np.savez_compressed(
-            f"dataset/batch/onsets/train/compressed/batch_{batch_counter:03}.npz",
-            **onsets_combined_data,
+    # Save intermediate batch
+    if file_counter % intermediate_batch_size == 0:
+        onset_file = os.path.join(
+            intermediate_path, f"onsets_{intermediate_counter:03}.npz"
         )
-        np.savez(
-            f"dataset/batch/onsets/train/uncompressed/batch_{batch_counter:03}.npz",
-            **onsets_combined_data,
+        class_file = os.path.join(
+            intermediate_path, f"class_{intermediate_counter:03}.npz"
         )
+        np.savez_compressed(onset_file, **onsets_combined_data)
+        np.savez_compressed(class_file, **classification_combined_data)
+        intermediate_files.append((onset_file, class_file))
         onsets_combined_data = {}
-
-        # --- Save Classification ---
-        np.savez_compressed(
-            f"dataset/batch/classification/train/compressed/batch_{batch_counter:03}.npz",
-            **classification_combined_data,
-        )
-        np.savez(
-            f"dataset/batch/classification/train/uncompressed/batch_{batch_counter:03}.npz",
-            **classification_combined_data,
-        )
         classification_combined_data = {}
+        intermediate_counter += 1
 
-        batch_counter += 1
+        # Combine intermediate batches every 4 (100 files)
+        if len(intermediate_files) == combine_factor:
+            final_onsets = {}
+            final_classes = {}
+            for onset_fp, class_fp in intermediate_files:
+                with np.load(onset_fp, allow_pickle=True) as d:
+                    final_onsets.update(d)
+                with np.load(class_fp, allow_pickle=True) as d:
+                    final_classes.update(d)
 
-# --- FINAL BATCH ---
+            np.savez_compressed(
+                os.path.join(final_path, f"onsets_batch_{final_batch_counter:03}.npz"),
+                **final_onsets,
+            )
+            np.savez_compressed(
+                os.path.join(final_path, f"class_batch_{final_batch_counter:03}.npz"),
+                **final_classes,
+            )
+
+            final_batch_counter += 1
+            intermediate_files = []
+            del final_onsets, final_classes
+            gc.collect()
+
+# Save remaining intermediate data
 if onsets_combined_data:
-    np.savez_compressed(
-        f"dataset/batch/onsets/train/compressed/batch_{batch_counter:03}.npz",
-        **onsets_combined_data,
+    onset_file = os.path.join(
+        intermediate_path, f"onsets_{intermediate_counter:03}.npz"
     )
-    np.savez(
-        f"dataset/batch/onsets/train/uncompressed/batch_{batch_counter:03}.npz",
-        **onsets_combined_data,
+    class_file = os.path.join(intermediate_path, f"class_{intermediate_counter:03}.npz")
+    np.savez_compressed(onset_file, **onsets_combined_data)
+    np.savez_compressed(class_file, **classification_combined_data)
+    intermediate_files.append((onset_file, class_file))
+    intermediate_counter += 1
+
+# Final merge if remaining files exist
+if intermediate_files:
+    final_onsets = {}
+    final_classes = {}
+    for onset_fp, class_fp in intermediate_files:
+        with np.load(onset_fp, allow_pickle=True) as d:
+            final_onsets.update(d)
+        with np.load(class_fp, allow_pickle=True) as d:
+            final_classes.update(d)
+
+    np.savez_compressed(
+        os.path.join(final_path, f"onsets_batch_{final_batch_counter:03}.npz"),
+        **final_onsets,
+    )
+    np.savez_compressed(
+        os.path.join(final_path, f"class_batch_{final_batch_counter:03}.npz"),
+        **final_classes,
     )
 
-if classification_combined_data:
-    np.savez_compressed(
-        f"dataset/batch/classification/train/compressed/batch_{batch_counter:03}.npz",
-        **classification_combined_data,
-    )
-    np.savez(
-        f"dataset/batch/classification/train/uncompressed/batch_{batch_counter:03}.npz",
-        **classification_combined_data,
-    )
+    del final_onsets, final_classes
+    gc.collect()
