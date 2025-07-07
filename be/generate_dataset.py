@@ -4,12 +4,14 @@ import pandas as pd
 import os
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from collections import defaultdict
 
 # === CONFIGURATION ===
 type = "Easy"
 base_path = "local_npz_data"
 filename = f"dataset/beatmaps/color_notes/notes_dataset/notes_{type.lower()}.parquet"
 batch_size = 10
+num_workers = 4  # Manually set number of parallel workers
 
 onsets_out_dir = "dataset/batch/onsets/train"
 class_out_dir = "dataset/batch/classification/train"
@@ -58,29 +60,27 @@ def extract_window(mel: np.ndarray, index: int, window_size: int):
     return window
 
 
-def process_row(row, df_all):
+def process_row(row, song_steps):
     try:
         npz_path = os.path.join(base_path, f"{row.name}.npz")
         data = np.load(npz_path, allow_pickle=True)
 
-        onsets_data = {}
-        for key in data.files:
-            if key not in keys_to_drop:
-                unique_key = f"{row.name}_{key}"
-                onsets_data[unique_key] = data[key]
-
+        onsets_data = {
+            f"{row.name}_{key}": data[key]
+            for key in data.files
+            if key not in keys_to_drop
+        }
         onsets_data[f"{row.name}_onsets_{type.lower()}"] = data["onsets"].item()[type][
             "onsets_array"
         ]
 
         classification_data = {}
-        song_steps = df_all[df_all["name"] == row.name]
-        for step in song_steps.itertuples():
-            classification_data[f"{row.name}_{step.stack}_classes"] = word_to_one_hot(
-                str(step.combined_word)
+        for stack, combined_word in song_steps:
+            classification_data[f"{row.name}_{stack}_classes"] = word_to_one_hot(
+                str(combined_word)
             )
-            classification_data[f"{row.name}_{step.stack}_mel"] = extract_window(
-                data["song"], int(str(step.stack)), 45
+            classification_data[f"{row.name}_{stack}_mel"] = extract_window(
+                data["song"], int(str(stack)), 45
             )
 
         return onsets_data, classification_data
@@ -93,14 +93,22 @@ def process_row(row, df_all):
 df = pd.read_parquet(filename)
 df_files = df.drop_duplicates(subset=["name"], keep="first").reset_index(drop=True)
 
+# --- PREPROCESS SONG STEPS ---
+song_steps_dict = defaultdict(list)
+for step in df.itertuples():
+    song_steps_dict[step.name].append((step.stack, step.combined_word))
+
 # --- PARALLEL PROCESSING ---
 onsets_combined_data = {}
 classification_combined_data = {}
 file_counter = 0
 batch_counter = 0
 
-with ProcessPoolExecutor(max_workers=6) as executor:
-    futures = [executor.submit(process_row, row, df) for row in df_files.itertuples()]
+with ProcessPoolExecutor(max_workers=num_workers) as executor:
+    futures = [
+        executor.submit(process_row, row, song_steps_dict[row.name])
+        for row in df_files.itertuples()
+    ]
     for future in tqdm(as_completed(futures), total=len(futures), desc="Processing"):
         onsets_data, class_data = future.result()
 
