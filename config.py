@@ -11,7 +11,8 @@ n_fft = 2048
 hop_length = 512
 sample_rate = 22050
 n_mels = 229
-FRAME = round((hop_length / sample_rate) * 1000, 2)
+FRAME = (hop_length / sample_rate) * 1000
+FRAME_MS_ROUNDED = round(FRAME, 2)
 
 DIFFICULTY_NAMES = ["Easy", "Normal", "Hard", "Expert", "ExpertPlus"]
 
