@@ -4,7 +4,7 @@ from tqdm import tqdm
 import os
 
 type = "Easy"
-batch_size = 10
+batch_size = 100
 
 base_path = "dataset/beatmaps/color_notes"
 filename = f"{base_path}/notes_dataset/notes_{type.lower()}.parquet"
@@ -87,7 +87,11 @@ for row in tqdm(df_files.itertuples(), total=len(df_files), desc="Processing row
 
         song_steps = df[df["name"] == f"{row.name}"]
 
-        for step in song_steps.itertuples():
+        for step in tqdm(
+            song_steps.itertuples(),
+            total=len(song_steps),
+            desc=f"Processing steps for {row.name}",
+        ):
             classification_combined_data[f"{row.name}_{step.stack}_classes"] = (
                 word_to_one_hot(str(step.combined_word))
             )
