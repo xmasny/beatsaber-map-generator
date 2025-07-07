@@ -8,7 +8,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 # === CONFIGURATION ===
 type = "Easy"
 base_path = "local_npz_data"
-filename = f"dataset/beatmaps/color_notes/notes_{type.lower()}.parquet"
+filename = f"dataset/beatmaps/color_notes/notes_dataset/notes_{type.lower()}.parquet"
 batch_size = 10
 
 onsets_out_dir = "dataset/batch/onsets/train"
