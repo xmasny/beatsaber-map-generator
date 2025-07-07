@@ -99,8 +99,8 @@ for row in tqdm(df_files.itertuples(), total=len(df_files), desc="Processing row
             classification_combined_data[f"{row.name}_{step.stack}_mel"] = (
                 extract_window(data["song"], int(str(step.stack)), 45)
             )
-            del data
-            gc.collect()
+        del data
+        gc.collect()
 
     except Exception as e:
         print(f"Error with {npz_path}: {e}")
