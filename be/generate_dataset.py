@@ -150,85 +150,92 @@ classification_combined_data = {}
 file_counter = 0
 
 if not args.finish_only:
-    for row in tqdm(df_files.itertuples(), total=len(df_files), desc="Processing rows"):
-        if row.name in processed_names:
-            continue
-
-        split = str(row.split)
-        npz_path = os.path.join(npz_dir, f"{row.name}.npz")
-        if not os.path.exists(npz_path):
-            continue
-
-        try:
-            data = np.load(npz_path, allow_pickle=True)
-
-            if gen_onset:
-                for key in data.files:
-                    if key not in keys_to_drop:
-                        unique_key = f"{row.name}_{key}"
-                        onsets_combined_data[unique_key] = data[key]
-                onsets_key = f"{row.name}_onsets_{type.lower()}"
-                onsets_combined_data[onsets_key] = data["onsets"].item()[type][
-                    "onsets_array"
-                ]
-
-            if gen_class:
-                song_steps = df[df["name"] == f"{row.name}"]
-                for step in song_steps.itertuples():
-                    classification_combined_data[f"{row.name}_{step.stack}_classes"] = (
-                        word_to_one_hot(str(step.combined_word))
-                    )
-                    classification_combined_data[f"{row.name}_{step.stack}_mel"] = (
-                        extract_window(data["song"], int(str(step.stack)), 45)
-                    )
-
-            del data
-            gc.collect()
-
-            if args.checkpoint_file:
-                with open(args.checkpoint_file, "a") as f:
-                    f.write(f"{row.name}\n")
-
-        except Exception as e:
-            print(f"Error processing {npz_path}: {e}")
-            continue
-
-        file_counter += 1
-
-        if file_counter % intermediate_batch_size == 0:
-            onset_file, class_file = None, None
-            if gen_onset and onsets_combined_data:
-                onset_file = os.path.join(
-                    intermediate_path, f"onsets_{split}_{split_counters[split]:03}.npz"
-                )
-                np.savez_compressed(onset_file, **onsets_combined_data)
-                print(f"Saved: {onset_file}")
-                onsets_combined_data = {}
-            if gen_class and classification_combined_data:
-                class_file = os.path.join(
-                    intermediate_path, f"class_{split}_{split_counters[split]:03}.npz"
-                )
-                np.savez_compressed(class_file, **classification_combined_data)
-                print(f"Saved: {class_file}")
-                classification_combined_data = {}
-            intermediate_files_by_split[split].append((onset_file, class_file))
-            split_counters[split] += 1
-
-    # Save leftovers
     for split in splits:
+        df_split = df_files[df_files["split"] == split]
+        for row in tqdm(
+            df_split.itertuples(),
+            total=len(df_split),
+            desc="Processing rows for split " + split,
+        ):
+            if row.name in processed_names:
+                continue
+            npz_path = os.path.join(npz_dir, f"{row.name}.npz")
+            if not os.path.exists(npz_path):
+                continue
+
+            try:
+                data = np.load(npz_path, allow_pickle=True)
+
+                if gen_onset:
+                    for key in data.files:
+                        if key not in keys_to_drop:
+                            unique_key = f"{row.name}_{key}"
+                            onsets_combined_data[unique_key] = data[key]
+                    onsets_key = f"{row.name}_onsets_{type.lower()}"
+                    onsets_combined_data[onsets_key] = data["onsets"].item()[type][
+                        "onsets_array"
+                    ]
+
+                if gen_class:
+                    song_steps = df[df["name"] == f"{row.name}"]
+                    for step in song_steps.itertuples():
+                        classification_combined_data[
+                            f"{row.name}_{step.stack}_classes"
+                        ] = word_to_one_hot(str(step.combined_word))
+                        classification_combined_data[f"{row.name}_{step.stack}_mel"] = (
+                            extract_window(data["song"], int(str(step.stack)), 45)
+                        )
+
+                del data
+                gc.collect()
+
+                if args.checkpoint_file:
+                    with open(args.checkpoint_file, "a") as f:
+                        f.write(f"{row.name}\n")
+
+            except Exception as e:
+                print(f"Error processing {npz_path}: {e}")
+                continue
+
+            file_counter += 1
+
+            if file_counter % intermediate_batch_size == 0:
+                onset_file, class_file = None, None
+                if gen_onset and onsets_combined_data:
+                    onset_file = os.path.join(
+                        intermediate_path,
+                        f"onsets_{split}_{split_counters[split]:03}.npz",
+                    )
+                    np.savez_compressed(onset_file, **onsets_combined_data)
+                    print(f"Saved: {onset_file}")
+                    onsets_combined_data = {}
+                if gen_class and classification_combined_data:
+                    class_file = os.path.join(
+                        intermediate_path,
+                        f"class_{split}_{split_counters[split]:03}.npz",
+                    )
+                    np.savez_compressed(class_file, **classification_combined_data)
+                    print(f"Saved: {class_file}")
+                    classification_combined_data = {}
+                intermediate_files_by_split[split].append((onset_file, class_file))
+                split_counters[split] += 1
+
+        # Save leftovers
         if gen_onset and onsets_combined_data:
             onset_file = os.path.join(
                 intermediate_path, f"onsets_{split}_{split_counters[split]:03}.npz"
             )
             np.savez_compressed(onset_file, **onsets_combined_data)
-            print(f"Saved: {onset_file}")
+            print(f"Saved: {onset_file} (remaining data) {len(onsets_combined_data)}")
             onsets_combined_data = {}
         if gen_class and classification_combined_data:
             class_file = os.path.join(
                 intermediate_path, f"class_{split}_{split_counters[split]:03}.npz"
             )
             np.savez_compressed(class_file, **classification_combined_data)
-            print(f"Saved: {class_file}")
+            print(
+                f"Saved: {class_file} (remaining data) {len(classification_combined_data)}"
+            )
             classification_combined_data = {}
         if gen_class or gen_onset:
             intermediate_files_by_split[split].append(
