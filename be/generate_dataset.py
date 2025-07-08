@@ -125,9 +125,9 @@ def extract_window(mel: np.ndarray, index: int, window_size: int):
 
 # --- Load Dataset and Split ---
 df = pd.read_parquet(filename)
-df = df.drop_duplicates(subset=["name"], keep="first").reset_index(drop=True)
+df_files = df.drop_duplicates(subset=["name"], keep="first").reset_index(drop=True)
 
-full_train_df, test_df = train_test_split(df, test_size=0.3, random_state=42)
+full_train_df, test_df = train_test_split(df_files, test_size=0.3, random_state=42)
 valid_df, test_df = train_test_split(test_df, test_size=0.5, random_state=42)
 
 train_df = (
