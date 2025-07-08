@@ -24,10 +24,7 @@ class ArgparseType:
 # --- Arguments ---
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--type",
-    type=str,
-    default="Easy",
-    help="Difficulty type (e.g. Easy)",
+    "--type", type=str, default="Easy", help="Difficulty type (e.g. Easy)"
 )
 parser.add_argument(
     "--start", type=int, default=0, help="Start index for training subset"
@@ -203,12 +200,14 @@ if not args.finish_only:
                     intermediate_path, f"onsets_{split}_{split_counters[split]:03}.npz"
                 )
                 np.savez_compressed(onset_file, **onsets_combined_data)
+                print(f"Saved: {onset_file}")
                 onsets_combined_data = {}
             if gen_class and classification_combined_data:
                 class_file = os.path.join(
                     intermediate_path, f"class_{split}_{split_counters[split]:03}.npz"
                 )
                 np.savez_compressed(class_file, **classification_combined_data)
+                print(f"Saved: {class_file}")
                 classification_combined_data = {}
             intermediate_files_by_split[split].append((onset_file, class_file))
             split_counters[split] += 1
@@ -220,12 +219,14 @@ if not args.finish_only:
                 intermediate_path, f"onsets_{split}_{split_counters[split]:03}.npz"
             )
             np.savez_compressed(onset_file, **onsets_combined_data)
+            print(f"Saved: {onset_file}")
             onsets_combined_data = {}
         if gen_class and classification_combined_data:
             class_file = os.path.join(
                 intermediate_path, f"class_{split}_{split_counters[split]:03}.npz"
             )
             np.savez_compressed(class_file, **classification_combined_data)
+            print(f"Saved: {class_file}")
             classification_combined_data = {}
         if gen_class or gen_onset:
             intermediate_files_by_split[split].append(
@@ -242,29 +243,29 @@ if not args.intermediate_only:
             final_onsets, final_classes = {}, {}
 
             for onset_file, class_file in group:
-                if gen_onset and onset_file:
+                if gen_onset and onset_file and os.path.exists(onset_file):
                     with np.load(onset_file, allow_pickle=True) as d:
                         final_onsets.update(d)
                     os.remove(onset_file)
-                if gen_class and class_file:
+                    print(f"Deleted: {onset_file}")
+                if gen_class and class_file and os.path.exists(class_file):
                     with np.load(class_file, allow_pickle=True) as d:
                         final_classes.update(d)
                     os.remove(class_file)
+                    print(f"Deleted: {class_file}")
 
-            if gen_onset:
-                np.savez_compressed(
-                    os.path.join(
-                        final_paths[split], f"onsets_batch_{final_counter:03}.npz"
-                    ),
-                    **final_onsets,
+            if gen_onset and final_onsets:
+                final_onset_path = os.path.join(
+                    final_paths[split], f"onsets_batch_{final_counter:03}.npz"
                 )
-            if gen_class:
-                np.savez_compressed(
-                    os.path.join(
-                        final_paths[split], f"class_batch_{final_counter:03}.npz"
-                    ),
-                    **final_classes,
+                np.savez_compressed(final_onset_path, **final_onsets)
+                print(f"Saved: {final_onset_path}")
+            if gen_class and final_classes:
+                final_class_path = os.path.join(
+                    final_paths[split], f"class_batch_{final_counter:03}.npz"
                 )
+                np.savez_compressed(final_class_path, **final_classes)
+                print(f"Saved: {final_class_path}")
 
             final_counter += 1
             gc.collect()
