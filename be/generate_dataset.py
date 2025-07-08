@@ -151,6 +151,8 @@ file_counter = 0
 
 if not args.finish_only:
     for split in splits:
+        onsets_combined_data = {}
+        classification_combined_data = {}
         df_split = df_files[df_files["split"] == split]
         for row in tqdm(
             df_split.itertuples(),
