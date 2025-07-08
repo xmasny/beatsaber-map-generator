@@ -1,5 +1,6 @@
 import os
 import argparse
+import random
 import numpy as np
 import pandas as pd
 import gc
@@ -65,8 +66,11 @@ base_path = "dataset/beatmaps/color_notes"
 filename = f"{base_path}/notes_dataset/notes_{type.lower()}.parquet"
 npz_dir = f"{base_path}/npz"
 
-intermediate_path = "dataset/batch/intermediate"
-final_base_path = "dataset/batch"
+shuffle_seed = random.randint(0, 2**32 - 1)
+
+intermediate_path = f"dataset/batch/{type.lower()}/{shuffle_seed}/intermediate"
+final_base_path = f"dataset/batch/{type.lower()}/{shuffle_seed}"
+
 splits = ["valid", "test", "train"]
 final_paths = {s: os.path.join(final_base_path, s) for s in splits}
 os.makedirs(intermediate_path, exist_ok=True)
