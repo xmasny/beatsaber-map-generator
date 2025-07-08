@@ -17,7 +17,7 @@ class ArgparseType:
     checkpoint_file: Optional[str]
     gen_class_only: bool
     gen_onset_only: bool
-    finish_only: bool
+    final_only: bool
     intermediate_only: bool
 
 
@@ -42,7 +42,7 @@ parser.add_argument(
     "--gen_onset_only", action="store_true", help="Generate onset dataset only"
 )
 parser.add_argument(
-    "--finish_only", action="store_true", help="Finish only, no generation"
+    "--final_only", action="store_true", help="Final only, no generation"
 )
 parser.add_argument(
     "--intermediate_only",
@@ -66,7 +66,7 @@ filename = f"{base_path}/notes_dataset/notes_{type.lower()}.parquet"
 npz_dir = f"{base_path}/npz"
 
 intermediate_path = "dataset/batch/intermediate"
-final_base_path = "dataset/batch/final"
+final_base_path = "dataset/batch"
 splits = ["valid", "test", "train"]
 final_paths = {s: os.path.join(final_base_path, s) for s in splits}
 os.makedirs(intermediate_path, exist_ok=True)
@@ -149,10 +149,11 @@ onsets_combined_data = {}
 classification_combined_data = {}
 file_counter = 0
 
-if not args.finish_only:
+if not args.final_only:
     for split in splits:
         onsets_combined_data = {}
         classification_combined_data = {}
+        file_counter = 0
         df_split = df_files[df_files["split"] == split]
         for row in tqdm(
             df_split.itertuples(),
@@ -245,6 +246,44 @@ if not args.finish_only:
             )
             split_counters[split] += 1
 
+# --- Collect generated intermediate files ---
+if args.final_only:
+    intermediate_files_by_split = {s: [] for s in splits}
+    for split in splits:
+        onset_pattern = f"onsets_{split}_"
+        class_pattern = f"class_{split}_"
+        onset_files = sorted(
+            [
+                f
+                for f in os.listdir(intermediate_path)
+                if f.startswith(onset_pattern) and f.endswith(".npz")
+            ]
+        )
+        class_files = sorted(
+            [
+                f
+                for f in os.listdir(intermediate_path)
+                if f.startswith(class_pattern) and f.endswith(".npz")
+            ]
+        )
+
+        # Match onset and class files by batch index
+        batch_indexes = sorted(
+            set([f.split("_")[-1].split(".")[0] for f in onset_files + class_files])
+        )
+        for batch_index in batch_indexes:
+            onset_file = os.path.join(
+                intermediate_path, f"onsets_{split}_{batch_index}.npz"
+            )
+            class_file = os.path.join(
+                intermediate_path, f"class_{split}_{batch_index}.npz"
+            )
+
+            onset_file = onset_file if os.path.exists(onset_file) else None
+            class_file = class_file if os.path.exists(class_file) else None
+
+            intermediate_files_by_split[split].append((onset_file, class_file))
+
 # --- Final merge ---
 if not args.intermediate_only:
     for split in splits:
@@ -252,18 +291,18 @@ if not args.intermediate_only:
         for i in range(0, len(intermediate_files_by_split[split]), combine_factor):
             group = intermediate_files_by_split[split][i : i + combine_factor]
             final_onsets, final_classes = {}, {}
+            merged_onset_files = []
+            merged_class_files = []
 
             for onset_file, class_file in group:
                 if gen_onset and onset_file and os.path.exists(onset_file):
                     with np.load(onset_file, allow_pickle=True) as d:
                         final_onsets.update(d)
-                    os.remove(onset_file)
-                    print(f"Deleted: {onset_file}")
+                    merged_onset_files.append(onset_file)
                 if gen_class and class_file and os.path.exists(class_file):
                     with np.load(class_file, allow_pickle=True) as d:
                         final_classes.update(d)
-                    os.remove(class_file)
-                    print(f"Deleted: {class_file}")
+                    merged_class_files.append(class_file)
 
             if gen_onset and final_onsets:
                 final_onset_path = os.path.join(
@@ -271,15 +310,27 @@ if not args.intermediate_only:
                 )
                 np.savez_compressed(final_onset_path, **final_onsets)
                 print(f"Saved: {final_onset_path}")
+                for f in merged_onset_files:
+                    os.remove(f)
+                    print(f"Deleted: {f}")
+
             if gen_class and final_classes:
                 final_class_path = os.path.join(
                     final_paths[split], f"class_batch_{final_counter:03}.npz"
                 )
                 np.savez_compressed(final_class_path, **final_classes)
                 print(f"Saved: {final_class_path}")
+                for f in merged_class_files:
+                    os.remove(f)
+                    print(f"Deleted: {f}")
 
             final_counter += 1
             gc.collect()
+
+    # Remove intermediate folder if empty
+if os.path.isdir(intermediate_path) and not os.listdir(intermediate_path):
+    os.rmdir(intermediate_path)
+    print(f"Removed empty intermediate folder: {intermediate_path}")
 
 print(
     "\u2705 Final merge complete: train/valid/test datasets saved in separate folders."
