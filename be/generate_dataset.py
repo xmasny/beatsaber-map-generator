@@ -67,7 +67,7 @@ npz_dir = f"{base_path}/npz"
 
 intermediate_path = "dataset/batch/intermediate"
 final_base_path = "dataset/batch/final"
-splits = ["train", "valid", "test"]
+splits = ["valid", "test", "train"]
 final_paths = {s: os.path.join(final_base_path, s) for s in splits}
 os.makedirs(intermediate_path, exist_ok=True)
 for p in final_paths.values():
@@ -136,6 +136,8 @@ train_df = (
 valid_df["split"] = "valid"
 test_df["split"] = "test"
 train_df["split"] = "train"
+
+print(f"Train: {len(train_df)}, Valid: {len(valid_df)}, Test: {len(test_df)}")
 
 df_files = pd.concat([valid_df, test_df, train_df], ignore_index=True)
 
