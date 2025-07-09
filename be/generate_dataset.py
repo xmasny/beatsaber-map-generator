@@ -1,6 +1,8 @@
+from collections import defaultdict
 import os
 import argparse
 import random
+import re
 import numpy as np
 import pandas as pd
 import gc
@@ -125,12 +127,18 @@ def process_row(args):
     try:
         data = np.load(npz_path, allow_pickle=True)
         result = {"name": name, "onsets": {}, "classification": {}}
+        grouped_onsets = defaultdict(dict)
 
         if gen_onset:
             for key in data.files:
                 if key not in keys_to_drop:
-                    result["onsets"][key] = data[key]
-
+                    result["onsets"][f"{name}_{key}"] = data[key]
+            for full_key, value in result["onsets"].items():
+                match = re.match(r"(song[0-9]+_[0-9a-f]+)_(.+)", full_key)
+                if match:
+                    song_name, sub_key = match.groups()
+                    grouped_onsets[song_name][sub_key] = value
+                    result["onsets"] = dict(grouped_onsets)
         if gen_class:
             for step in song_steps:
                 result["classification"][f"{name}_{step['stack']}_classes"] = (
