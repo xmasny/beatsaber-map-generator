@@ -129,10 +129,7 @@ def process_row(args):
         if gen_onset:
             for key in data.files:
                 if key not in keys_to_drop:
-                    result["onsets"][f"{name}_{key}"] = data[key]
-            result["onsets"][f"{name}_onsets_{type.lower()}"] = data["onsets"].item()[
-                type
-            ]["onsets_array"]
+                    result["onsets"][key] = data[key]
 
         if gen_class:
             for step in song_steps:
