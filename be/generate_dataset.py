@@ -13,8 +13,6 @@ import multiprocessing as mp
 import time
 
 
-r = RandomWords()
-
 keys_to_drop = [
     "Easy",
     "Normal",
@@ -37,6 +35,57 @@ class ArgparseType:
     gen_onset_only: bool
     final_only: bool
     intermediate_only: bool
+    intermediate_batch_size: int
+    final_batch_size: int
+    num_runs: int
+
+
+def parse_args() -> ArgparseType:
+    parser = argparse.ArgumentParser(
+        description="Generate Beat Saber dataset",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--type", type=str, default="Easy", help="Difficulty type (e.g. Easy)"
+    )
+    parser.add_argument(
+        "--start", type=int, default=0, help="Start index for training subset"
+    )
+    parser.add_argument("--end", type=int, default=None, help="End index (exclusive)")
+    parser.add_argument(
+        "--checkpoint_file", type=str, default=None, help="Optional checkpoint file"
+    )
+    parser.add_argument(
+        "--gen_class_only",
+        action="store_true",
+        help="Generate classification dataset only",
+    )
+    parser.add_argument(
+        "--gen_onset_only", action="store_true", help="Generate onset dataset only"
+    )
+    parser.add_argument(
+        "--final_only", action="store_true", help="Only perform final merge"
+    )
+    parser.add_argument(
+        "--intermediate_only",
+        action="store_true",
+        help="Only generate intermediate files",
+    )
+    parser.add_argument(
+        "--intermediate_batch_size",
+        type=int,
+        default=25,
+        help="Intermediate batch size",
+    )
+    parser.add_argument(
+        "--final_batch_size", type=int, default=100, help="Final batch size"
+    )
+    parser.add_argument(
+        "--num_runs", type=int, default=1, help="Number of times to run the script"
+    )
+
+    return ArgparseType(**vars(parser.parse_args()))
 
 
 # --- Helpers ---
@@ -100,43 +149,9 @@ def process_row(args):
         return None
 
 
-def main():
-    # --- Arguments ---
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--type", type=str, default="Easy", help="Difficulty type (e.g. Easy)"
-    )
-    parser.add_argument(
-        "--start", type=int, default=0, help="Start index for training subset"
-    )
-    parser.add_argument(
-        "--end",
-        type=int,
-        default=None,
-        help="End index (exclusive) for training subset",
-    )
-    parser.add_argument(
-        "--checkpoint_file", type=str, default=None, help="Optional checkpoint file"
-    )
-    parser.add_argument(
-        "--gen_class_only",
-        action="store_true",
-        help="Generate classification dataset only",
-    )
-    parser.add_argument(
-        "--gen_onset_only", action="store_true", help="Generate onset dataset only"
-    )
-    parser.add_argument(
-        "--final_only", action="store_true", help="Final only, no generation"
-    )
-    parser.add_argument(
-        "--intermediate_only",
-        action="store_true",
-        help="Only generate intermediate files, no final merge",
-    )
-    args = ArgparseType(**vars(parser.parse_args()))
-
+def main(args: ArgparseType):
     # Derived logic: if neither class nor onset flags set, do both
+    r = RandomWords()
     gen_class = args.gen_class_only or (
         not args.gen_class_only and not args.gen_onset_only
     )
@@ -146,9 +161,7 @@ def main():
 
     # --- Config ---
     type = args.type
-    intermediate_batch_size = 25
-    final_batch_size = 100
-    combine_factor = final_batch_size // intermediate_batch_size
+    combine_factor = args.final_batch_size // args.intermediate_batch_size
 
     base_path = "dataset/beatmaps/color_notes"
     filename = f"{base_path}/notes_dataset/notes_{type.lower()}.parquet"
@@ -208,7 +221,7 @@ def main():
             file_counter = 0
 
             song_steps_by_name = (
-                df[["name", "stack", "combined_word"]]
+                df_split[["name", "stack", "combined_word"]]
                 .groupby("name")
                 .apply(
                     lambda group: group[["stack", "combined_word"]].to_dict("records")
@@ -248,7 +261,7 @@ def main():
                         with open(args.checkpoint_file, "a") as f:
                             f.write(f"{result['name']}\n")
                     file_counter += 1
-                    if file_counter % intermediate_batch_size == 0:
+                    if file_counter % args.intermediate_batch_size == 0:
                         onset_file, class_file = None, None
                         if gen_onset and onsets_combined_data:
                             onset_file = os.path.join(
@@ -340,14 +353,21 @@ def main():
         print(f"Removed empty intermediate folder: {intermediate_path}")
 
     print(
-        "\u2705 Final merge complete: train/valid/test datasets saved in separate folders."
+        "✅ Final merge complete: train/valid/test datasets saved in separate folders."
     )
 
 
 if __name__ == "__main__":
+    args = parse_args()
+
     start_time = time.time()
 
-    main()
+    for i in range(args.num_runs):
+        print(
+            f"\n🔄 Running dataset generation script (Run {i + 1}/{args.num_runs})..."
+        )
+        main(args)
 
     elapsed = time.time() - start_time
     print(f"\n⏱️ Finished in {elapsed:.2f} seconds.")
+    print("✅ All runs completed successfully.")
