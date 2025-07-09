@@ -8,6 +8,9 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from typing import Optional
 from dataclasses import dataclass
+from random_word import RandomWords
+
+r = RandomWords()
 
 
 @dataclass
@@ -68,8 +71,10 @@ npz_dir = f"{base_path}/npz"
 
 shuffle_seed = random.randint(0, 2**32 - 1)
 
-intermediate_path = f"dataset/batch/{type.lower()}/{shuffle_seed}/intermediate"
-final_base_path = f"dataset/batch/{type.lower()}/{shuffle_seed}"
+base_batch_path = f"dataset/batch/{type.lower()}/{r.get_random_word()}_{shuffle_seed}"
+
+intermediate_path = f"{base_batch_path}/intermediate"
+final_base_path = base_batch_path
 
 splits = ["valid", "test", "train"]
 final_paths = {s: os.path.join(final_base_path, s) for s in splits}
@@ -310,7 +315,7 @@ if not args.intermediate_only:
 
             if gen_onset and final_onsets:
                 final_onset_path = os.path.join(
-                    final_paths[split], f"onsets_batch_{final_counter:03}.npz"
+                    final_paths[split], "onsets", f"batch_{final_counter:03}.npz"
                 )
                 np.savez_compressed(final_onset_path, **final_onsets)
                 print(f"Saved: {final_onset_path}")
@@ -320,7 +325,7 @@ if not args.intermediate_only:
 
             if gen_class and final_classes:
                 final_class_path = os.path.join(
-                    final_paths[split], f"class_batch_{final_counter:03}.npz"
+                    final_paths[split], "class", f"batch_{final_counter:03}.npz"
                 )
                 np.savez_compressed(final_class_path, **final_classes)
                 print(f"Saved: {final_class_path}")
