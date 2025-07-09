@@ -10,6 +10,8 @@ from typing import Optional
 from dataclasses import dataclass
 from random_word import RandomWords
 import multiprocessing as mp
+import time
+
 
 r = RandomWords()
 
@@ -293,10 +295,15 @@ def main():
     if not args.intermediate_only:
         for split in splits:
             final_counter = 0
-            for i in range(0, len(intermediate_files_by_split[split]), combine_factor):
+            for i in tqdm(
+                range(0, len(intermediate_files_by_split[split]), combine_factor),
+                desc=f"Merging final {split}",
+                total=len(intermediate_files_by_split[split]) // combine_factor + 1,
+            ):
                 group = intermediate_files_by_split[split][i : i + combine_factor]
                 final_onsets, final_classes = {}, {}
                 merged_onset_files, merged_class_files = [], []
+
                 for onset_file, class_file in group:
                     if gen_onset and onset_file and os.path.exists(onset_file):
                         with np.load(onset_file, allow_pickle=True) as d:
@@ -306,6 +313,7 @@ def main():
                         with np.load(class_file, allow_pickle=True) as d:
                             final_classes.update(d)
                         merged_class_files.append(class_file)
+
                 if gen_onset and final_onsets:
                     final_onset_path = os.path.join(
                         final_paths[split], "onsets", f"batch_{final_counter:03}.npz"
@@ -314,6 +322,7 @@ def main():
                     print(f"Saved: {final_onset_path}")
                     for f in merged_onset_files:
                         os.remove(f)
+
                 if gen_class and final_classes:
                     final_class_path = os.path.join(
                         final_paths[split], "class", f"batch_{final_counter:03}.npz"
@@ -322,6 +331,7 @@ def main():
                     print(f"Saved: {final_class_path}")
                     for f in merged_class_files:
                         os.remove(f)
+
                 final_counter += 1
                 gc.collect()
 
@@ -335,4 +345,9 @@ def main():
 
 
 if __name__ == "__main__":
+    start_time = time.time()
+
     main()
+
+    elapsed = time.time() - start_time
+    print(f"\n⏱️ Finished in {elapsed:.2f} seconds.")
