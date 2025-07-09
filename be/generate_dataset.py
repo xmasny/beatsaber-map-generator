@@ -221,7 +221,7 @@ def main(args: ArgparseType):
             file_counter = 0
 
             song_steps_by_name = (
-                df_split[["name", "stack", "combined_word"]]
+                df[["name", "stack", "combined_word"]]
                 .groupby("name")
                 .apply(
                     lambda group: group[["stack", "combined_word"]].to_dict("records")
@@ -368,6 +368,6 @@ if __name__ == "__main__":
         )
         main(args)
 
-    elapsed = time.time() - start_time
-    print(f"\n⏱️ Finished in {elapsed:.2f} seconds.")
+    elapsed = (time.time() - start_time) / 60
+    print(f"\n⏱️ Finished in {elapsed:.2f} minutes.")
     print("✅ All runs completed successfully.")
