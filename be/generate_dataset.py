@@ -181,7 +181,7 @@ def main(args: ArgparseType):
     intermediate_path = f"{base_batch_path}/intermediate"
     final_base_path = base_batch_path
 
-    splits = ["valid", "test", "train"]
+    splits = ["train", "valid", "test"]
     final_paths = {s: os.path.join(final_base_path, s) for s in splits}
     os.makedirs(intermediate_path, exist_ok=True)
     for p in final_paths.values():

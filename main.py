@@ -17,7 +17,7 @@ def main(cfg: RunConfig):
     try:
         if cfg.params.model_type == "onsets":
             onset_train(cfg.params)
-        elif cfg.params.model_type == "notes":
+        elif cfg.params.model_type == "class":
             note_train(cfg.params)
         else:
             raise ValueError("Invalid model type. Choose 'onsets' or 'notes'.")
