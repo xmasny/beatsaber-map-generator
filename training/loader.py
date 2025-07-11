@@ -60,6 +60,7 @@ class BaseLoader(Dataset):
             download_fn, position_start=4 if split == Split.TRAIN else 5
         )
         self.files = []
+        self.no_songs = 0
 
         self._load()
 
@@ -68,19 +69,18 @@ class BaseLoader(Dataset):
                 self.downloader.enqueue(f, f)
 
     def _load(self):
-        self.files = (
-            requests.post(
-                f"{base_dataset_api}/get-list-of-batches",
-                json={
-                    "difficulty": self.difficulty.value.lower(),
-                    "split_seed": self.split_seed,
-                    "split": self.split.value,
-                    "model_type": self.model_type,
-                },
-            )
-            .json()
-            .get("files", [])
-        )
+        response = requests.post(
+            f"{base_dataset_api}/get-list-of-batches",
+            json={
+                "difficulty": self.difficulty.value.lower(),
+                "split_seed": self.split_seed,
+                "split": self.split.value,
+                "model_type": self.model_type,
+            },
+        ).json()
+
+        self.files = response.get("files", [])
+        self.no_songs = response.get("no_songs", 0)
 
     def process(self, song):
 
@@ -226,7 +226,7 @@ class BaseLoader(Dataset):
         return dict(data)
 
     def __len__(self):
-        return len(self.files)
+        return self.no_songs
 
 
 def iter_array(array, length, skip, params):

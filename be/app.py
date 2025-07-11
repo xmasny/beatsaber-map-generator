@@ -3,6 +3,8 @@ from pathlib import Path
 import random
 import re
 from flask import Flask, jsonify, request
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
 
@@ -53,6 +55,22 @@ def get_list_of_batches():
     split = data.get("split", "train")
     model_type = data.get("model_type", "onsets")
 
+    df = pd.read_parquet(
+        f"dataset/beatmaps/color_notes/notes_dataset/notes_{difficulty}.parquet"
+    )
+
+    df_files = df.drop_duplicates(subset=["name"], keep="first").reset_index(drop=True)
+    full_train_df, test_df = train_test_split(df_files, test_size=0.3)
+    valid_df, test_df = train_test_split(test_df, test_size=0.5)
+
+    sizes = {
+        "train": full_train_df.shape[0],
+        "validation": valid_df.shape[0],
+        "test": test_df.shape[0],
+    }
+
+    print(f"Sizes: {sizes}")
+
     if not difficulty or not split_seed:
         return jsonify({"error": "Missing required fields"}), 400
 
@@ -66,7 +84,7 @@ def get_list_of_batches():
             full_paths,
             key=lambda x: int(re.search(r"batch_(\d+)\.npz", x).group(1)),  # type: ignore
         )
-        return jsonify({"files": files_sorted})
+        return jsonify({"files": files_sorted, "no_songs": sizes[split]})
     except FileNotFoundError:
         return jsonify({"error": f"Path not found: {path}"}), 404
     except Exception as e:
