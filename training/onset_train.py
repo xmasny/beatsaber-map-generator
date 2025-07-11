@@ -44,8 +44,7 @@ def main(run_parameters: RunParams):
             "seq_length": run_parameters.seq_length,
             "skip_step": run_parameters.skip_step,
             "with_beats": run_parameters.with_beats,
-            # "batch_size": run_parameters.batch_size,
-            # "num_workers": run_parameters.num_workers,
+            "batch_size": run_parameters.batch_size,
             "split_seed": SEED,
         }
 
