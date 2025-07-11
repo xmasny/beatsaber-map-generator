@@ -181,7 +181,7 @@ def main(args: ArgparseType):
     intermediate_path = f"{base_batch_path}/intermediate"
     final_base_path = base_batch_path
 
-    splits = ["train", "valid", "test"]
+    splits = ["train", "validation", "test"]
     final_paths = {s: os.path.join(final_base_path, s) for s in splits}
     os.makedirs(intermediate_path, exist_ok=True)
     for p in final_paths.values():
@@ -209,7 +209,7 @@ def main(args: ArgparseType):
         if args.end is not None
         else full_train_df[args.start :].copy()
     )
-    valid_df["split"] = "valid"
+    valid_df["split"] = "validation"
     test_df["split"] = "test"
     train_df["split"] = "train"
     print(f"Train: {len(train_df)}, Valid: {len(valid_df)}, Test: {len(test_df)}")
