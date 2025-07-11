@@ -1,9 +1,11 @@
+from io import BytesIO
 import os
 import shutil
 from logging import getLogger
 from pathlib import Path
 
 import numpy as np
+import requests
 import torch
 import wandb
 
@@ -26,6 +28,7 @@ from tqdm import tqdm
 
 from utils import setup_checkpoint_upload
 
+base_dataset_path = "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/"
 
 logger = getLogger(__name__)
 
@@ -120,13 +123,15 @@ def ignite_train(
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
         if num_songs_pbar:
             num_songs_pbar.reset()
-        for index, songs in enumerate(iteration):
-            for song in songs:
+        for index, batch in enumerate(iteration):
+            songs = batch[0]
+            for name in songs:
+                song = songs[name].item()
                 if num_songs_pbar:
                     num_songs_pbar.update(1)
-                if "not_working" in song:
+                if "not_working" in songs:
                     continue
-                for segment in train_dataset.process(song_meta=song):
+                for segment in train_dataset.process(song):
                     yield segment
 
     # Define a function to handle a single training iteration
@@ -359,8 +364,12 @@ def ignite_train(
 
         setup_checkpoint_upload(trainer, {"model": model, "optimizer": optimizer}, wandb.run.dir, validation_interval=validation_interval)  # type: ignore
 
-    ProgressBar(persist=True).attach(trainer, output_transform=lambda x: x[1]["loss"])
-    ProgressBar(persist=True).attach(evaluator, output_transform=lambda x: x[1]["loss"])
+    ProgressBar(persist=True, position=0).attach(
+        trainer, output_transform=lambda x: x[1]["loss"]
+    )
+    ProgressBar(persist=True, position=1).attach(
+        evaluator, output_transform=lambda x: x[1]["loss"]
+    )
 
     train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
     valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
