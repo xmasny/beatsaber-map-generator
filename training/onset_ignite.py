@@ -371,8 +371,8 @@ def ignite_train(
         evaluator, output_transform=lambda x: x[1]["loss"]
     )
 
-    train_num_songs_pbar = tqdm(total=train_dataset_len, desc="Train songs")
-    valid_num_songs_pbar = tqdm(total=valid_dataset_len, desc="Valid songs")
+    train_num_songs_pbar = tqdm(position=2, total=train_dataset_len, desc="Train songs")
+    valid_num_songs_pbar = tqdm(position=3, total=valid_dataset_len, desc="Valid songs")
 
     logger.info(f"epoch_length: {epoch_length}")
     # Run the training process

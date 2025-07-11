@@ -57,7 +57,7 @@ class BaseLoader(Dataset):
         self.model_type = model_type
 
         self.downloader = Downloader(
-            download_fn, position_start=2 if split == Split.TRAIN else 3
+            download_fn, position_start=4 if split == Split.TRAIN else 5
         )
         self.files = []
 
