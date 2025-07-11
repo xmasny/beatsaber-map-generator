@@ -1,11 +1,17 @@
 import os
 from pathlib import Path
 import random
+import re
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 BASE_PATH = Path("dataset/batch")
+
+
+@app.route("/api")
+def hello():
+    return "Hello from Flask inside Docker!"
 
 
 @app.route("/api/claim-seed", methods=["POST"])
@@ -56,7 +62,11 @@ def get_list_of_batches():
 
     try:
         full_paths = [os.path.join(str(path), f) for f in os.listdir(path)]
-        return jsonify({"files": full_paths})
+        files_sorted = sorted(
+            full_paths,
+            key=lambda x: int(re.search(r"batch_(\d+)\.npz", x).group(1)),  # type: ignore
+        )
+        return jsonify({"files": files_sorted})
     except FileNotFoundError:
         return jsonify({"error": f"Path not found: {path}"}), 404
     except Exception as e:
