@@ -367,7 +367,7 @@ class ConvStack(Module):
                     ReLU(),
                     MaxPool2d((1, 4)),
                     AvgPool2d((1, n_mels // 64)),
-                    Upsample(scale_factor=(229, 1)),
+                    Upsample(scale_factor=(128, 1)),
                 ),
             ]
         )
@@ -389,8 +389,8 @@ class ConvStack(Module):
 
         """
         padding = 0
-        if mel.shape[1] % 229 != 0:
-            padding = 229 - mel.shape[1] % 229
+        if mel.shape[1] % 128 != 0:
+            padding = 128 - mel.shape[1] % 128
             mel = torch.cat(
                 [
                     mel,
