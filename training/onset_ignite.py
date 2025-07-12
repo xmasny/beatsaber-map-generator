@@ -121,19 +121,18 @@ def ignite_train(
     song_reset_number = run_parameters.get("song_reset_number", 0)
 
     def cycle(iteration, num_songs_pbar: Optional[tqdm] = None):
-        while True:
-            if num_songs_pbar:
-                num_songs_pbar.reset()
-            for index, batch in enumerate(iteration):
-                songs = batch[0]
-                for name in songs:
-                    song = songs[name].item()
-                    if num_songs_pbar:
-                        num_songs_pbar.update(1)
-                    if "not_working" in songs:
-                        continue
-                    for segment in train_dataset.process(song):
-                        yield segment
+        if num_songs_pbar:
+            num_songs_pbar.reset()
+        for index, batch in enumerate(iteration):
+            songs = batch[0]
+            for name in songs:
+                song = songs[name].item()
+                if num_songs_pbar:
+                    num_songs_pbar.update(1)
+                if "not_working" in songs:
+                    continue
+                for segment in train_dataset.process(song):
+                    yield segment
 
     # Define a function to handle a single training iteration
     def train_step(engine: Engine, batch):
