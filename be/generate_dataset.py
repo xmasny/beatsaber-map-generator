@@ -276,9 +276,7 @@ def main(args: ArgparseType):
 
                 with mp.Pool(args.max_workers or cpu_count) as pool:
                     for result in tqdm(
-                        pool.imap_unordered(
-                            process_row, args_list, chunksize=args.chunk_size
-                        ),
+                        pool.imap_unordered(process_row, args_list),
                         total=len(args_list),
                         desc=f"Processing {split} {difficulty}",
                     ):
