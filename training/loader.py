@@ -1,26 +1,22 @@
-from io import BytesIO
 import logging
 import os
 import re
+import time
 from typing import Tuple
 
-# import librosa
 import numpy as np
-import pandas as pd
 import requests
 import torch
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 from config import *
-from utils import clean_data
-
-import time
+from training.downloader import Downloader, download_fn
 
 
-base_dataset_path = (
-    "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/dataset/beatmaps"
-)
+base_dataset_api = "http://kaistore.dcs.fmph.uniba.sk/api"
+
+base_dataset_path = "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/"
 
 logging.basicConfig(
     level=logging.ERROR,
@@ -33,30 +29,19 @@ def non_collate(batch):
     return batch
 
 
-# Cache to store splits by (object_type, seed)
-_SPLIT_CACHE = {}
-
-
 class BaseLoader(Dataset):
     def __init__(
         self,
-        min_sum_votes: int = 100,
-        min_score: float = 0.95,
-        min_bpm: float = 60.0,
-        max_bpm: float = 300.0,
         difficulty: DifficultyName = DifficultyName.ALL,
         object_type: ObjectType = ObjectType.COLOR_NOTES,
         enable_condition: bool = True,
         with_beats: bool = True,
         seq_length: int = 16000,
         skip_step: int = 2000,
-        valid_split_ratio: float = 0.2,
-        skip_processing: bool = False,
         split: Split = Split.TRAIN,
-        split_seed: int = 42,
+        split_seed: str = "42",
         batch_size: int = 2,
         num_workers: int = 0,
-        mel_window: int = 0,
         model_type: str = "onsets",
     ):
         self.difficulty = difficulty
@@ -65,168 +50,52 @@ class BaseLoader(Dataset):
         self.with_beats = with_beats
         self.seq_length = seq_length
         self.skip_step = skip_step
-        self.valid_split_ratio = valid_split_ratio
-        self.skip_processing = skip_processing
         self.split = split
         self.split_seed = split_seed
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.min_sum_votes = min_sum_votes
-        self.min_score = min_score
-        self.min_bpm = min_bpm
-        self.max_bpm = max_bpm
         self.model_type = model_type
-        self.mel_window = mel_window
 
-        self.dataset = {}
-        self.indices = {}
-        self._load_and_split()
-
-    def _load_and_split(self):
-        dataset_path = f"{base_dataset_path}/{self.object_type.value}/metadata.csv"
-        max_retries = 7
-        retry_delay = 1  # seconds
-
-        for attempt in range(max_retries):
-            try:
-                df = pd.read_csv(dataset_path)
-                break  # ✅ Success, break the retry loop
-            except Exception as e:
-                print(
-                    f"❌ Failed to read {dataset_path} (attempt {attempt+1}/{max_retries}): {e}"
-                )
-                if attempt == max_retries - 1:
-                    raise RuntimeError(
-                        f"Failed to load dataset after {max_retries} attempts."
-                    ) from e
-                time.sleep(retry_delay)  # ⏳ Wait and retry
-                retry_delay *= 2
-
-        df = clean_data(
-            df,
-            min_bpm=self.min_bpm,
-            max_bpm=self.max_bpm,
-            min_votes=self.min_sum_votes,
-            min_score=self.min_score,
+        self.downloader = Downloader(
+            download_fn, position_start=4 if split == Split.TRAIN else 5
         )
-        self.df = df
+        self.files = []
+        self.no_songs = 0
 
-        cache_key = (self.object_type.value, self.split_seed)
+        self._load()
 
-        if cache_key in _SPLIT_CACHE:
-            self.indices = _SPLIT_CACHE[cache_key]
-            return
+        if self.split == Split.VALIDATION and self.files:
+            for f in self.files:
+                self.downloader.enqueue(f, f)
 
-        indices = np.arange(len(df))
-        np.random.seed(self.split_seed)
-        np.random.shuffle(indices)
+    def _load(self):
+        response = requests.post(
+            f"{base_dataset_api}/get-list-of-batches",
+            json={
+                "difficulty": self.difficulty.value.lower(),
+                "split_seed": self.split_seed,
+                "split": self.split.value,
+                "model_type": self.model_type,
+            },
+        ).json()
 
-        train_end = int(0.6 * len(indices))
-        val_end = int(0.8 * len(indices))
+        self.files = response.get("files", [])
+        self.no_songs = response.get("no_songs", 0)
 
-        self.indices = {
-            "train": indices[:train_end],
-            "validation": indices[train_end:val_end],
-            "test": indices[val_end:],
-        }
+    def process(self, song):
 
-        _SPLIT_CACHE[cache_key] = self.indices
-
-    def process(self, song_meta, max_retries=3, retry_delay=2):
-        # Load .npz from remote
-        song_path = (
-            f"{base_dataset_path}/{self.object_type.value}/npz/{song_meta['song']}.npz"
-        )
-
-        for attempt in range(1, max_retries + 1):
-            try:
-                response = requests.get(song_path)
-                response.raise_for_status()
-                song_npz = dict(np.load(BytesIO(response.content), allow_pickle=True))
-                break
-            except Exception as e:
-                logging.warning(
-                    f'Attempt {attempt} failed for {song_meta["song"]}: {e}'
-                )
-                if attempt == max_retries:
-                    logging.error(
-                        f'{song_meta["song"]} failed after {max_retries} attempts'
-                    )
-                    return
-                retry_delay *= 2
-                time.sleep(retry_delay)
-
-        song_meta["data"] = song_npz
+        song["data"] = song
 
         # Delegate to onset or note processing
         if self.model_type == "onsets":
-            yield from self.process_onsets(song_meta)
+            yield from self.process_onsets(song)
         elif self.model_type == "notes":
-            yield from self.process_sparse_notes(song_meta)
+            raise NotImplementedError(
+                "Note processing is not implemented in this base loader."
+            )
+
         else:
             raise ValueError(f"Unsupported mode: {self.model_type}")
-
-    def process_sparse_notes(self, song_meta):
-        song_npz = song_meta["data"]
-
-        if (
-            f"stacked_mel_{self.mel_window}" not in song_npz
-            or "note_labels" not in song_npz
-        ):
-            logging.warning(
-                f"Missing stacked_mel_{self.mel_window} or note_labels in {song_meta['song']}"
-            )
-            return
-
-        stacked_mel = song_npz[
-            f"stacked_mel_{self.mel_window}"
-        ]  # shape: (T, input_dim)
-        label_dict = (
-            song_npz["note_labels"].item()
-            if isinstance(song_npz["note_labels"], np.ndarray)
-            else song_npz["note_labels"]
-        )
-
-        if not isinstance(label_dict, dict):
-            logging.warning(f"Expected dict of note_labels in {song_meta['song']}")
-            return
-
-        onsets_raw = song_npz.get("onsets", None)
-        onsets_dict = (
-            onsets_raw.item() if isinstance(onsets_raw, np.ndarray) else onsets_raw
-        )
-
-        for difficulty_name, labels in label_dict.items():
-            if difficulty_name not in song_npz["notes"].item():
-                continue
-
-            if stacked_mel.shape[0] != labels.shape[0]:
-                logging.warning(
-                    f"Shape mismatch in {song_meta['song']}:{difficulty_name}"
-                )
-                continue
-
-            condition = (
-                onsets_dict[difficulty_name]["condition"]
-                if onsets_dict and difficulty_name in onsets_dict
-                else 0
-            )
-
-            batch = []
-            for t in np.nonzero(labels)[0]:
-                data = {
-                    "mel": torch.from_numpy(stacked_mel[t]).float(),
-                    "label": torch.tensor(labels[t], dtype=torch.long),
-                    "condition": torch.tensor([condition], dtype=torch.long),
-                }
-
-                batch.append(data)
-                if len(batch) == self.batch_size:
-                    yield self.collate_batch(batch)
-                    batch = []
-
-            if batch:
-                yield self.collate_batch(batch)
 
     def process_onsets(self, song_meta):
         song_npz = song_meta["data"]
@@ -284,19 +153,11 @@ class BaseLoader(Dataset):
     def collate_batch(self, batch: list[dict]):
         return {key: torch.stack([item[key] for item in batch]) for key in batch[0]}
 
-    def get_dataloader(self, shuffle=True, persistent_workers=False):
-        subset = Subset(self, self.indices[self.split.value])  # type: ignore
+    def get_dataloader(self):
         return DataLoader(
-            subset,
-            batch_size=self.batch_size,
-            shuffle=shuffle,
-            num_workers=self.num_workers,
+            self,
             collate_fn=non_collate,
-            persistent_workers=persistent_workers,
         )
-
-    def get_split_df(self, split: Split):
-        return self.df.iloc[self.indices[split.value]]
 
     def iter_audio(self, song: SongIteration):
         """Iterate audio"""
@@ -336,13 +197,36 @@ class BaseLoader(Dataset):
         return score_segment
 
     def __getitem__(self, idx):
-        row = self.df.iloc[idx]
-        if self.skip_processing:
-            return row
-        return row.to_dict()
+        if self.split == Split.TRAIN:
+            max_lookahead = 3
+            for i in range(idx, min(idx + max_lookahead, len(self.files))):
+                file_path = self.files[i]
+                self.downloader.enqueue(file_path, file_path)
+
+        current_path = self.files[idx]
+        self.downloader.enqueue(current_path, current_path)
+
+        while not os.path.exists(current_path):
+            time.sleep(1)
+
+        try:
+            data = np.load(current_path, allow_pickle=True, encoding="latin1")
+        except Exception as e:
+            raise RuntimeError(f"[Load error] {current_path}: {e}")
+
+        if idx > 0 and self.split == Split.TRAIN:
+            prev_path = self.files[idx - 1]
+            if os.path.exists(prev_path):
+                try:
+                    os.remove(prev_path)
+                    print(f"[Cleanup] Deleted previous file: {prev_path}")
+                except Exception as e:
+                    print(f"[Cleanup error] Could not delete {prev_path}: {e}")
+
+        return dict(data)
 
     def __len__(self):
-        return len(self.indices[self.split.value])
+        return self.no_songs
 
 
 def iter_array(array, length, skip, params):

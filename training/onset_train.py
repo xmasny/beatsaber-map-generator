@@ -14,17 +14,25 @@ from training.loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
 import random
+import requests
+
+base_dataset_path = "http://kaistore.dcs.fmph.uniba.sk/api/"
 
 
 def main(run_parameters: RunParams):
     try:
+
+        payload = {
+            "difficulty": run_parameters.difficulty.lower(),
+        }
+
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         torch.cuda.set_device(
             run_parameters.gpu_index if run_parameters.gpu_index >= 0 else -1
         )
-
-        SEED = random.randint(0, 2**32 - 1)  # or fix it for true reproducibility
+        response = requests.post(base_dataset_path + "claim-seed", json=payload)
+        SEED = response.json().get("batch")
 
         if "split_seed" in run_parameters:
             SEED = run_parameters.split_seed
@@ -37,11 +45,6 @@ def main(run_parameters: RunParams):
             "skip_step": run_parameters.skip_step,
             "with_beats": run_parameters.with_beats,
             "batch_size": run_parameters.batch_size,
-            "num_workers": run_parameters.num_workers,
-            "min_sum_votes": run_parameters.min_sum_votes,
-            "min_score": run_parameters.min_score,
-            "min_bpm": run_parameters.min_bpm,
-            "max_bpm": run_parameters.max_bpm,
             "split_seed": SEED,
         }
 
