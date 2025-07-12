@@ -303,7 +303,8 @@ def main(args: ArgparseType):
                                 )
                                 np.savez_compressed(onset_file, **onsets_combined_data)
                                 print(f"Saved: {onset_file}")
-                                onsets_combined_data = {}
+                                onsets_combined_data.clear()
+                                gc.collect()
                             if gen_class and classification_combined_data:
                                 class_file = os.path.join(
                                     intermediate_path,
@@ -313,7 +314,8 @@ def main(args: ArgparseType):
                                     class_file, **classification_combined_data
                                 )
                                 print(f"Saved: {class_file}")
-                                classification_combined_data = {}
+                                classification_combined_data.clear()
+                                gc.collect()
                             intermediate_files_by_split[split].append(
                                 (onset_file, class_file)
                             )
@@ -328,6 +330,8 @@ def main(args: ArgparseType):
                     )
                     np.savez_compressed(onset_file, **onsets_combined_data)
                     print(f"Saved: {onset_file} (remaining data)")
+                    del onsets_combined_data
+                    gc.collect()
                 if gen_class and classification_combined_data:
                     class_file = os.path.join(
                         intermediate_path,
@@ -335,9 +339,16 @@ def main(args: ArgparseType):
                     )
                     np.savez_compressed(class_file, **classification_combined_data)
                     print(f"Saved: {class_file} (remaining data)")
+                    del classification_combined_data
+                    gc.collect()
                 if gen_class or gen_onset:
                     intermediate_files_by_split[split].append((onset_file, class_file))
                     split_counters[split] += 1
+
+        del song_steps_by_name
+        del args_list
+
+        gc.collect()
 
         # --- Final merge ---
         if not args.intermediate_only:
@@ -370,6 +381,9 @@ def main(args: ArgparseType):
                         )
                         np.savez_compressed(final_onset_path, **final_onsets)
                         print(f"Saved: {final_onset_path}")
+                        del final_onsets
+                        gc.collect()
+
                         for f in merged_onset_files:
                             os.remove(f)
 
@@ -379,6 +393,8 @@ def main(args: ArgparseType):
                         )
                         np.savez_compressed(final_class_path, **final_classes)
                         print(f"Saved: {final_class_path}")
+                        del final_classes
+                        gc.collect()
                         for f in merged_class_files:
                             os.remove(f)
 
