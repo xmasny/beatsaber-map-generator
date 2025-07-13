@@ -53,7 +53,7 @@ def parse_args() -> ArgparseType:
         "--difficulties",
         type=str,
         nargs="+",
-        default="Easy",
+        default=["Easy"],
         help="Difficulty type (e.g. Easy)",
     )
     parser.add_argument(
@@ -166,7 +166,6 @@ def process_row(args):
 
 
 def main(args: ArgparseType):
-    # Derived logic: if neither class nor onset flags set, do both
     for difficulty in args.difficulties:
         r = RandomWords()
         gen_class = args.gen_class_only or (
@@ -176,7 +175,6 @@ def main(args: ArgparseType):
             not args.gen_class_only and not args.gen_onset_only
         )
 
-        # --- Config ---
         combine_factor = args.final_batch_size // args.intermediate_batch_size
 
         base_path = "dataset/beatmaps/color_notes"
@@ -200,13 +198,11 @@ def main(args: ArgparseType):
             os.makedirs(os.path.join(p, "onsets"), exist_ok=True)
             os.makedirs(os.path.join(p, "class"), exist_ok=True)
 
-        # --- Optional Checkpointing ---
         processed_names = set()
         if args.checkpoint_file and os.path.exists(args.checkpoint_file):
             with open(args.checkpoint_file, "r") as f:
                 processed_names = set(line.strip() for line in f)
 
-        # --- Load Dataset and Split ---
         df = pd.read_parquet(filename)
         df_files = df.drop_duplicates(subset=["name"], keep="first").reset_index(
             drop=True
@@ -228,7 +224,6 @@ def main(args: ArgparseType):
         print(f"Train: {len(train_df)}, Valid: {len(valid_df)}, Test: {len(test_df)}")
         df_files = pd.concat([valid_df, test_df, train_df], ignore_index=True)
 
-        # --- Main Processing ---
         split_counters = {s: 0 for s in splits}
         intermediate_files_by_split = {s: [] for s in splits}
 
@@ -254,7 +249,7 @@ def main(args: ArgparseType):
                         row.name,
                         song_steps_by_name.get(row.name, []),
                         os.path.join(npz_dir, f"{row.name}.npz"),
-                        type,
+                        difficulty,
                         gen_onset,
                         gen_class,
                     )
@@ -265,49 +260,51 @@ def main(args: ArgparseType):
                 onsets_combined_data = {}
                 classification_combined_data = {}
 
-            if args.no_multiprocess:
-                results = map(process_row, args_list)
-            else:
-                with mp.Pool(cpu_count) as pool:
-                    results = pool.imap_unordered(process_row, args_list)
+                if args.no_multiprocess:
+                    results = map(process_row, args_list)
+                else:
+                    with mp.Pool(cpu_count) as pool:
+                        results = pool.imap_unordered(process_row, args_list)
 
-            for result in tqdm(
-                results, total=len(args_list), desc=f"Processing {split}"
-            ):
-                if not result:
-                    continue
-                if gen_onset:
-                    onsets_combined_data.update(result["onsets"])
-                if gen_class:
-                    classification_combined_data.update(result["classification"])
-                if args.checkpoint_file:
-                    with open(args.checkpoint_file, "a") as f:
-                        f.write(f"{result['name']}\n")
-                file_counter += 1
-                if file_counter % args.intermediate_batch_size == 0:
-                    onset_file, class_file = None, None
-                    if gen_onset and onsets_combined_data:
-                        onset_file = os.path.join(
-                            intermediate_path,
-                            f"onsets_{split}_{split_counters[split]:03}.npz",
+                for result in tqdm(
+                    results, total=len(args_list), desc=f"Processing {split}"
+                ):
+                    if not result or not isinstance(result, dict):
+                        continue
+                    if gen_onset:
+                        onsets_combined_data.update(result.get("onsets", {}))
+                    if gen_class:
+                        classification_combined_data.update(
+                            result.get("classification", {})
                         )
-                        np.savez_compressed(onset_file, **onsets_combined_data)
-                        print(f"Saved: {onset_file}")
-                        del onsets_combined_data
-                        gc.collect()
-                        onsets_combined_data = {}
-                    if gen_class and classification_combined_data:
-                        class_file = os.path.join(
-                            intermediate_path,
-                            f"class_{split}_{split_counters[split]:03}.npz",
+                    if args.checkpoint_file:
+                        with open(args.checkpoint_file, "a") as f:
+                            f.write(f"{result['name']}\n")
+                    file_counter += 1
+                    if file_counter % args.intermediate_batch_size == 0:
+                        onset_file, class_file = None, None
+                        if gen_onset and onsets_combined_data:
+                            onset_file = os.path.join(
+                                intermediate_path,
+                                f"onsets_{split}_{split_counters[split]:03}.npz",
+                            )
+                            np.savez_compressed(onset_file, **onsets_combined_data)
+                            print(f"Saved: {onset_file}")
+                            onsets_combined_data = {}
+                        if gen_class and classification_combined_data:
+                            class_file = os.path.join(
+                                intermediate_path,
+                                f"class_{split}_{split_counters[split]:03}.npz",
+                            )
+                            np.savez_compressed(
+                                class_file, **classification_combined_data
+                            )
+                            print(f"Saved: {class_file}")
+                            classification_combined_data = {}
+                        intermediate_files_by_split[split].append(
+                            (onset_file, class_file)
                         )
-                        np.savez_compressed(class_file, **classification_combined_data)
-                        print(f"Saved: {class_file}")
-                        del classification_combined_data
-                        gc.collect()
-                        classification_combined_data = {}
-                    intermediate_files_by_split[split].append((onset_file, class_file))
-                    split_counters[split] += 1
+                        split_counters[split] += 1
 
                 # Save leftovers
                 onset_file, class_file = None, None
@@ -318,8 +315,6 @@ def main(args: ArgparseType):
                     )
                     np.savez_compressed(onset_file, **onsets_combined_data)
                     print(f"Saved: {onset_file} (remaining data)")
-                    del onsets_combined_data
-                    gc.collect()
                 if gen_class and classification_combined_data:
                     class_file = os.path.join(
                         intermediate_path,
@@ -327,18 +322,10 @@ def main(args: ArgparseType):
                     )
                     np.savez_compressed(class_file, **classification_combined_data)
                     print(f"Saved: {class_file} (remaining data)")
-                    del classification_combined_data
-                    gc.collect()
                 if gen_class or gen_onset:
                     intermediate_files_by_split[split].append((onset_file, class_file))
                     split_counters[split] += 1
 
-        del song_steps_by_name
-        del args_list
-
-        gc.collect()
-
-        # --- Final merge ---
         if not args.intermediate_only:
             for split in splits:
                 final_counter = 0
@@ -369,9 +356,6 @@ def main(args: ArgparseType):
                         )
                         np.savez_compressed(final_onset_path, **final_onsets)
                         print(f"Saved: {final_onset_path}")
-                        del final_onsets
-                        gc.collect()
-
                         for f in merged_onset_files:
                             os.remove(f)
 
@@ -381,8 +365,6 @@ def main(args: ArgparseType):
                         )
                         np.savez_compressed(final_class_path, **final_classes)
                         print(f"Saved: {final_class_path}")
-                        del final_classes
-                        gc.collect()
                         for f in merged_class_files:
                             os.remove(f)
 
