@@ -76,7 +76,10 @@ class OnsetsBase(nn.Module):
             beats = None
         self.eval()
         with torch.no_grad():
-            probs = self(mel, condition, beats)
+            logits = self(mel, condition, beats)
+            assert not torch.isnan(logits).any(), "NaNs in logits"
+
+            probs = torch.sigmoid(logits)
 
             if wandb.run is not None:
                 wandb.log({"tracking/onset_probs": probs.max()})
@@ -162,8 +165,13 @@ class OnsetsBase(nn.Module):
         predictions = {
             "onset": onset_pred.reshape(*onset_label.shape),
         }
+
+        assert torch.all(
+            (onset_pred >= 0) & (onset_pred <= 1)
+        ), f"Invalid prediction values: min={onset_pred.min()}, max={onset_pred.max()}"
+
         losses = {
-            "loss-onset": F.binary_cross_entropy(
+            "loss-onset": F.binary_cross_entropy_with_logits(
                 predictions["onset"], onset_label.float(), weight=weight_onset
             ),
         }
@@ -241,9 +249,7 @@ class OnsetFeatureExtractor(OnsetsBase):
             dropout=rnn_dropout,
         )
         self.drop = nn.Dropout(dropout)
-        self.onset_linear = nn.Sequential(
-            nn.Linear(model_size, output_features), nn.Sigmoid()
-        )
+        self.onset_linear = nn.Linear(model_size, output_features)
 
     def forward(self, mel, condition=None, beats=None):
         """
