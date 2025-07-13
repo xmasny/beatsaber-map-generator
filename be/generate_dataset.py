@@ -40,8 +40,7 @@ class ArgparseType:
     intermediate_batch_size: int
     final_batch_size: int
     num_runs: int
-    max_workers: Optional[int] = None
-    chunk_size: Optional[int] = None
+    no_multiprocess: bool
 
 
 def parse_args() -> ArgparseType:
@@ -94,17 +93,9 @@ def parse_args() -> ArgparseType:
     )
 
     parser.add_argument(
-        "--max_workers",
-        type=int,
-        default=None,
-        help="Maximum number of worker processes (default: None, uses all available cores)",
-    )
-
-    parser.add_argument(
-        "--chunk_size",
-        type=int,
-        default=None,
-        help="Chunk size for multiprocessing (default: None, uses default chunk size)",
+        "--no_multiprocess",
+        action="store_true",
+        help="Disable multiprocessing and run in single-process mode",
     )
 
     return ArgparseType(**vars(parser.parse_args()))
@@ -274,50 +265,49 @@ def main(args: ArgparseType):
                 onsets_combined_data = {}
                 classification_combined_data = {}
 
-                with mp.Pool(args.max_workers or cpu_count) as pool:
-                    for result in tqdm(
-                        pool.imap_unordered(process_row, args_list),
-                        total=len(args_list),
-                        desc=f"Processing {split} {difficulty}",
-                    ):
-                        if not result:
-                            continue
-                        if gen_onset:
-                            onsets_combined_data.update(result["onsets"])
-                        if gen_class:
-                            classification_combined_data.update(
-                                result["classification"]
-                            )
-                        if args.checkpoint_file:
-                            with open(args.checkpoint_file, "a") as f:
-                                f.write(f"{result['name']}\n")
-                        file_counter += 1
-                        if file_counter % args.intermediate_batch_size == 0:
-                            onset_file, class_file = None, None
-                            if gen_onset and onsets_combined_data:
-                                onset_file = os.path.join(
-                                    intermediate_path,
-                                    f"onsets_{split}_{split_counters[split]:03}.npz",
-                                )
-                                np.savez_compressed(onset_file, **onsets_combined_data)
-                                print(f"Saved: {onset_file}")
-                                onsets_combined_data.clear()
-                                gc.collect()
-                            if gen_class and classification_combined_data:
-                                class_file = os.path.join(
-                                    intermediate_path,
-                                    f"class_{split}_{split_counters[split]:03}.npz",
-                                )
-                                np.savez_compressed(
-                                    class_file, **classification_combined_data
-                                )
-                                print(f"Saved: {class_file}")
-                                classification_combined_data.clear()
-                                gc.collect()
-                            intermediate_files_by_split[split].append(
-                                (onset_file, class_file)
-                            )
-                            split_counters[split] += 1
+            if args.no_multiprocess:
+                results = map(process_row, args_list)
+            else:
+                with mp.Pool(cpu_count) as pool:
+                    results = pool.imap_unordered(process_row, args_list)
+
+            for result in tqdm(
+                results, total=len(args_list), desc=f"Processing {split}"
+            ):
+                if not result:
+                    continue
+                if gen_onset:
+                    onsets_combined_data.update(result["onsets"])
+                if gen_class:
+                    classification_combined_data.update(result["classification"])
+                if args.checkpoint_file:
+                    with open(args.checkpoint_file, "a") as f:
+                        f.write(f"{result['name']}\n")
+                file_counter += 1
+                if file_counter % args.intermediate_batch_size == 0:
+                    onset_file, class_file = None, None
+                    if gen_onset and onsets_combined_data:
+                        onset_file = os.path.join(
+                            intermediate_path,
+                            f"onsets_{split}_{split_counters[split]:03}.npz",
+                        )
+                        np.savez_compressed(onset_file, **onsets_combined_data)
+                        print(f"Saved: {onset_file}")
+                        del onsets_combined_data
+                        gc.collect()
+                        onsets_combined_data = {}
+                    if gen_class and classification_combined_data:
+                        class_file = os.path.join(
+                            intermediate_path,
+                            f"class_{split}_{split_counters[split]:03}.npz",
+                        )
+                        np.savez_compressed(class_file, **classification_combined_data)
+                        print(f"Saved: {class_file}")
+                        del classification_combined_data
+                        gc.collect()
+                        classification_combined_data = {}
+                    intermediate_files_by_split[split].append((onset_file, class_file))
+                    split_counters[split] += 1
 
                 # Save leftovers
                 onset_file, class_file = None, None
