@@ -40,6 +40,7 @@ class ArgparseType:
     intermediate_batch_size: int
     final_batch_size: int
     num_runs: int
+    no_multiprocess: bool
 
 
 def parse_args() -> ArgparseType:
@@ -85,6 +86,12 @@ def parse_args() -> ArgparseType:
     )
     parser.add_argument(
         "--num_runs", type=int, default=1, help="Number of times to run the script"
+    )
+
+    parser.add_argument(
+        "--no_multiprocess",
+        action="store_true",
+        help="Disable multiprocessing and run in single-process mode",
     )
 
     return ArgparseType(**vars(parser.parse_args()))
@@ -250,46 +257,45 @@ def main(args: ArgparseType):
             onsets_combined_data = {}
             classification_combined_data = {}
 
-            with mp.Pool(cpu_count) as pool:
-                for result in tqdm(
-                    pool.imap_unordered(process_row, args_list),
-                    total=len(args_list),
-                    desc=f"Processing {split}",
-                ):
-                    if not result:
-                        continue
-                    if gen_onset:
-                        onsets_combined_data.update(result["onsets"])
-                    if gen_class:
-                        classification_combined_data.update(result["classification"])
-                    if args.checkpoint_file:
-                        with open(args.checkpoint_file, "a") as f:
-                            f.write(f"{result['name']}\n")
-                    file_counter += 1
-                    if file_counter % args.intermediate_batch_size == 0:
-                        onset_file, class_file = None, None
-                        if gen_onset and onsets_combined_data:
-                            onset_file = os.path.join(
-                                intermediate_path,
-                                f"onsets_{split}_{split_counters[split]:03}.npz",
-                            )
-                            np.savez_compressed(onset_file, **onsets_combined_data)
-                            print(f"Saved: {onset_file}")
-                            onsets_combined_data = {}
-                        if gen_class and classification_combined_data:
-                            class_file = os.path.join(
-                                intermediate_path,
-                                f"class_{split}_{split_counters[split]:03}.npz",
-                            )
-                            np.savez_compressed(
-                                class_file, **classification_combined_data
-                            )
-                            print(f"Saved: {class_file}")
-                            classification_combined_data = {}
-                        intermediate_files_by_split[split].append(
-                            (onset_file, class_file)
+            if args.no_multiprocess:
+                results = map(process_row, args_list)
+            else:
+                with mp.Pool(cpu_count) as pool:
+                    results = pool.imap_unordered(process_row, args_list)
+
+            for result in tqdm(
+                results, total=len(args_list), desc=f"Processing {split}"
+            ):
+                if not result:
+                    continue
+                if gen_onset:
+                    onsets_combined_data.update(result["onsets"])
+                if gen_class:
+                    classification_combined_data.update(result["classification"])
+                if args.checkpoint_file:
+                    with open(args.checkpoint_file, "a") as f:
+                        f.write(f"{result['name']}\n")
+                file_counter += 1
+                if file_counter % args.intermediate_batch_size == 0:
+                    onset_file, class_file = None, None
+                    if gen_onset and onsets_combined_data:
+                        onset_file = os.path.join(
+                            intermediate_path,
+                            f"onsets_{split}_{split_counters[split]:03}.npz",
                         )
-                        split_counters[split] += 1
+                        np.savez_compressed(onset_file, **onsets_combined_data)
+                        print(f"Saved: {onset_file}")
+                        onsets_combined_data = {}
+                    if gen_class and classification_combined_data:
+                        class_file = os.path.join(
+                            intermediate_path,
+                            f"class_{split}_{split_counters[split]:03}.npz",
+                        )
+                        np.savez_compressed(class_file, **classification_combined_data)
+                        print(f"Saved: {class_file}")
+                        classification_combined_data = {}
+                    intermediate_files_by_split[split].append((onset_file, class_file))
+                    split_counters[split] += 1
 
             # Save leftovers
             onset_file, class_file = None, None
