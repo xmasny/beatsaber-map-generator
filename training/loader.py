@@ -226,7 +226,7 @@ class BaseLoader(Dataset):
         return dict(data)
 
     def __len__(self):
-        return len(self.files)
+        return self.no_songs
 
 
 def iter_array(array, length, skip, params):
