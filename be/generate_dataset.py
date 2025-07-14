@@ -274,13 +274,13 @@ def main(args: ArgparseType):
 
                 initial_start = 0
 
-                if os.path.exists(intermediate_path):
-                    files = os.listdir(intermediate_path)
+                if os.path.exists(intermediate_path) and os.listdir(intermediate_path):
+                    all_files = os.listdir(intermediate_path)
                     selected_split = None
 
                     for split_processing in ["test", "validation", "train"]:
                         pattern = re.compile(rf"^(class)_{split_processing}_.+\.npz$")
-                        if any(pattern.match(f) for f in files):
+                        if any(pattern.match(f) for f in all_files):
                             selected_split = split_processing
                             break
 
@@ -295,6 +295,9 @@ def main(args: ArgparseType):
                         initial_start = len(files) * args.intermediate_batch_size
                         args_list = args_list[initial_start:]
                         split_counters[split] = len(files)
+                        print(
+                            f"Continuing from split: {split} at index {initial_start} of {len(df_split)} files found: {len(files)}",
+                        )
 
                 onsets_combined_data = {}
                 classification_combined_data = {}
