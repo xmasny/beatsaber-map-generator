@@ -291,7 +291,7 @@ def main(args: ArgparseType):
 
                     if selected_split:
                         pattern = re.compile(rf"^(class)_{split_processing}_.+\.npz$")
-                        files = [f for f in files if pattern.match(f)]
+                        files = [f for f in all_files if pattern.match(f)]
                         initial_start = len(files) * args.intermediate_batch_size
                         args_list = args_list[initial_start:]
                         split_counters[split] = len(files)
