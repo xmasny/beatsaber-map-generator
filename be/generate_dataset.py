@@ -242,6 +242,7 @@ def main(args: ArgparseType):
 
         split_counters = {s: 0 for s in splits}
         intermediate_files_by_split = {s: [] for s in splits}
+        check_reset = True
 
         if not args.final_only:
             cpu_count = mp.cpu_count()
@@ -273,31 +274,41 @@ def main(args: ArgparseType):
                 ]
 
                 initial_start = 0
+                if check_reset:
+                    if os.path.exists(intermediate_path) and os.listdir(
+                        intermediate_path
+                    ):
+                        all_files = os.listdir(intermediate_path)
+                        selected_split = None
 
-                if os.path.exists(intermediate_path) and os.listdir(intermediate_path):
-                    all_files = os.listdir(intermediate_path)
-                    selected_split = None
+                        for split_processing in ["test", "validation", "train"]:
+                            pattern = re.compile(
+                                rf"^(class)_{split_processing}_.+\.npz$"
+                            )
+                            if any(pattern.match(f) for f in all_files):
+                                selected_split = split_processing
+                                break
 
-                    for split_processing in ["test", "validation", "train"]:
-                        pattern = re.compile(rf"^(class)_{split_processing}_.+\.npz$")
-                        if any(pattern.match(f) for f in all_files):
-                            selected_split = split_processing
-                            break
+                        if selected_split == "test" and split in [
+                            "train",
+                            "validation",
+                        ]:
+                            continue
+                        if selected_split == "validation" and split == "train":
+                            continue
 
-                    if selected_split == "test" and split in ["train", "validation"]:
-                        continue
-                    if selected_split == "validation" and split == "train":
-                        continue
-
-                    if selected_split:
-                        pattern = re.compile(rf"^(class)_{split_processing}_.+\.npz$")
-                        files = [f for f in all_files if pattern.match(f)]
-                        initial_start = len(files) * args.intermediate_batch_size
-                        args_list = args_list[initial_start:]
-                        split_counters[split] = len(files)
-                        print(
-                            f"Continuing from split: {split} at index {initial_start} of {len(df_split)} files found: {len(files)}",
-                        )
+                        if selected_split:
+                            pattern = re.compile(
+                                rf"^(class)_{split_processing}_.+\.npz$"
+                            )
+                            files = [f for f in all_files if pattern.match(f)]
+                            initial_start = len(files) * args.intermediate_batch_size
+                            args_list = args_list[initial_start:]
+                            split_counters[split] = len(files)
+                            print(
+                                f"Continuing from split: {split} at index {initial_start} of {len(df_split)} files found: {len(files)}",
+                            )
+                            check_reset = False
 
                 onsets_combined_data = {}
                 classification_combined_data = {}
