@@ -168,6 +168,9 @@ def process_row(args):
                     extract_window(data["song"], int(step["stack"]), 45)
                 )
 
+        del data
+        gc.collect()
+
         return result
     except Exception as e:
         print(f"Error processing {npz_path}: {e}")
@@ -296,8 +299,9 @@ def main(args: ArgparseType):
                                 )
                                 np.savez_compressed(onset_file, **onsets_combined_data)
                                 print(f"Saved: {onset_file}")
-                                onsets_combined_data.clear()
+                                del onsets_combined_data
                                 gc.collect()
+                                onsets_combined_data = {}
                             if gen_class and classification_combined_data:
                                 class_file = os.path.join(
                                     intermediate_path,
@@ -307,8 +311,9 @@ def main(args: ArgparseType):
                                     class_file, **classification_combined_data
                                 )
                                 print(f"Saved: {class_file}")
-                                classification_combined_data.clear()
+                                del classification_combined_data
                                 gc.collect()
+                                classification_combined_data = {}
                             intermediate_files_by_split[split].append(
                                 (onset_file, class_file)
                             )
