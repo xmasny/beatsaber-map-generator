@@ -353,9 +353,6 @@ def main(args: ArgparseType):
                                 del classification_combined_data
                                 gc.collect()
                                 classification_combined_data = {}
-                            intermediate_files_by_split[split].append(
-                                (onset_file, class_file)
-                            )
                             split_counters[split] += 1
 
                 # Save leftovers
@@ -375,12 +372,49 @@ def main(args: ArgparseType):
                     np.savez_compressed(class_file, **classification_combined_data)
                     print(f"Saved: {class_file} (remaining data)")
                 if gen_class or gen_onset:
-                    intermediate_files_by_split[split].append((onset_file, class_file))
                     split_counters[split] += 1
+
+        all_files = os.listdir(intermediate_path)
+        grouped_by_split_index = defaultdict(lambda: defaultdict(lambda: [None, None]))
+
+        for f in os.listdir(intermediate_path):
+            match = re.match(r"(onsets|class)_(\w+)_([0-9]+)\.npz", f)
+            if not match:
+                continue
+            kind, split, index = match.groups()
+            full_path = os.path.join(intermediate_path, f)
+            if kind == "onsets":
+                grouped_by_split_index[split][index][0] = full_path  # type: ignore
+            elif kind == "class":
+                grouped_by_split_index[split][index][1] = full_path  # type: ignore
+
+        # Now convert to final structure
+        for split, index_map in grouped_by_split_index.items():
+            # Sort by batch index
+            for index in sorted(index_map):
+                onset_file, class_file = index_map[index]
+                intermediate_files_by_split[split].append((onset_file, class_file))
 
         if not args.intermediate_only:
             for split in splits:
                 final_counter = 0
+
+                # Get existing final batch files
+                existing_onset_batches = set()
+                existing_class_batches = set()
+                if gen_onset:
+                    existing_onset_batches = {
+                        f
+                        for f in os.listdir(os.path.join(final_paths[split], "onsets"))
+                        if f.startswith("batch_") and f.endswith(".npz")
+                    }
+                if gen_class:
+                    existing_class_batches = {
+                        f
+                        for f in os.listdir(os.path.join(final_paths[split], "class"))
+                        if f.startswith("batch_") and f.endswith(".npz")
+                    }
+
                 for i in tqdm(
                     range(0, len(intermediate_files_by_split[split]), combine_factor),
                     desc=f"Merging final {split}",
@@ -390,6 +424,26 @@ def main(args: ArgparseType):
                     final_onsets, final_classes = {}, {}
                     merged_onset_files, merged_class_files = [], []
 
+                    # Build file names ahead of time
+                    batch_name = f"batch_{final_counter:03}.npz"
+                    final_onset_path = os.path.join(
+                        final_paths[split], "onsets", batch_name
+                    )
+                    final_class_path = os.path.join(
+                        final_paths[split], "class", batch_name
+                    )
+
+                    # 🔁 Skip if already exists
+                    if gen_onset and batch_name in existing_onset_batches:
+                        print(f"Skipping existing onset batch: {final_onset_path}")
+                        final_counter += 1
+                        continue
+                    if gen_class and batch_name in existing_class_batches:
+                        print(f"Skipping existing class batch: {final_class_path}")
+                        final_counter += 1
+                        continue
+
+                    # Normal merging
                     for onset_file, class_file in group:
                         if gen_onset and onset_file and os.path.exists(onset_file):
                             with np.load(onset_file, allow_pickle=True) as d:
@@ -401,20 +455,12 @@ def main(args: ArgparseType):
                             merged_class_files.append(class_file)
 
                     if gen_onset and final_onsets:
-                        final_onset_path = os.path.join(
-                            final_paths[split],
-                            "onsets",
-                            f"batch_{final_counter:03}.npz",
-                        )
                         np.savez_compressed(final_onset_path, **final_onsets)
                         print(f"Saved: {final_onset_path}")
                         for f in merged_onset_files:
                             os.remove(f)
 
                     if gen_class and final_classes:
-                        final_class_path = os.path.join(
-                            final_paths[split], "class", f"batch_{final_counter:03}.npz"
-                        )
                         np.savez_compressed(final_class_path, **final_classes)
                         print(f"Saved: {final_class_path}")
                         for f in merged_class_files:
