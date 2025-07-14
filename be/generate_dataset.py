@@ -32,7 +32,6 @@ class ArgparseType:
     difficulties: List[str]
     start: int
     end: Optional[int]
-    checkpoint_file: Optional[str]
     gen_class_only: bool
     gen_onset_only: bool
     final_only: bool
@@ -42,6 +41,7 @@ class ArgparseType:
     num_runs: int
     max_workers: Optional[int] = None
     chunk_size: Optional[int] = None
+    seed: Optional[str] = None
 
 
 def parse_args() -> ArgparseType:
@@ -61,9 +61,6 @@ def parse_args() -> ArgparseType:
         "--start", type=int, default=0, help="Start index for training subset"
     )
     parser.add_argument("--end", type=int, default=None, help="End index (exclusive)")
-    parser.add_argument(
-        "--checkpoint_file", type=str, default=None, help="Optional checkpoint file"
-    )
     parser.add_argument(
         "--gen_class_only",
         action="store_true",
@@ -105,6 +102,13 @@ def parse_args() -> ArgparseType:
         type=int,
         default=None,
         help="Chunk size for multiprocessing (default: None, uses default chunk size)",
+    )
+
+    parser.add_argument(
+        "--seed",
+        type=str,
+        default=None,
+        help="Random seed for generating random words in batch names (default: None, random seed will be used)",
     )
 
     return ArgparseType(**vars(parser.parse_args()))
@@ -193,10 +197,15 @@ def main(args: ArgparseType):
         filename = f"{base_path}/notes_dataset/notes_{difficulty.lower()}.parquet"
         npz_dir = f"{base_path}/npz"
 
-        shuffle_seed = random.randint(0, 2**32 - 1)
+        if args.seed:
+            seed_name, seed_number = args.seed.split("_")
+            seed_number = int(seed_number)
+
+        shuffle_seed = random.randint(0, 2**32 - 1) if not seed_number else seed_number
+        random_word = r.get_random_word() if not seed_name else seed_name
 
         base_batch_path = (
-            f"dataset/batch/{difficulty.lower()}/{r.get_random_word()}_{shuffle_seed}"
+            f"dataset/batch/{difficulty.lower()}/{random_word}_{shuffle_seed}"
         )
 
         intermediate_path = f"{base_batch_path}/intermediate"
@@ -209,11 +218,6 @@ def main(args: ArgparseType):
             os.makedirs(p, exist_ok=True)
             os.makedirs(os.path.join(p, "onsets"), exist_ok=True)
             os.makedirs(os.path.join(p, "class"), exist_ok=True)
-
-        processed_names = set()
-        if args.checkpoint_file and os.path.exists(args.checkpoint_file):
-            with open(args.checkpoint_file, "r") as f:
-                processed_names = set(line.strip() for line in f)
 
         df = pd.read_parquet(filename)
         df_files = df.drop_duplicates(subset=["name"], keep="first").reset_index(
@@ -266,8 +270,31 @@ def main(args: ArgparseType):
                         gen_class,
                     )
                     for row in df_split.itertuples()
-                    if row.name not in processed_names
                 ]
+
+                initial_start = 0
+
+                if os.path.exists(intermediate_path):
+                    files = os.listdir(intermediate_path)
+                    selected_split = None
+
+                    for split_processing in ["test", "validation", "train"]:
+                        pattern = re.compile(rf"^(class)_{split_processing}_.+\.npz$")
+                        if any(pattern.match(f) for f in files):
+                            selected_split = split_processing
+                            break
+
+                    if selected_split == "test" and split in ["train", "validation"]:
+                        continue
+                    if selected_split == "validation" and split == "train":
+                        continue
+
+                    if selected_split:
+                        pattern = re.compile(rf"^(class)_{split_processing}_.+\.npz$")
+                        files = [f for f in files if pattern.match(f)]
+                        initial_start = len(files) * args.intermediate_batch_size
+                        args_list = args_list[initial_start:]
+                        split_counters[split] = len(files)
 
                 onsets_combined_data = {}
                 classification_combined_data = {}
@@ -286,9 +313,7 @@ def main(args: ArgparseType):
                             classification_combined_data.update(
                                 result["classification"]
                             )
-                        if args.checkpoint_file:
-                            with open(args.checkpoint_file, "a") as f:
-                                f.write(f"{result['name']}\n")
+
                         file_counter += 1
                         if file_counter % args.intermediate_batch_size == 0:
                             onset_file, class_file = None, None
