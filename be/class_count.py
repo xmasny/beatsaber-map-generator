@@ -12,8 +12,9 @@ count = {
 }
 
 sweep = input("Enter the sweep: ")
+difficulty = input("Enter the difficulty (easy, normal, hard, expert, expertplus): ")
 
-shuffle_folder = f"dataset/batch/easy/{sweep}"
+shuffle_folder = f"dataset/batch/{difficulty}/{sweep}"
 
 for type in ["train", "validation", "test"]:
     folder = f"{shuffle_folder}/{type}/class"
