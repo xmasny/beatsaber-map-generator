@@ -197,6 +197,8 @@ def main(args: ArgparseType):
         filename = f"{base_path}/notes_dataset/notes_{difficulty.lower()}.parquet"
         npz_dir = f"{base_path}/npz"
 
+        seed_name, seed_number = None, None
+
         if args.seed:
             seed_name, seed_number = args.seed.split("_")
             seed_number = int(seed_number)
