@@ -7,7 +7,6 @@ from torch import nn
 from torch.nn import functional as F
 
 # from notes_generator.constants import *
-from dl.models.merge_labels import merge_labels
 from dl.models.util import batch_first
 
 
@@ -89,7 +88,6 @@ class ClassesBase(nn.Module):
     def run_on_batch(
         self,
         batch: typing.Dict[str, torch.Tensor],
-        merge_scale: typing.Optional[float] = None,
         net: typing.Optional[nn.Module] = None,
     ):
         """Forward training on one minibatch

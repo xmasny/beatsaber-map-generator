@@ -178,6 +178,23 @@ class MyDataParallel(DataParallel):
         self.module.load_state_dict(state_dict, strict)
 
 
+class ClassDataParallel(DataParallel):
+    def run_on_batch(self, batch):
+        return self.module.run_on_batch(
+            batch,
+            net=self,
+        )
+
+    def predict(self, batch):
+        return self.module.predict(batch)
+
+    def state_dict(self, destination=None, prefix="", keep_vars=False):
+        return self.module.state_dict(destination, prefix, keep_vars)
+
+    def load_state_dict(self, state_dict, strict=True):
+        self.module.load_state_dict(state_dict, strict)
+
+
 def upload_checkpoint_as_artifact(
     filepath: str,
     epoch: int,

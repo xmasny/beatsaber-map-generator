@@ -13,7 +13,7 @@ from config import *
 from dl.models.onsets import MultiClassOnsetClassifier
 from training.class_loader import ClassBaseLoader
 from training.class_ignite import ignite_train
-from utils import MyDataParallel
+from utils import ClassDataParallel
 
 base_dataset_path = "http://kaistore.dcs.fmph.uniba.sk/api/"
 
@@ -54,7 +54,7 @@ def main(run_parameters: RunParams):
         model = MultiClassOnsetClassifier(class_count["train_class_count"]).to(device)
 
         if run_parameters.is_parallel:
-            model = MyDataParallel(model)
+            model = ClassDataParallel(model)
 
         if wandb.run is not None:
             wandb.finish()
