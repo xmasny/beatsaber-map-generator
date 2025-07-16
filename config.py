@@ -3,7 +3,6 @@ from typing import List, Dict, Optional, TypedDict, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig
-import scipy as sp
 
 # Constants
 
@@ -143,3 +142,12 @@ class RunParams(DictConfig):
 
 class RunConfig(DictConfig):
     params: RunParams
+
+
+class ClassCount(TypedDict):
+    train_class_count: int
+    validation_class_count: int
+    test_class_count: int
+    train_iterations: ndarray
+    validation_iterations: ndarray
+    test_iterations: ndarray

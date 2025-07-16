@@ -22,7 +22,7 @@ from ignite.metrics import Average
 
 from dl.models.onsets import OnsetsBase
 from notes_generator.training.evaluate import evaluate
-from training.loader import BaseLoader
+from training.onset_loader import BaseLoader
 
 from tqdm import tqdm
 

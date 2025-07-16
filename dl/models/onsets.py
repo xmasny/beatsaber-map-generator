@@ -5,6 +5,7 @@ import wandb
 from torch import nn
 from torch.nn import functional as F
 
+from dl.models.classes import MultiClassOnsetClassifier
 from dl.models.fuzzy_label import fuzzy_on_batch
 
 # from notes_generator.constants import *
@@ -285,24 +286,9 @@ class OnsetFeatureExtractor(OnsetsBase):
         return onset_pred
 
 
-class MulticlassOnsetClassifier(nn.Module):
-    def __init__(self, input_size, output_heads=12, num_classes=19, dropout=0.5):
-        super().__init__()
-        self.output_heads = output_heads
-        self.num_classes = num_classes
-        self.dropout = nn.Dropout(dropout)
-        self.linear = nn.Linear(input_size, output_heads * num_classes)
-
-    def forward(self, x):
-        x = self.dropout(x)
-        x = self.linear(x)
-        x = x.view(x.size(0), x.size(1), self.output_heads, self.num_classes)
-        return x  # shape: (B, T, 12, 19)
-
-
 class CombinedOnsetModel(nn.Module):
     def __init__(
-        self, extractor: OnsetFeatureExtractor, classifier: MulticlassOnsetClassifier
+        self, extractor: OnsetFeatureExtractor, classifier: MultiClassOnsetClassifier
     ):
         super().__init__()
         self.extractor = extractor
