@@ -24,7 +24,7 @@ def worker(task_queue, result_queue, position, min_keys_for_bar=100):
         class_count = np.zeros((3, 4, 19), dtype=np.int32)
 
         if len(matching_keys) >= min_keys_for_bar:
-            bar = tqdm(matching_keys, desc=filename, position=position, leave=False)
+            bar = tqdm(matching_keys, desc=filename, position=position + 1, leave=False)
         else:
             print(f"[{type.upper()}] {filename}: {len(matching_keys)} keys")
             bar = matching_keys  # just a regular iterable
@@ -43,10 +43,12 @@ def worker(task_queue, result_queue, position, min_keys_for_bar=100):
 
 
 def main():
-    sweep = input("Enter the sweep: ")
     difficulty = input(
         "Enter the difficulty (easy, normal, hard, expert, expertplus): "
     )
+    seeds = os.listdir(f"dataset/batch/{difficulty}")
+    print("Available seeds:", seeds)
+    sweep = input("Enter the sweep: ")
     shuffle_folder = f"dataset/batch/{difficulty}/{sweep}"
 
     result_counts = {
@@ -80,11 +82,17 @@ def main():
         for _ in range(num_workers):
             task_queue.put(None)  # poison pills
 
-        for _ in range(len(tasks)):
-            r_type, iter_count, class_count = result_queue.get()
-            result_counts[f"{r_type}_iterations"] += iter_count
-            result_counts[f"{r_type}_class_count"] += class_count
-
+        with tqdm(
+            total=len(tasks),
+            desc=f"{type.capitalize()} Files",
+            position=0,
+            dynamic_ncols=True,
+        ) as file_bar:
+            for _ in range(len(tasks)):
+                r_type, iter_count, class_count = result_queue.get()
+                result_counts[f"{r_type}_iterations"] += iter_count
+                result_counts[f"{r_type}_class_count"] += class_count
+                file_bar.update(1)
         for p in workers:
             p.join()
 
