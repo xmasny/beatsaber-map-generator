@@ -84,13 +84,9 @@ def ignite_train(
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss.attach(trainer, "loss")
     avg_loss.attach(evaluator, "loss")
-    # Average(output_transform=lambda x: x[1]["loss-color"]).attach(evaluator, "loss-color")
-    # Average(output_transform=lambda x: x[1]["loss-direction"]).attach(evaluator, "loss-direction")
-    # Average(output_transform=lambda x: x[1]["loss-x"]).attach(evaluator, "loss-x")
-    # Average(output_transform=lambda x: x[1]["loss-y"]).attach(evaluator, "loss-y")
 
     # Logging
-    @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
+    @trainer.on(Events.EPOCH_COMPLETED(every=1))
     def log_validation(engine: Engine):
         evaluator.run(
             cycle(valid_loader),
@@ -122,7 +118,7 @@ def ignite_train(
             n_saved=n_saved_checkpoint,
         )
         trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=(validation_interval * epoch_length)),
+            Events.ITERATION_COMPLETED(every=1),
             handler,
         )
 
@@ -135,9 +131,7 @@ def ignite_train(
             greater_or_equal=True,
         )
 
-        trainer.add_event_handler(
-            Events.EPOCH_COMPLETED(every=validation_interval), best_checkpoint
-        )
+        trainer.add_event_handler(Events.EPOCH_COMPLETED(every=1), best_checkpoint)
 
         best_model = ModelCheckpoint(
             dirname=os.path.join(wandb.run.dir),  # type: ignore
@@ -150,7 +144,7 @@ def ignite_train(
             greater_or_equal=True,
         )
         trainer.add_event_handler(
-            Events.EPOCH_COMPLETED(every=validation_interval),
+            Events.EPOCH_COMPLETED(every=1),
             best_model,
             {"mymodel": model},
         )
@@ -163,7 +157,7 @@ def ignite_train(
             require_empty=False,
         )
         trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=validation_interval * epoch_length),
+            Events.ITERATION_COMPLETED(every=1),
             model_handler,
             {"mymodel": model},
         )
