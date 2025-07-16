@@ -146,7 +146,7 @@ class ClassBaseLoader(Dataset):
             }
 
     def __getitem__(self, idx):
-        if self.split == Split.TRAIN:
+        if self.split == Split.TRAIN and self.model_type == "onsets":
             max_lookahead = 3
             for i in range(idx, min(idx + max_lookahead, len(self.files))):
                 file_path = self.files[i]
@@ -158,7 +158,7 @@ class ClassBaseLoader(Dataset):
         while not os.path.exists(current_path):
             time.sleep(1)
 
-        if idx > 0 and self.split == Split.TRAIN and self.model_type == "onset":
+        if idx > 0 and self.split == Split.TRAIN and self.model_type == "onsets":
             prev_path = self.files[idx - 1]
             if os.path.exists(prev_path):
                 try:
