@@ -34,11 +34,6 @@ def main(run_parameters: RunParams):
         if "split_seed" in run_parameters:
             SEED = run_parameters.split_seed
 
-        class_count: ClassCount = np.load(
-            f"dataset/batch/{run_parameters.difficulty.lower()}/{SEED}/class_count.npy",
-            allow_pickle=True,
-        ).item()
-
         common_dataset_args = {
             "difficulty": DifficultyName[run_parameters.difficulty.upper()],
             "object_type": ObjectType.COLOR_NOTES,
@@ -50,6 +45,11 @@ def main(run_parameters: RunParams):
 
         train_dataset = ClassBaseLoader(split=Split.TRAIN, **common_dataset_args)
         valid_dataset = ClassBaseLoader(split=Split.VALIDATION, **common_dataset_args)
+
+        class_count: ClassCount = np.load(
+            f"dataset/batch/{run_parameters.difficulty.lower()}/{SEED}/class_count.npy",
+            allow_pickle=True,
+        ).item()
 
         model = MultiClassOnsetClassifier(class_count["train_class_count"]).to(device)
 
