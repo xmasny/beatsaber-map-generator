@@ -158,7 +158,7 @@ class ClassBaseLoader(Dataset):
         while not os.path.exists(current_path):
             time.sleep(1)
 
-        if idx > 0 and self.split == Split.TRAIN:
+        if idx > 0 and self.split == Split.TRAIN and self.model_type == "onset":
             prev_path = self.files[idx - 1]
             if os.path.exists(prev_path):
                 try:
