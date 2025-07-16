@@ -3,6 +3,7 @@ import shutil
 import requests
 import torch
 import wandb
+import numpy as np
 
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 from torch.optim import Adam
