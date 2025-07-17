@@ -32,15 +32,13 @@ class ArgparseType:
     difficulties: List[str]
     start: int
     end: Optional[int]
-    gen_class_only: bool
-    gen_onset_only: bool
+    class_only: bool
+    onset_only: bool
     final_only: bool
     intermediate_only: bool
     intermediate_batch_size: int
     final_batch_size: int
-    num_runs: int
     max_workers: Optional[int] = None
-    chunk_size: Optional[int] = None
     seed: Optional[str] = None
 
 
@@ -62,12 +60,12 @@ def parse_args() -> ArgparseType:
     )
     parser.add_argument("--end", type=int, default=None, help="End index (exclusive)")
     parser.add_argument(
-        "--gen_class_only",
+        "--class_only",
         action="store_true",
         help="Generate classification dataset only",
     )
     parser.add_argument(
-        "--gen_onset_only", action="store_true", help="Generate onset dataset only"
+        "--onset_only", action="store_true", help="Generate onset dataset only"
     )
     parser.add_argument(
         "--final_only", action="store_true", help="Only perform final merge"
@@ -86,22 +84,12 @@ def parse_args() -> ArgparseType:
     parser.add_argument(
         "--final_batch_size", type=int, default=100, help="Final batch size"
     )
-    parser.add_argument(
-        "--num_runs", type=int, default=1, help="Number of times to run the script"
-    )
 
     parser.add_argument(
         "--max_workers",
         type=int,
         default=None,
         help="Maximum number of worker processes (default: None, uses all available cores)",
-    )
-
-    parser.add_argument(
-        "--chunk_size",
-        type=int,
-        default=None,
-        help="Chunk size for multiprocessing (default: None, uses default chunk size)",
     )
 
     parser.add_argument(
@@ -184,12 +172,8 @@ def process_row(args):
 def main(args: ArgparseType):
     for difficulty in args.difficulties:
         r = RandomWords()
-        gen_class = args.gen_class_only or (
-            not args.gen_class_only and not args.gen_onset_only
-        )
-        gen_onset = args.gen_onset_only or (
-            not args.gen_class_only and not args.gen_onset_only
-        )
+        gen_class = args.class_only or (not args.class_only and not args.onset_only)
+        gen_onset = args.onset_only or (not args.class_only and not args.onset_only)
 
         combine_factor = args.final_batch_size // args.intermediate_batch_size
 
@@ -376,100 +360,137 @@ def main(args: ArgparseType):
                 if gen_class or gen_onset:
                     split_counters[split] += 1
 
-        all_files = os.listdir(intermediate_path)
-        grouped_by_split_index = defaultdict(lambda: defaultdict(lambda: [None, None]))
-
-        for f in os.listdir(intermediate_path):
-            match = re.match(r"(onsets|class)_(\w+)_([0-9]+)\.npz", f)
-            if not match:
-                continue
-            kind, split, index = match.groups()
-            full_path = os.path.join(intermediate_path, f)
-            if kind == "onsets":
-                grouped_by_split_index[split][index][0] = full_path  # type: ignore
-            elif kind == "class":
-                grouped_by_split_index[split][index][1] = full_path  # type: ignore
-
-        # Now convert to final structure
-        for split, index_map in grouped_by_split_index.items():
-            # Sort by batch index
-            for index in sorted(index_map):
-                onset_file, class_file = index_map[index]
-                intermediate_files_by_split[split].append((onset_file, class_file))
-
         if not args.intermediate_only:
-            for split in splits:
-                final_counter = 0
+            all_files = os.listdir(intermediate_path)
+            grouped_by_split_index = defaultdict(
+                lambda: defaultdict(lambda: [None, None])
+            )
 
-                # Get existing final batch files
-                existing_onset_batches = set()
-                existing_class_batches = set()
-                if gen_onset:
-                    existing_onset_batches = {
-                        f
-                        for f in os.listdir(os.path.join(final_paths[split], "onsets"))
-                        if f.startswith("batch_") and f.endswith(".npz")
-                    }
-                if gen_class:
-                    existing_class_batches = {
-                        f
-                        for f in os.listdir(os.path.join(final_paths[split], "class"))
-                        if f.startswith("batch_") and f.endswith(".npz")
-                    }
+            for f in os.listdir(intermediate_path):
+                match = re.match(r"(onsets|class)_(\w+)_([0-9]+)\.npz", f)
+                if not match:
+                    continue
+                kind, split, index = match.groups()
+                full_path = os.path.join(intermediate_path, f)
+                if kind == "onsets":
+                    grouped_by_split_index[split][index][0] = full_path  # type: ignore
+                elif kind == "class":
+                    grouped_by_split_index[split][index][1] = full_path  # type: ignore
 
-                for i in tqdm(
-                    range(0, len(intermediate_files_by_split[split]), combine_factor),
-                    desc=f"Merging final {split}",
-                    total=len(intermediate_files_by_split[split]) // combine_factor + 1,
-                ):
-                    group = intermediate_files_by_split[split][i : i + combine_factor]
-                    final_onsets, final_classes = {}, {}
-                    merged_onset_files, merged_class_files = [], []
+            # Now convert to final structure
+            for split, index_map in grouped_by_split_index.items():
+                # Sort by batch index
+                for index in sorted(index_map):
+                    onset_file, class_file = index_map[index]
+                    intermediate_files_by_split[split].append((onset_file, class_file))
 
-                    # Build file names ahead of time
-                    batch_name = f"batch_{final_counter:03}.npz"
-                    final_onset_path = os.path.join(
-                        final_paths[split], "onsets", batch_name
+            run_final_merge(
+                args,
+                splits,
+                intermediate_files_by_split,
+                final_paths,
+                combine_factor,
+                gen_onset,
+                gen_class,
+                intermediate_path,
+            )
+
+
+def merge_group(args):
+    group, split, final_counter, final_paths, gen_onset, gen_class = args
+    final_onsets, final_classes = {}, {}
+    merged_onset_files, merged_class_files = [], []
+
+    batch_name = f"batch_{final_counter:03}.npz"
+    final_onset_path = os.path.join(final_paths[split], "onsets", batch_name)
+    final_class_path = os.path.join(final_paths[split], "class", batch_name)
+
+    if gen_onset:
+        for onset_file, _ in group:
+            if onset_file and os.path.exists(onset_file):
+                with np.load(onset_file, allow_pickle=True) as d:
+                    final_onsets.update(d)
+                merged_onset_files.append(onset_file)
+
+    if gen_class:
+        for _, class_file in group:
+            if class_file and os.path.exists(class_file):
+                with np.load(class_file, allow_pickle=True) as d:
+                    final_classes.update(d)
+                merged_class_files.append(class_file)
+
+    if gen_onset and final_onsets:
+        np.savez_compressed(final_onset_path, **final_onsets)
+        for f in merged_onset_files:
+            os.remove(f)
+        print(f"[{split}] Saved onset batch: {final_onset_path}")
+
+    if gen_class and final_classes:
+        np.savez_compressed(final_class_path, **final_classes)
+        for f in merged_class_files:
+            os.remove(f)
+        print(f"[{split}] Saved class batch: {final_class_path}")
+
+    gc.collect()
+    return True  # status flag
+
+
+def run_final_merge(
+    args: ArgparseType,
+    splits,
+    intermediate_files_by_split,
+    final_paths,
+    combine_factor,
+    gen_onset,
+    gen_class,
+    intermediate_path,
+):
+    if not args.intermediate_only:
+        for split in splits:
+            existing_onset_batches = set()
+            existing_class_batches = set()
+            if gen_onset:
+                existing_onset_batches = {
+                    f
+                    for f in os.listdir(os.path.join(final_paths[split], "onsets"))
+                    if f.startswith("batch_") and f.endswith(".npz")
+                }
+            if gen_class:
+                existing_class_batches = {
+                    f
+                    for f in os.listdir(os.path.join(final_paths[split], "class"))
+                    if f.startswith("batch_") and f.endswith(".npz")
+                }
+
+            batch_tasks = []
+            total_batches = (
+                len(intermediate_files_by_split[split]) // combine_factor + 1
+            )
+
+            for final_counter, i in enumerate(
+                range(0, len(intermediate_files_by_split[split]), combine_factor)
+            ):
+                group = intermediate_files_by_split[split][i : i + combine_factor]
+                batch_name = f"batch_{final_counter:03}.npz"
+                onset_exists = batch_name in existing_onset_batches
+                class_exists = batch_name in existing_class_batches
+
+                if (gen_onset and onset_exists) or (gen_class and class_exists):
+                    print(f"[{split}] Skipping existing batch {batch_name}")
+                    continue
+
+                batch_tasks.append(
+                    (group, split, final_counter, final_paths, gen_onset, gen_class)
+                )
+
+            with mp.Pool() as pool:
+                list(
+                    tqdm(
+                        pool.imap_unordered(merge_group, batch_tasks),
+                        total=len(batch_tasks),
+                        desc=f"Merging final {split}",
                     )
-                    final_class_path = os.path.join(
-                        final_paths[split], "class", batch_name
-                    )
-
-                    # 🔁 Skip if already exists
-                    if gen_onset and batch_name in existing_onset_batches:
-                        print(f"Skipping existing onset batch: {final_onset_path}")
-                        final_counter += 1
-                        continue
-                    if gen_class and batch_name in existing_class_batches:
-                        print(f"Skipping existing class batch: {final_class_path}")
-                        final_counter += 1
-                        continue
-
-                    # Normal merging
-                    for onset_file, class_file in group:
-                        if gen_onset and onset_file and os.path.exists(onset_file):
-                            with np.load(onset_file, allow_pickle=True) as d:
-                                final_onsets.update(d)
-                            merged_onset_files.append(onset_file)
-                        if gen_class and class_file and os.path.exists(class_file):
-                            with np.load(class_file, allow_pickle=True) as d:
-                                final_classes.update(d)
-                            merged_class_files.append(class_file)
-
-                    if gen_onset and final_onsets:
-                        np.savez_compressed(final_onset_path, **final_onsets)
-                        print(f"Saved: {final_onset_path}")
-                        for f in merged_onset_files:
-                            os.remove(f)
-
-                    if gen_class and final_classes:
-                        np.savez_compressed(final_class_path, **final_classes)
-                        print(f"Saved: {final_class_path}")
-                        for f in merged_class_files:
-                            os.remove(f)
-
-                    final_counter += 1
-                    gc.collect()
+                )
 
         if os.path.isdir(intermediate_path) and not os.listdir(intermediate_path):
             os.rmdir(intermediate_path)
@@ -485,12 +506,8 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    for i in range(args.num_runs):
-        print(
-            f"\n🔄 Running dataset generation script (Run {i + 1}/{args.num_runs})..."
-        )
-        main(args)
+    main(args)
 
     elapsed = (time.time() - start_time) / 60
     print(f"\n⏱️ Finished in {elapsed:.2f} minutes.")
-    print("✅ All runs completed successfully.")
+    print("✅ Run completed successfully.")
