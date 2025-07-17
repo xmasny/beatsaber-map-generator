@@ -1,2 +1,5 @@
 defaults:
-  - params: params
+  - model: class
+  - _self_
+
+model_type: class

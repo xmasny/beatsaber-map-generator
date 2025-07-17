@@ -1,16 +1,17 @@
 # training/ignite_note.py
 
 import os
+from matplotlib import pyplot as plt
 import torch
 from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
-from pathlib import Path
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint
-from ignite.metrics import Average
+from ignite.metrics import Average, ConfusionMatrix, Precision, Recall, Fbeta
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.wandb_logger import WandBLogger
 import wandb
+import seaborn as sns
 
 from dl.models.classes import MultiClassOnsetClassifier
 from training.class_loader import ClassBaseLoader
@@ -37,16 +38,19 @@ def ignite_train(
     **run_parameters,
 ):
     epochs = run_parameters.get("epochs", 100)
-    epoch_length = run_parameters.get("epoch_length", 100)
-    checkpoint_interval = run_parameters.get("checkpoint_interval", 100)
-    validation_interval = run_parameters.get("validation_interval", 100)
+    validation_interval = run_parameters.get("validation_interval", 1)
     warmup_steps = run_parameters.get("warmup_steps", 0)
     wandb_mode = run_parameters.get("wandb_mode", "online")
     n_saved_model = run_parameters.get("n_saved_model", 10)
     n_saved_checkpoint = run_parameters.get("n_saved_checkpoint", 10)
     resume_checkpoint = run_parameters.get("resume_checkpoint", None)
     batch_size = run_parameters.get("batch_size", 32)
+    patience = run_parameters.get("patience", 10)
     target_lr = optimizer.param_groups[0]["lr"]
+
+    warmup_steps = (
+        train_dataset_len // batch_size * warmup_steps if warmup_steps > 0 else 0
+    )
 
     def cycle(dataloader):
         while True:
@@ -80,13 +84,59 @@ def ignite_train(
     trainer = Engine(train_step)
     evaluator = Engine(eval_step)
 
+    early_stopping = EarlyStopping(
+        patience=patience,
+        score_function=score_function,
+        trainer=trainer,
+    )
+
+    conf_matrix = ConfusionMatrix(
+        num_classes=19,
+        output_transform=lambda output: (
+            output[0]["classes"]
+            .permute(0, 3, 1, 2)  # (B, 19, 3, 4)
+            .reshape(-1, 19)
+            .argmax(dim=1),  # preds
+            output[0]["classes"].argmax(dim=-1).reshape(-1),  # targets
+        ),
+    )
+
+    precision = Precision(
+        average=True,
+        output_transform=lambda output: (
+            output[0]["classes"].argmax(-1).flatten(),  # predicted
+            output[1]["true_classes"].flatten(),  # true
+        ),
+    )
+    recall = Recall(
+        average=True,
+        output_transform=lambda output: (
+            output[0]["classes"].argmax(-1).flatten(),
+            output[1]["true_classes"].flatten(),
+        ),
+    )
+    f1 = Fbeta(
+        beta=1.0,
+        average=True,
+        output_transform=lambda output: (
+            output[0]["classes"].argmax(-1).flatten(),
+            output[1]["true_classes"].flatten(),
+        ),
+    )
+
+    precision.attach(evaluator, "precision")
+    recall.attach(evaluator, "recall")
+    f1.attach(evaluator, "f1")
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping)
+    conf_matrix.attach(evaluator, "confusion_matrix")
+
     # Attach metrics
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss.attach(trainer, "loss")
     avg_loss.attach(evaluator, "loss")
 
     # Logging
-    @trainer.on(Events.EPOCH_COMPLETED(every=1))
+    @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
     def log_validation(engine: Engine):
         evaluator.run(
             cycle(valid_loader),
@@ -96,10 +146,22 @@ def ignite_train(
         metrics = evaluator.state.metrics
         epoch = engine.state.epoch
 
-        print(f"[Validation] Epoch {epoch} - Loss: {metrics['loss']:.4f}")
+        print(f"\n[Validation] Epoch {epoch} - Loss: {metrics['loss']:.4f}\n")
         if wandb_mode != "disabled":
             for k, v in metrics.items():
-                wandb_logger.log({f"validation/{k}": v, "epoch": epoch})
+                if k != "confusion_matrix":
+                    wandb_logger.log({f"validation/{k}": v, "epoch": epoch})
+
+            cm = metrics["confusion_matrix"].cpu().numpy()
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
+            ax.set_xlabel("Predicted")
+            ax.set_ylabel("True")
+            ax.set_title(f"Confusion Matrix (Epoch {epoch})")
+            wandb_logger.log(
+                {"validation/confusion_matrix": wandb.Image(fig), "epoch": epoch}
+            )
+            plt.close(fig)
 
     # Checkpointing
     to_save = {"model": model, "optimizer": optimizer}
@@ -118,7 +180,7 @@ def ignite_train(
             n_saved=n_saved_checkpoint,
         )
         trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=1),
+            Events.ITERATION_COMPLETED(every=validation_interval),
             handler,
         )
 
@@ -131,7 +193,9 @@ def ignite_train(
             greater_or_equal=True,
         )
 
-        trainer.add_event_handler(Events.EPOCH_COMPLETED(every=1), best_checkpoint)
+        trainer.add_event_handler(
+            Events.EPOCH_COMPLETED(every=validation_interval), best_checkpoint
+        )
 
         best_model = ModelCheckpoint(
             dirname=os.path.join(wandb.run.dir),  # type: ignore
@@ -144,7 +208,7 @@ def ignite_train(
             greater_or_equal=True,
         )
         trainer.add_event_handler(
-            Events.EPOCH_COMPLETED(every=1),
+            Events.EPOCH_COMPLETED(every=validation_interval),
             best_model,
             {"mymodel": model},
         )
@@ -157,7 +221,7 @@ def ignite_train(
             require_empty=False,
         )
         trainer.add_event_handler(
-            Events.ITERATION_COMPLETED(every=1),
+            Events.ITERATION_COMPLETED(every=validation_interval),
             model_handler,
             {"mymodel": model},
         )
@@ -170,12 +234,11 @@ def ignite_train(
     ProgressBar(persist=True).attach(trainer, output_transform=lambda x: x[1]["loss"])
     ProgressBar(persist=True).attach(evaluator, output_transform=lambda x: x[1]["loss"])
 
-    for epoch in range(epochs):
-        trainer.run(
-            cycle(train_loader),
-            max_epochs=10,
-            epoch_length=train_dataset_len // batch_size,
-        )
+    trainer.run(
+        cycle(train_loader),
+        max_epochs=epochs,
+        epoch_length=train_dataset_len // batch_size,
+    )
 
     if wandb_mode != "disabled":
         wandb_logger.close()

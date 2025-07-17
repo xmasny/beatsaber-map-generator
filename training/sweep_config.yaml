@@ -1,44 +1,27 @@
 method: bayes
 metric:
-  goal: maximize
-  name: scoring/combined_score
+  goal: minimize
+  name: validation/loss
 parameters:
-  warmup_steps:
-    values: [0.05,0.08, 0.1]
-  epoch_length:
-    value: 500
-  fuzzy_width:
-    min: 4
-    max: 6
-    distribution: int_uniform
-  fuzzy_scale:
-    min: 0.3
-    max: 0.6
-    q: 0.1
-    distribution: q_uniform
-  start_lr:
-    min: 1e-6
-    max: 9e-4
-    distribution: uniform
-  end_lr:
-    min: 9e-4
-    max: 4e-3
-    distribution: uniform
-  dropout:
-    max: 0.5
-    min: 0.3
-    q: 0.1
-    distribution: q_uniform
-  lr_scheduler_name:
-    values: [CyclicLR, CosineAnnealingLR]
-  rnn_dropout:  
-    max: 0.3
-    min: 0
-    q: 0.1
-    distribution: q_uniform
-  weight_decay:
-    max: 1e-6
-    min: 0.0
-    distribution: uniform
-  epochs:
-    value: 100
+  model.start_lr:
+    distribution: log_uniform_values
+    min: 0.000001
+    max: 0.001
+
+  model.eta_min:
+    distribution: log_uniform_values
+    min: 0.000001
+    max: 0.0001
+
+  model.weight_decay:
+    distribution: log_uniform_values
+    min: 0.00000001
+    max: 0.001
+
+program: sweep_main.py
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}

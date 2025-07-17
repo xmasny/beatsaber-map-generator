@@ -10,15 +10,13 @@ from training.class_train import main as note_train
 
 @hydra.main(version_base=None, config_path="./conf", config_name="config")
 def main(cfg: RunConfig):
-    if not cfg.params.model_type:
-        cfg.params.model_type = (
-            input("Enter the model type (onsets/class): ").strip().lower()
-        )
+    if not cfg.model_type:
+        cfg.model_type = input("Enter the model type (onsets/class): ").strip().lower()
     try:
-        if cfg.params.model_type == "onsets":
-            onset_train(cfg.params)
-        elif cfg.params.model_type == "class":
-            note_train(cfg.params)
+        if cfg.model_type == "onsets":
+            onset_train(cfg.model)
+        elif cfg.model_type == "class":
+            note_train(cfg.model)
         else:
             raise ValueError("Invalid model type. Choose 'onsets' or 'class'.")
     except Exception as e:

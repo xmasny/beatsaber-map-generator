@@ -1,0 +1,19 @@
+object_type: color_notes
+difficulty: Normal
+log_dir: ./logs
+batch_size: 1024
+enable_condition: true
+loss_interval: 10
+validation_interval: 1
+weight_decay: 0.0
+end_lr: 0.00241
+start_lr: 0.000493
+warmup_steps: 800
+epochs: 100
+wandb_mode: online #disabled, online, offline,
+is_parallel: false
+lr_scheduler_name: CosineAnnealingLR # CosineAnnealingLR, CyclicLR
+model_type: class
+gpu_index: 0
+eta_min: 1e-6
+wandb_project: test-beat-saber-map-generator

@@ -6,43 +6,21 @@ import numpy as np
 import requests
 import torch
 from torch.utils.data import Dataset, DataLoader
-from tqdm import tqdm
 
 from config import *
 from training.downloader import Downloader, download_fn
+from dotenv import load_dotenv
 
+load_dotenv()
 
-base_dataset_api = "http://kaistore.dcs.fmph.uniba.sk/api"
+base_dataset_api = os.getenv("BASE_DATASET_API")
 
-base_dataset_path = "http://kaistore.dcs.fmph.uniba.sk/beatsaber-map-generator/"
-
+base_dataset_path = os.getenv("BASE_DATASET_PATH")
 logging.basicConfig(
     level=logging.ERROR,
     format="%(levelname)s - %(asctime)s - %(message)s",
     filename="data_tester.log",
 )
-
-
-def group_npz_pairs(npz_data: dict) -> list[dict]:
-    result = []
-    keys = npz_data.keys()
-
-    mel_keys = [k for k in keys if k.endswith("_mel")]
-
-    for mel_key in tqdm(mel_keys, desc="Pairing mel/classes", unit="pair"):
-        base = mel_key[:-4]  # Strip "_mel"
-        class_key = base + "_classes"
-
-        if class_key in npz_data:
-            result.append(
-                {
-                    "id": base,
-                    "mel": npz_data[mel_key],
-                    "classes": npz_data[class_key],
-                }
-            )
-
-    return result
 
 
 def flatten_collate(batch: list[list[dict]]) -> list[dict]:
@@ -137,6 +115,7 @@ class ClassBaseLoader(Dataset):
             try:
                 classes_key = next(file_iter)
                 mel_key = next(file_iter)
+                condition = DifficultyNumber[self.difficulty.value.upper()].value
             except StopIteration:
                 break  # no more pairs
 
@@ -145,6 +124,7 @@ class ClassBaseLoader(Dataset):
                 "id": id,
                 "mel": torch.tensor(file[mel_key], dtype=torch.float32),
                 "classes": torch.tensor(file[classes_key], dtype=torch.float32),
+                "condition": torch.tensor(condition, dtype=torch.float32),
             }
 
     def __getitem__(self, idx):

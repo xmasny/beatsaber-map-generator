@@ -101,7 +101,6 @@ class RunParams(DictConfig):
     song_reset_number: int
     split_seed: int
     object_type: str
-    model_type: str
     difficulty: str
     model_dir: str
     batch_size: int
@@ -141,7 +140,8 @@ class RunParams(DictConfig):
 
 
 class RunConfig(DictConfig):
-    params: RunParams
+    model: RunParams
+    model_type: str
 
 
 class ClassCount(TypedDict):

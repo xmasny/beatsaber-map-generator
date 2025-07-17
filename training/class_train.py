@@ -6,7 +6,7 @@ import wandb
 import numpy as np
 
 from ignite.contrib.handlers.wandb_logger import WandBLogger
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 
 from config import *
@@ -15,7 +15,11 @@ from training.class_loader import ClassBaseLoader
 from training.class_ignite import ignite_train
 from utils import ClassDataParallel
 
-base_dataset_path = "http://kaistore.dcs.fmph.uniba.sk/api/"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+base_dataset_api = os.getenv("BASE_DATASET_API", "http://localhost:8000/dataset/batch/")
 
 
 def main(run_parameters: RunParams):
@@ -28,7 +32,7 @@ def main(run_parameters: RunParams):
         torch.cuda.set_device(
             run_parameters.gpu_index if run_parameters.gpu_index >= 0 else -1
         )
-        response = requests.post(base_dataset_path + "claim-seed", json=payload)
+        response = requests.post(base_dataset_api + "claim-seed", json=payload)
         SEED = response.json().get("batch")
 
         if "split_seed" in run_parameters:
@@ -65,6 +69,8 @@ def main(run_parameters: RunParams):
             mode=run_parameters.wandb_mode,
         )
 
+        print(wandb.config)
+
         wandb.define_metric("train/step")
         wandb.define_metric("train/*", step_metric="train/step")
         wandb.define_metric("epoch")
@@ -77,13 +83,13 @@ def main(run_parameters: RunParams):
         valid_dataset_len = class_count["validation_iterations"]
 
         train_loader = train_dataset.get_dataloader(
-            batch_size=run_parameters.batch_size * 2
+            batch_size=run_parameters.batch_size
         )
         valid_loader = valid_dataset.get_dataloader(
-            batch_size=run_parameters.batch_size * 2
+            batch_size=run_parameters.batch_size
         )
 
-        optimizer = Adam(
+        optimizer = AdamW(
             model.parameters(),
             run_parameters.start_lr,
             weight_decay=run_parameters.weight_decay,
@@ -100,7 +106,7 @@ def main(run_parameters: RunParams):
         elif run_parameters.lr_scheduler_name == "CosineAnnealingLR":
             lr_scheduler = CosineAnnealingLR(
                 optimizer,
-                run_parameters.epochs * run_parameters.epoch_length,
+                run_parameters.epochs * train_dataset_len,  # type: ignore
                 eta_min=run_parameters.eta_min,
             )
         else:
