@@ -5,14 +5,14 @@ import os
 
 from config import RunConfig
 from training.onset_train import main as onset_train
-from training.note_train import main as note_train
+from training.class_train import main as note_train
 
 
 @hydra.main(version_base=None, config_path="./conf", config_name="config")
 def main(cfg: RunConfig):
     if not cfg.params.model_type:
         cfg.params.model_type = (
-            input("Enter the model type (onsets/notes): ").strip().lower()
+            input("Enter the model type (onsets/class): ").strip().lower()
         )
     try:
         if cfg.params.model_type == "onsets":
@@ -20,7 +20,7 @@ def main(cfg: RunConfig):
         elif cfg.params.model_type == "class":
             note_train(cfg.params)
         else:
-            raise ValueError("Invalid model type. Choose 'onsets' or 'notes'.")
+            raise ValueError("Invalid model type. Choose 'onsets' or 'class'.")
     except Exception as e:
         if os.path.exists("dataset/valid_dataset"):
             shutil.rmtree("dataset/valid_dataset")

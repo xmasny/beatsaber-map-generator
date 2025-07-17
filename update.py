@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import json
-from training.loader import gen_beats_array, get_onset_array
+from training.onset_loader import gen_beats_array, get_onset_array
 import librosa
 from tqdm import tqdm
 from datetime import datetime

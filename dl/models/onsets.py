@@ -5,6 +5,7 @@ import wandb
 from torch import nn
 from torch.nn import functional as F
 
+from dl.models.classes import MultiClassOnsetClassifier
 from dl.models.fuzzy_label import fuzzy_on_batch
 
 # from notes_generator.constants import *
@@ -76,7 +77,10 @@ class OnsetsBase(nn.Module):
             beats = None
         self.eval()
         with torch.no_grad():
-            probs = self(mel, condition, beats)
+            logits = self(mel, condition, beats)
+            assert not torch.isnan(logits).any(), "NaNs in logits"
+
+            probs = torch.sigmoid(logits)
 
             if wandb.run is not None:
                 wandb.log({"tracking/onset_probs": probs.max()})
@@ -162,8 +166,13 @@ class OnsetsBase(nn.Module):
         predictions = {
             "onset": onset_pred.reshape(*onset_label.shape),
         }
+
+        assert torch.all(
+            (onset_pred >= 0) & (onset_pred <= 1)
+        ), f"Invalid prediction values: min={onset_pred.min()}, max={onset_pred.max()}"
+
         losses = {
-            "loss-onset": F.binary_cross_entropy(
+            "loss-onset": F.binary_cross_entropy_with_logits(
                 predictions["onset"], onset_label.float(), weight=weight_onset
             ),
         }
@@ -241,9 +250,7 @@ class OnsetFeatureExtractor(OnsetsBase):
             dropout=rnn_dropout,
         )
         self.drop = nn.Dropout(dropout)
-        self.onset_linear = nn.Sequential(
-            nn.Linear(model_size, output_features), nn.Sigmoid()
-        )
+        self.onset_linear = nn.Linear(model_size, output_features)
 
     def forward(self, mel, condition=None, beats=None):
         """
@@ -279,24 +286,9 @@ class OnsetFeatureExtractor(OnsetsBase):
         return onset_pred
 
 
-class MulticlassOnsetClassifier(nn.Module):
-    def __init__(self, input_size, output_heads=12, num_classes=19, dropout=0.5):
-        super().__init__()
-        self.output_heads = output_heads
-        self.num_classes = num_classes
-        self.dropout = nn.Dropout(dropout)
-        self.linear = nn.Linear(input_size, output_heads * num_classes)
-
-    def forward(self, x):
-        x = self.dropout(x)
-        x = self.linear(x)
-        x = x.view(x.size(0), x.size(1), self.output_heads, self.num_classes)
-        return x  # shape: (B, T, 12, 19)
-
-
 class CombinedOnsetModel(nn.Module):
     def __init__(
-        self, extractor: OnsetFeatureExtractor, classifier: MulticlassOnsetClassifier
+        self, extractor: OnsetFeatureExtractor, classifier: MultiClassOnsetClassifier
     ):
         super().__init__()
         self.extractor = extractor

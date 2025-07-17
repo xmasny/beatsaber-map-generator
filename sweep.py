@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from config import *
 from dl.models.onsets import OnsetFeatureExtractor
-from training.loader import BaseLoader
+from training.onset_loader import BaseLoader
 from training.onset_ignite import ignite_train
 from utils import MyDataParallel
 

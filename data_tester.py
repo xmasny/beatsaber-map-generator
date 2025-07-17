@@ -1,6 +1,6 @@
 import wandb
 from config import DifficultyName, Split
-from training.loader import TestDataset
+from training.onset_loader import TestDataset
 
 from torch.utils.data import DataLoader
 

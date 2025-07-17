@@ -3,7 +3,7 @@ import time
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import CyclicLR
-from training.loader import BaseLoader
+from training.onset_loader import BaseLoader
 from dl.models.onsets import OnsetFeatureExtractor
 from training.onset_ignite import ignite_train
 from config import *
