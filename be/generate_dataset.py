@@ -1,4 +1,5 @@
 from collections import defaultdict
+from math import ceil
 import os
 import argparse
 import random
@@ -38,8 +39,9 @@ class ArgparseType:
     intermediate_only: bool
     intermediate_batch_size: int
     final_batch_size: int
-    max_workers: Optional[int] = None
-    seed: Optional[str] = None
+    max_workers: Optional[int]
+    seed: Optional[str]
+    dry_run: bool
 
 
 def parse_args() -> ArgparseType:
@@ -97,6 +99,12 @@ def parse_args() -> ArgparseType:
         type=str,
         default=None,
         help="Random seed for generating random words in batch names (default: None, random seed will be used)",
+    )
+
+    parser.add_argument(
+        "--dry_run",
+        action="store_true",
+        help="Simulate the pipeline without writing or deleting any files",
     )
 
     return ArgparseType(**vars(parser.parse_args()))
@@ -265,36 +273,25 @@ def main(args: ArgparseType):
                         intermediate_path
                     ):
                         all_files = os.listdir(intermediate_path)
-                        selected_split = None
-
-                        for split_processing in ["test", "validation", "train"]:
-                            pattern = re.compile(
-                                rf"^(class)_{split_processing}_.+\.npz$"
+                        # Count how many files already exist for each split
+                        split_counts = {
+                            s: sum(
+                                1
+                                for f in all_files
+                                if re.match(rf"^(class|onsets)_{s}_[0-9]+\.npz$", f)
                             )
-                            if any(pattern.match(f) for f in all_files):
-                                selected_split = split_processing
-                                break
+                            for s in ["train", "validation", "test"]
+                        }
+                        completed_splits = {
+                            s for s, count in split_counts.items() if count > 0
+                        }
 
-                        if selected_split == "test" and split in [
-                            "train",
-                            "validation",
-                        ]:
-                            continue
-                        if selected_split == "validation" and split == "train":
-                            continue
-
-                        if selected_split:
-                            pattern = re.compile(
-                                rf"^(class)_{split_processing}_.+\.npz$"
-                            )
-                            files = [f for f in all_files if pattern.match(f)]
-                            initial_start = len(files) * args.intermediate_batch_size
-                            args_list = args_list[initial_start:]
-                            split_counters[split] = len(files)
+                        # Skip only if this split has completed intermediate batches
+                        if split in completed_splits:
                             print(
-                                f"Continuing from split: {split} at index {initial_start} of {len(df_split)} files found: {len(files)}",
+                                f"[{split}] Intermediate files already exist, skipping..."
                             )
-                            check_reset = False
+                            continue
 
                 onsets_combined_data = {}
                 classification_combined_data = {}
@@ -463,19 +460,28 @@ def run_final_merge(
                 }
 
             batch_tasks = []
-            total_batches = (
-                len(intermediate_files_by_split[split]) // combine_factor + 1
+            total_batches = ceil(
+                len(intermediate_files_by_split[split]) / combine_factor
             )
 
-            for final_counter, i in enumerate(
-                range(0, len(intermediate_files_by_split[split]), combine_factor)
-            ):
-                group = intermediate_files_by_split[split][i : i + combine_factor]
+            for final_counter in range(total_batches):
+                start = final_counter * combine_factor
+                end = start + combine_factor
+                group = intermediate_files_by_split[split][start:end]
                 batch_name = f"batch_{final_counter:03}.npz"
                 onset_exists = batch_name in existing_onset_batches
                 class_exists = batch_name in existing_class_batches
 
-                if (gen_onset and onset_exists) or (gen_class and class_exists):
+                should_skip = (gen_onset and onset_exists) or (
+                    gen_class and class_exists
+                )
+
+                if args.dry_run:
+                    action = "✔️ SKIP" if should_skip else "➕ CREATE"
+                    print(f"[{split}] {action} batch_{final_counter:03}.npz")
+                    continue
+
+                if should_skip:
                     print(f"[{split}] Skipping existing batch {batch_name}")
                     continue
 
@@ -483,14 +489,15 @@ def run_final_merge(
                     (group, split, final_counter, final_paths, gen_onset, gen_class)
                 )
 
-            with mp.Pool() as pool:
-                list(
-                    tqdm(
-                        pool.imap_unordered(merge_group, batch_tasks),
-                        total=len(batch_tasks),
-                        desc=f"Merging final {split}",
+            if not args.dry_run:
+                with mp.Pool() as pool:
+                    list(
+                        tqdm(
+                            pool.imap_unordered(merge_group, batch_tasks),
+                            total=len(batch_tasks),
+                            desc=f"Merging final {split}",
+                        )
                     )
-                )
 
         if os.path.isdir(intermediate_path) and not os.listdir(intermediate_path):
             os.rmdir(intermediate_path)
