@@ -94,14 +94,24 @@ class ClassBaseLoader(Dataset):
 
     def process(self, file_path):
         batch = []
-        with np.load(file_path, allow_pickle=True) as file:
-            for row in self.iter_file(file):
-                batch.append(row)
-                if len(batch) == self.batch_size:
-                    yield self.collate_batch(batch)
-                    batch = []
-            if batch:
-                yield self.collate_batch(batch)
+        for i in range(10):  # retry up to 10 times
+            try:
+                with np.load(file_path, allow_pickle=True) as file:
+                    for row in self.iter_file(file):
+                        batch.append(row)
+                        if len(batch) == self.batch_size:
+                            yield self.collate_batch(batch)
+                            batch = []
+                    if batch:
+                        yield self.collate_batch(batch)
+                return
+            except (OSError, IOError) as e:
+                wait_time = i * 2 + 1  # exponential backoff
+                print(
+                    f"[Retry {i+1}/10] Error accessing {file_path}: {e}. Retrying in {wait_time}s."
+                )
+                time.sleep(wait_time)
+        raise RuntimeError(f"Failed to open {file_path} after 10 retries.")
 
     def get_dataloader(self, batch_size=None):
         return DataLoader(

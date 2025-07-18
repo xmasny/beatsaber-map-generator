@@ -2,6 +2,7 @@ import typing
 
 import torch
 from torch import nn
+import subprocess
 
 import csv
 import os
@@ -78,3 +79,16 @@ class MyDataParallel(nn.DataParallel):
 
     def load_state_dict(self, state_dict, strict=True):
         self.module.load_state_dict(state_dict, strict)
+
+
+def pick_least_used_gpu() -> int:
+    """Return the GPU index with the lowest memory usage."""
+    try:
+        output = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader"]
+        )
+        memory = [int(x) for x in output.decode("utf-8").strip().split("\n")]
+        return int(min(range(len(memory)), key=lambda i: memory[i]))
+    except Exception as e:
+        print(f"GPU auto-select failed: {e}")
+        return 0  # default to GPU 0

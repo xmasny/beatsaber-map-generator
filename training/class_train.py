@@ -11,6 +11,7 @@ from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
 
 from config import *
 from dl.models.onsets import MultiClassOnsetClassifier
+from dl.models.util import pick_least_used_gpu
 from training.class_loader import ClassBaseLoader
 from training.class_ignite import ignite_train
 from utils import ClassDataParallel
@@ -29,9 +30,14 @@ def main(run_parameters: RunParams):
         }
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        torch.cuda.set_device(
-            run_parameters.gpu_index if run_parameters.gpu_index >= 0 else -1
+        if not run_parameters.is_parallel and run_parameters.gpu_index < 0:
+            run_parameters.gpu_index = pick_least_used_gpu()
+
+        torch.cuda.set_device(run_parameters.gpu_index)
+        print(
+            f"Assigned GPU: {run_parameters.gpu_index} - {torch.cuda.get_device_name(run_parameters.gpu_index)}"
         )
+
         response = requests.post(base_dataset_api + "claim-seed", json=payload)
         SEED = response.json().get("batch")
 
