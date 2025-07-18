@@ -106,14 +106,16 @@ def ignite_train(
     )
 
     precision = Precision(
-        average=True,
+        average=None,
+        is_multilabel=True,
         output_transform=lambda output: (
             output[0]["classes"].argmax(-1).flatten(),  # predicted
             output[1]["true_classes"].flatten(),  # true
         ),
     )
     recall = Recall(
-        average=True,
+        average=None,
+        is_multilabel=True,
         output_transform=lambda output: (
             output[0]["classes"].argmax(-1).flatten(),
             output[1]["true_classes"].flatten(),
@@ -121,7 +123,6 @@ def ignite_train(
     )
     f1 = Fbeta(
         beta=1.0,
-        average=True,
         output_transform=lambda output: (
             output[0]["classes"].argmax(-1).flatten(),
             output[1]["true_classes"].flatten(),
