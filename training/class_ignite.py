@@ -157,7 +157,7 @@ def ignite_train(
                 if k != "confusion_matrix":
                     wandb_logger.log({f"validation/{k}": v, "epoch": epoch})
 
-            cm = metrics["confusion_matrix"].cpu().numpy()
+            """cm = metrics["confusion_matrix"].cpu().numpy()
             fig, ax = plt.subplots(figsize=(10, 8))
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
             ax.set_xlabel("Predicted")
@@ -166,7 +166,7 @@ def ignite_train(
             wandb_logger.log(
                 {"validation/confusion_matrix": wandb.Image(fig), "epoch": epoch}
             )
-            plt.close(fig)
+            plt.close(fig)"""
 
     # Checkpointing
     to_save = {"model": model, "optimizer": optimizer}
