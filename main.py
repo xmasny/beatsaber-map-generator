@@ -13,7 +13,7 @@ def main(cfg: RunConfig):
     if not cfg.model_type:
         cfg.model_type = input("Enter the model type (onsets/class): ").strip().lower()
     try:
-        if cfg.model_type == "onsets":
+        if cfg.model_type == "onset":
             onset_train(cfg.model)
         elif cfg.model_type == "class":
             note_train(cfg.model)

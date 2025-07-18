@@ -105,35 +105,35 @@ def ignite_train(
         ),
     )
 
-    # precision = Precision(
-    #     average=None,
-    #     is_multilabel=True,
-    #     output_transform=lambda output: (
-    #         output[0]["classes"].argmax(-1).flatten(),  # predicted
-    #         output[1]["true_classes"].flatten(),  # true
-    #     ),
-    # )
-    # recall = Recall(
-    #     average=None,
-    #     is_multilabel=True,
-    #     output_transform=lambda output: (
-    #         output[0]["classes"].argmax(-1).flatten(),
-    #         output[1]["true_classes"].flatten(),
-    #     ),
-    # )
-    # f1 = Fbeta(
-    #     beta=1.0,
-    #     output_transform=lambda output: (
-    #         output[0]["classes"].argmax(-1).flatten(),
-    #         output[1]["true_classes"].flatten(),
-    #     ),
-    # )
+    precision = Precision(
+        average=None,
+        is_multilabel=True,
+        output_transform=lambda output: (
+            output[0]["classes"].argmax(-1).flatten(),  # predicted
+            output[1]["true_classes"].flatten(),  # true
+        ),
+    )
+    recall = Recall(
+        average=None,
+        is_multilabel=True,
+        output_transform=lambda output: (
+            output[0]["classes"].argmax(-1).flatten(),
+            output[1]["true_classes"].flatten(),
+        ),
+    )
+    f1 = Fbeta(
+        beta=1.0,
+        output_transform=lambda output: (
+            output[0]["classes"].argmax(-1).flatten(),
+            output[1]["true_classes"].flatten(),
+        ),
+    )
 
     # precision.attach(evaluator, "precision")
     # recall.attach(evaluator, "recall")
     # f1.attach(evaluator, "f1")
     evaluator.add_event_handler(Events.COMPLETED, early_stopping)
-    conf_matrix.attach(evaluator, "confusion_matrix")
+    # conf_matrix.attach(evaluator, "confusion_matrix")
 
     # Attach metrics
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
