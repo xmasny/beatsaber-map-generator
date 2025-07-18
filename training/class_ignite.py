@@ -79,7 +79,7 @@ def ignite_train(
         model.eval()
         with torch.no_grad():
             preds, losses = model.run_on_batch(batch)
-            true_classes = batch["classes"].argmax(-1)  # shape: (B, 3, 4)
+            true_classes = batch["classes"].argmax(-1).to(device)  # shape: (B, 3, 4)
             return preds, {
                 **{k: v.item() for k, v in losses.items()},
                 "true_classes": true_classes,
@@ -94,46 +94,53 @@ def ignite_train(
         trainer=trainer,
     )
 
+    def debug_transform(output):
+        try:
+            pred = output[0]["classes"].reshape(-1, 19)
+            true = output[1]["true_classes"].reshape(-1).long()
+            return pred, true
+        except Exception as e:
+            print("Transform failed:", e)
+            raise
+
     conf_matrix = ConfusionMatrix(
         num_classes=19,
-        output_transform=lambda output: (
-            output[0]["classes"]
-            .permute(0, 3, 1, 2)  # (B, 19, 3, 4)
-            .reshape(-1, 19)
-            .argmax(dim=1),  # preds
-            output[0]["classes"].argmax(dim=-1).reshape(-1),  # targets
-        ),
+        output_transform=debug_transform,
     )
+
+    def classification_transform(output):
+        try:
+            logits = output[0]["classes"]  # shape: [B, 3, 4, 19]
+            y_true = output[1]["true_classes"]  # shape: [B, 3, 4]
+
+            # Flatten
+            logits = logits.reshape(-1, logits.shape[-1])  # → [N, 19]
+            y_true = y_true.reshape(-1)
+
+            return logits, y_true
+        except Exception as e:
+            print("Precision transform failed:", e)
+            raise
 
     precision = Precision(
         average=None,
-        is_multilabel=True,
-        output_transform=lambda output: (
-            output[0]["classes"].argmax(-1).flatten(),  # predicted
-            output[1]["true_classes"].flatten(),  # true
-        ),
+        output_transform=classification_transform,
     )
     recall = Recall(
         average=None,
-        is_multilabel=True,
-        output_transform=lambda output: (
-            output[0]["classes"].argmax(-1).flatten(),
-            output[1]["true_classes"].flatten(),
-        ),
+        output_transform=classification_transform,
     )
     f1 = Fbeta(
         beta=1.0,
-        output_transform=lambda output: (
-            output[0]["classes"].argmax(-1).flatten(),
-            output[1]["true_classes"].flatten(),
-        ),
+        average=False,
+        output_transform=classification_transform,
     )
 
-    # precision.attach(evaluator, "precision")
-    # recall.attach(evaluator, "recall")
-    # f1.attach(evaluator, "f1")
+    precision.attach(evaluator, "precision")
+    recall.attach(evaluator, "recall")
+    f1.attach(evaluator, "f1")
     evaluator.add_event_handler(Events.COMPLETED, early_stopping)
-    # conf_matrix.attach(evaluator, "confusion_matrix")
+    conf_matrix.attach(evaluator, "confusion_matrix")
 
     # Attach metrics
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
@@ -157,7 +164,7 @@ def ignite_train(
                 if k != "confusion_matrix":
                     wandb_logger.log({f"validation/{k}": v, "epoch": epoch})
 
-            """cm = metrics["confusion_matrix"].cpu().numpy()
+            cm = metrics["confusion_matrix"].cpu().numpy()
             fig, ax = plt.subplots(figsize=(10, 8))
             sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
             ax.set_xlabel("Predicted")
@@ -166,7 +173,7 @@ def ignite_train(
             wandb_logger.log(
                 {"validation/confusion_matrix": wandb.Image(fig), "epoch": epoch}
             )
-            plt.close(fig)"""
+            plt.close(fig)
 
     # Checkpointing
     to_save = {"model": model, "optimizer": optimizer}
