@@ -2,6 +2,7 @@
 
 import os
 from matplotlib import pyplot as plt
+from matplotlib.patches import Rectangle
 import torch
 from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import CyclicLR, CosineAnnealingLR
@@ -159,19 +160,59 @@ def ignite_train(
         epoch = engine.state.epoch
 
         print(f"\n[Validation] Epoch {epoch} - Loss: {metrics['loss']:.4f}\n")
+
         if wandb_mode != "disabled":
             for k, v in metrics.items():
-                if k != "confusion_matrix":
-                    wandb_logger.log({f"validation/{k}": v, "epoch": epoch})
+                if k == "confusion_matrix":
+                    continue
+                elif isinstance(v, torch.Tensor) and v.ndim == 1:
+                    wandb_logger.log(
+                        {
+                            f"validation/{k}/class_{i}": float(val)
+                            for i, val in enumerate(v)
+                        },
+                        {"epoch": epoch},
+                    )
+                else:
+                    wandb_logger.log({f"validation/{k}": float(v), "epoch": epoch})
 
+            # Confusion Matrix
             cm = metrics["confusion_matrix"].cpu().numpy()
             fig, ax = plt.subplots(figsize=(10, 8))
-            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("True")
-            ax.set_title(f"Confusion Matrix (Epoch {epoch})")
+            sns.heatmap(
+                cm,
+                annot=True,
+                cmap="Blues",
+                ax=ax,
+                annot_kws={"size": 8},  # Smaller font for annotations
+                linewidths=0.5,
+                linecolor="gray",
+                cbar=True,
+                square=True,
+            )
+
+            # Highlight the diagonal (center line) in red
+            for i in range(min(cm.shape)):
+                ax.add_patch(
+                    Rectangle(
+                        (i, i),
+                        1,
+                        1,
+                        fill=False,
+                        edgecolor="red",
+                        lw=2,
+                    )
+                )
+
+            ax.set_xlabel("Predicted", fontsize=12)
+            ax.set_ylabel("True", fontsize=12)
+            ax.set_title(f"Confusion Matrix (Epoch {epoch})", fontsize=14)
+            plt.xticks(rotation=45)
+            plt.yticks(rotation=0)
+
+            fig.tight_layout()
             wandb_logger.log(
-                {"validation/confusion_matrix": wandb.Image(fig), "epoch": epoch}
+                {"validation/confusion_matrix": wandb.Image(fig)}, step=epoch
             )
             plt.close(fig)
 
