@@ -79,7 +79,11 @@ def ignite_train(
         model.eval()
         with torch.no_grad():
             preds, losses = model.run_on_batch(batch)
-            return preds, {k: v.item() for k, v in losses.items()}
+            true_classes = batch["classes"].argmax(-1)  # shape: (B, 3, 4)
+            return preds, {
+                **{k: v.item() for k, v in losses.items()},
+                "true_classes": true_classes,
+            }
 
     trainer = Engine(train_step)
     evaluator = Engine(eval_step)
