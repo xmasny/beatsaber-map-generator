@@ -61,7 +61,10 @@ def main(run_parameters: RunParams):
             allow_pickle=True,
         ).item()
 
-        model = MultiClassOnsetClassifier(class_count["train_class_count"]).to(device)
+        model = MultiClassOnsetClassifier(
+            class_count["train_class_count"],
+            focal_loss_gamma=run_parameters.focal_loss_gamma,
+        ).to(device)
 
         if run_parameters.is_parallel:
             model = ClassDataParallel(model)

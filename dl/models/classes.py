@@ -11,10 +11,18 @@ from dl.models.util import batch_first
 
 
 class ClassesBase(nn.Module):
-    def __init__(self, class_counts: np.ndarray, enable_condition: bool = False):
+    def __init__(
+        self,
+        class_counts: np.ndarray,
+        enable_condition: bool = False,
+        focal_loss_gamma: float = 2.0,
+        loss_fn: str = "focal_loss",
+    ):
         super().__init__()
         self.class_counts = class_counts
         self.enable_condition = enable_condition
+        self.focal_loss_gamma = focal_loss_gamma
+        self.loss_fn = loss_fn
 
     def predict(self, batch: typing.Dict[str, torch.Tensor]):
         """Predict an onset score.
@@ -156,21 +164,33 @@ class ClassesBase(nn.Module):
         classes_pred = net(mel_input)
 
         predictions = {"classes": classes_pred}  # shape: (B, 3, 4, 19)
-
-        loss = F.cross_entropy(
-            input=predictions["classes"].permute(0, 3, 1, 2),  # → (B, 19, 3, 4)
-            target=class_labels.argmax(-1).long(),  # (B, 3, 4)
-            weight=(class_weights),
-        )
+        if self.loss_fn == "focal_loss":
+            focal_loss_fn = MultiClassFocalLoss(
+                class_counts=class_counts,
+                gamma=self.focal_loss_gamma,
+                smoothing=0.1,
+                device=device,
+                reduction="mean",
+            )
+            loss = focal_loss_fn(classes_pred, class_labels)
+        else:
+            loss = F.cross_entropy(
+                input=predictions["classes"].permute(0, 3, 1, 2),  # → (B, 19, 3, 4)
+                target=class_labels.argmax(-1).long(),  # (B, 3, 4)
+                weight=(class_weights),
+            )
 
         losses = {"loss": loss}
         return predictions, losses
 
 
 class MultiClassOnsetClassifier(ClassesBase):
-    def __init__(self, class_counts, num_classes=19, grid_shape=(3, 4)):
+    def __init__(
+        self, class_counts, num_classes=19, grid_shape=(3, 4), focal_loss_gamma=2.0
+    ):
         super().__init__(class_counts=class_counts)
         self.grid_y, self.grid_x = grid_shape
+        self.focal_loss_gamma = focal_loss_gamma
 
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1),  # (B,32,229,45)
@@ -194,3 +214,62 @@ class MultiClassOnsetClassifier(ClassesBase):
         x = self.classifier(x)  # (B, 19, 3, 4)
         x = x.permute(0, 2, 3, 1)  # (B, 3, 4, 19)
         return x
+
+
+class MultiClassFocalLoss(nn.Module):
+    def __init__(
+        self, class_counts=None, gamma=2.0, smoothing=0.0, reduction="mean", device=None
+    ):
+        """
+        :param class_counts: Tensor or list with class counts to compute alpha per class
+        :param gamma: focusing parameter
+        :param smoothing: label smoothing factor (e.g., 0.1)
+        :param reduction: 'mean' or 'sum' or 'none'
+        :param device: move alpha to correct device if needed
+        """
+        super().__init__()
+        self.gamma = gamma
+        self.smoothing = smoothing
+        self.reduction = reduction
+
+        if class_counts is not None:
+            counts = torch.tensor(class_counts, dtype=torch.float32)
+            counts[counts == 0] = 1  # avoid div by 0
+            alpha = 1.0 / counts
+            alpha = alpha / alpha.sum()  # normalize6
+            alpha = alpha.to(device)
+            self.alpha = alpha
+        else:
+            self.alpha = None
+
+    def forward(self, logits, one_hot):
+        """
+        logits: (B, C, H, W) or (B, C)
+        targets: one-hot (B, H, W, C) or (B, C) → should match logits layout
+        """
+        if logits.ndim == 4 and logits.shape[-1] != 19:
+            logits = logits.permute(0, 2, 3, 1)
+
+        B, H, W, C = logits.shape
+        logits = logits.reshape(-1, C)  # (B*H*W, C)
+        one_hot = one_hot.reshape(-1, C)
+
+        probs = F.softmax(logits, dim=-1)
+        log_probs = torch.log(probs + 1e-9)
+
+        pt = (probs * one_hot).sum(dim=1)  # [N]
+        log_pt = (log_probs * one_hot).sum(dim=1)  # [N]
+
+        loss = -((1 - pt) ** self.gamma) * log_pt
+
+        if self.alpha is not None:
+            alpha_t = self.alpha.to(logits.device)
+            class_indices = one_hot.argmax(dim=1)
+            loss *= alpha_t[class_indices]
+
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else:
+            return loss

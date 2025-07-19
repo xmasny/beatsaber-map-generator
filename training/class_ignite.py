@@ -171,7 +171,6 @@ def ignite_train(
                             f"validation/{k}/class_{i}": float(val)
                             for i, val in enumerate(v)
                         }
-                        | {"epoch": epoch},
                     )
                 else:
                     wandb_logger.log({f"validation/{k}": float(v), "epoch": epoch})

@@ -137,6 +137,7 @@ class RunParams(DictConfig):
     gpu_index: int
     wandb_project: str
     mel_window: int
+    focal_loss_gamma: float
 
 
 class RunConfig(DictConfig):
