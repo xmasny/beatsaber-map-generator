@@ -16,12 +16,14 @@ class ClassesBase(nn.Module):
         class_counts: np.ndarray,
         enable_condition: bool = False,
         focal_loss_gamma: float = 2.0,
+        focal_loss_alpha: float = 1.0,
         loss_fn: str = "focal_loss",
     ):
         super().__init__()
         self.class_counts = class_counts
         self.enable_condition = enable_condition
         self.focal_loss_gamma = focal_loss_gamma
+        self.focal_loss_alpha = focal_loss_alpha
         self.loss_fn = loss_fn
 
     def predict(self, batch: typing.Dict[str, torch.Tensor]):
@@ -168,6 +170,7 @@ class ClassesBase(nn.Module):
             focal_loss_fn = MultiClassFocalLoss(
                 class_counts=class_counts,
                 gamma=self.focal_loss_gamma,
+                alpha=self.focal_loss_alpha,
                 smoothing=0.1,
                 device=device,
                 reduction="mean",
@@ -186,11 +189,17 @@ class ClassesBase(nn.Module):
 
 class MultiClassOnsetClassifier(ClassesBase):
     def __init__(
-        self, class_counts, num_classes=19, grid_shape=(3, 4), focal_loss_gamma=2.0
+        self,
+        class_counts,
+        num_classes=19,
+        grid_shape=(3, 4),
+        focal_loss_gamma=2.0,
+        focal_loss_alpha=1.0,
     ):
         super().__init__(class_counts=class_counts)
         self.grid_y, self.grid_x = grid_shape
         self.focal_loss_gamma = focal_loss_gamma
+        self.focal_loss_alpha = focal_loss_alpha
 
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1),  # (B,32,229,45)
@@ -218,7 +227,13 @@ class MultiClassOnsetClassifier(ClassesBase):
 
 class MultiClassFocalLoss(nn.Module):
     def __init__(
-        self, class_counts=None, gamma=2.0, smoothing=0.0, reduction="mean", device=None
+        self,
+        class_counts=None,
+        gamma=2.0,
+        alpha=1.0,
+        smoothing=0.0,
+        reduction="mean",
+        device=None,
     ):
         """
         :param class_counts: Tensor or list with class counts to compute alpha per class

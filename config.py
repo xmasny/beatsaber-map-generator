@@ -138,6 +138,7 @@ class RunParams(DictConfig):
     wandb_project: str
     mel_window: int
     focal_loss_gamma: float
+    focal_loss_alpha: float
 
 
 class RunConfig(DictConfig):

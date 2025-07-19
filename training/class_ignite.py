@@ -1,5 +1,6 @@
 # training/ignite_note.py
 
+from math import ceil
 import os
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
@@ -49,8 +50,10 @@ def ignite_train(
     patience = run_parameters.get("patience", 10)
     target_lr = optimizer.param_groups[0]["lr"]
 
-    warmup_steps = (
-        train_dataset_len // batch_size * warmup_steps if warmup_steps > 0 else 0
+    warmup_steps = ceil(epochs * warmup_steps if warmup_steps > 0 else 0)
+
+    print(
+        f"[INFO] Training for {epochs} epochs with warmup step epochs: {warmup_steps}"
     )
 
     def cycle(dataloader):
@@ -148,7 +151,7 @@ def ignite_train(
     avg_loss.attach(trainer, "loss")
     avg_loss.attach(evaluator, "loss")
 
-    @trainer.on(Events.ITERATION_COMPLETED(once=warmup_steps))
+    @trainer.on(Events.EPOCH_COMPLETED(once=warmup_steps))
     def attach_early_stopping(engine: Engine):
         if wandb_mode != "disabled":
             wandb_logger.watch(model, log="all", criterion=avg_loss)

@@ -17,6 +17,10 @@ parameters:
     distribution: log_uniform_values
     min: 0.00000001
     max: 0.001
+  model.focal_loss_alpha:
+    values: [0.25, 0.5, 1.0]
+  model.focal_loss_gamma:
+    values: [1.0, 2.0, 3.0]
 
 program: sweep_main.py
 
