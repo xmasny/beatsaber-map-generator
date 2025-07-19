@@ -148,6 +148,16 @@ def ignite_train(
     avg_loss.attach(trainer, "loss")
     avg_loss.attach(evaluator, "loss")
 
+    @trainer.on(Events.ITERATION_COMPLETED(once=warmup_steps))
+    def attach_early_stopping(engine: Engine):
+        if wandb_mode != "disabled":
+            wandb_logger.watch(model, log="all", criterion=avg_loss)
+
+        evaluator.add_event_handler(
+            Events.EPOCH_COMPLETED(every=validation_interval), early_stopping
+        )
+        print(f"[INFO] Early stopping attached at epoch {engine.state.epoch}")
+
     # Logging
     @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
     def log_validation(engine: Engine):

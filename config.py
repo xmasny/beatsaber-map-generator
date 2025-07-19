@@ -1,5 +1,5 @@
 import enum
-from typing import List, Dict, Optional, TypedDict, Union
+from typing import List, Optional, TypedDict
 
 from numpy import ndarray
 from omegaconf import DictConfig
