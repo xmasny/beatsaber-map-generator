@@ -64,6 +64,7 @@ def main(run_parameters: RunParams):
         model = MultiClassOnsetClassifier(
             class_count["train_class_count"],
             focal_loss_gamma=run_parameters.focal_loss_gamma,
+            alpha_scale=run_parameters.focal_loss_alpha,
             loss_fn=run_parameters.loss_fn,
         ).to(device)
 

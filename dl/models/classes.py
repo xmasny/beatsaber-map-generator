@@ -174,7 +174,7 @@ class ClassesBase(nn.Module):
                 device=device,
                 reduction="mean",
                 normalize_by="batch",
-                debug=True,
+                alpha_scale=self.focal_loss_alpha,
             )
             loss = focal_loss_fn(classes_pred, class_labels)
         else:
@@ -195,11 +195,13 @@ class MultiClassOnsetClassifier(ClassesBase):
         num_classes=19,
         grid_shape=(3, 4),
         focal_loss_gamma=2.0,
+        alpha_scale=1.0,
         loss_fn="focal_loss",
     ):
         super().__init__(class_counts=class_counts)
         self.grid_y, self.grid_x = grid_shape
         self.focal_loss_gamma = focal_loss_gamma
+        self.alpha_scale = alpha_scale
         self.loss_fn = loss_fn
 
         self.features = nn.Sequential(
@@ -244,7 +246,7 @@ class MultiClassFocalLoss(nn.Module):
         reduction="mean",
         normalize_by="element",  # 'element' or 'batch'
         device=None,
-        debug=False,
+        alpha_scale=1.0,
     ):
         """
         :param class_counts: Tensor or list of class counts for alpha computation
@@ -260,11 +262,12 @@ class MultiClassFocalLoss(nn.Module):
         self.smoothing = smoothing
         self.reduction = reduction
         self.normalize_by = normalize_by
+        self.alpha_scale = alpha_scale
 
         if class_counts is not None:
             counts = torch.tensor(class_counts, dtype=torch.float32)
             counts[counts == 0] = 1
-            alpha = 1.0 / counts
+            alpha = (1.0 / counts) ** self.alpha_scale
             alpha = alpha / alpha.sum()
             self.alpha = alpha.to(device) if device else alpha
         else:
