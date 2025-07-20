@@ -21,7 +21,11 @@ from utils import setup_checkpoint_upload
 
 
 def score_function(engine: Engine):
-    return engine.state.metrics["f1_macro"]
+    metrics = engine.state.metrics
+    if "f1_macro" not in metrics:
+        print("[WARNING] f1_macro not found in evaluator metrics.")
+        return -1.0  # or any fallback low value to prevent early stop trigger
+    return metrics["f1_macro"]
 
 
 def ignite_train(
@@ -159,6 +163,8 @@ def ignite_train(
     def attach_early_stopping(engine: Engine):
         if wandb_mode != "disabled":
             wandb_logger.watch(model, log="all", criterion=avg_loss)
+
+            print("[DEBUG] evaluator has metrics:", evaluator.state.metrics.keys())
 
         evaluator.add_event_handler(
             Events.EPOCH_COMPLETED(every=validation_interval), early_stopping
