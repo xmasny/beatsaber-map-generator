@@ -170,10 +170,11 @@ class ClassesBase(nn.Module):
             focal_loss_fn = MultiClassFocalLoss(
                 class_counts=class_counts,
                 gamma=self.focal_loss_gamma,
-                alpha=self.focal_loss_alpha,
                 smoothing=0.1,
                 device=device,
                 reduction="mean",
+                normalize_by="batch",
+                debug=True,
             )
             loss = focal_loss_fn(classes_pred, class_labels)
         else:
@@ -194,12 +195,10 @@ class MultiClassOnsetClassifier(ClassesBase):
         num_classes=19,
         grid_shape=(3, 4),
         focal_loss_gamma=2.0,
-        focal_loss_alpha=1.0,
     ):
         super().__init__(class_counts=class_counts)
         self.grid_y, self.grid_x = grid_shape
         self.focal_loss_gamma = focal_loss_gamma
-        self.focal_loss_alpha = focal_loss_alpha
 
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1),  # (B,32,229,45)
@@ -230,60 +229,62 @@ class MultiClassFocalLoss(nn.Module):
         self,
         class_counts=None,
         gamma=2.0,
-        alpha=1.0,
         smoothing=0.0,
         reduction="mean",
+        normalize_by="element",  # 'element' or 'batch'
         device=None,
+        debug=False,
     ):
         """
-        :param class_counts: Tensor or list with class counts to compute alpha per class
-        :param gamma: focusing parameter
-        :param smoothing: label smoothing factor (e.g., 0.1)
-        :param reduction: 'mean' or 'sum' or 'none'
-        :param device: move alpha to correct device if needed
+        :param class_counts: Tensor or list of class counts for alpha computation
+        :param gamma: Focal loss gamma
+        :param smoothing: Label smoothing factor
+        :param reduction: 'mean', 'sum', or 'none'
+        :param normalize_by: 'element' (default), or 'batch' to normalize by batch size only
+        :param device: device to put alpha on
+        :param debug: if True, prints detailed internal states
         """
         super().__init__()
         self.gamma = gamma
         self.smoothing = smoothing
         self.reduction = reduction
+        self.normalize_by = normalize_by
 
         if class_counts is not None:
             counts = torch.tensor(class_counts, dtype=torch.float32)
-            counts[counts == 0] = 1  # avoid div by 0
+            counts[counts == 0] = 1
             alpha = 1.0 / counts
-            alpha = alpha / alpha.sum()  # normalize6
-            alpha = alpha.to(device)
-            self.alpha = alpha
+            alpha = alpha / alpha.sum()
+            self.alpha = alpha.to(device) if device else alpha
         else:
             self.alpha = None
 
     def forward(self, logits, one_hot):
-        """
-        logits: (B, C, H, W) or (B, C)
-        targets: one-hot (B, H, W, C) or (B, C) → should match logits layout
-        """
-        if logits.ndim == 4 and logits.shape[-1] != 19:
-            logits = logits.permute(0, 2, 3, 1)
+
+        if logits.ndim == 4 and logits.shape[-1] != one_hot.shape[-1]:
+            logits = logits.permute(0, 2, 3, 1)  # [B, H, W, C]
 
         B, H, W, C = logits.shape
-        logits = logits.reshape(-1, C)  # (B*H*W, C)
+        N = B * H * W
+
+        logits = logits.reshape(-1, C)
         one_hot = one_hot.reshape(-1, C)
 
         probs = F.softmax(logits, dim=-1)
-        log_probs = torch.log(probs + 1e-9)
-
-        pt = (probs * one_hot).sum(dim=1)  # [N]
-        log_pt = (log_probs * one_hot).sum(dim=1)  # [N]
-
+        pt = (probs * one_hot).sum(dim=1).clamp(min=1e-6)
+        log_pt = pt.log()
         loss = -((1 - pt) ** self.gamma) * log_pt
 
         if self.alpha is not None:
-            alpha_t = self.alpha.to(logits.device)
             class_indices = one_hot.argmax(dim=1)
+            alpha_t = self.alpha.to(logits.device)
             loss *= alpha_t[class_indices]
 
         if self.reduction == "mean":
-            return loss.mean()
+            if self.normalize_by == "element":
+                return loss.mean()
+            elif self.normalize_by == "batch":
+                return loss.sum() / B
         elif self.reduction == "sum":
             return loss.sum()
         else:

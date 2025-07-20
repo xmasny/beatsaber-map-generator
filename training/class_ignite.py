@@ -21,8 +21,7 @@ from utils import setup_checkpoint_upload
 
 
 def score_function(engine: Engine):
-    val_loss = engine.state.metrics["loss"]
-    return -val_loss
+    return engine.state.metrics["f1_macro"]
 
 
 def ignite_train(
@@ -52,9 +51,7 @@ def ignite_train(
 
     warmup_steps = ceil(epochs * warmup_steps if warmup_steps > 0 else 0)
 
-    print(
-        f"[INFO] Training for {epochs} epochs with warmup step epochs: {warmup_steps}"
-    )
+    print(f"[INFO] Training with warmup step epochs: {warmup_steps}")
 
     def cycle(dataloader):
         while True:
@@ -134,15 +131,22 @@ def ignite_train(
         average=None,
         output_transform=classification_transform,
     )
-    f1 = Fbeta(
+    f1_macro = Fbeta(
         beta=1.0,
-        average=False,
+        average=True,  # ← macro
+        output_transform=classification_transform,
+    )
+    f1_per_class = Fbeta(
+        beta=1.0,
+        average=False,  # ← per-class
         output_transform=classification_transform,
     )
 
+    f1_macro.attach(evaluator, "f1_macro")
+    f1_per_class.attach(evaluator, "f1")
+
     precision.attach(evaluator, "precision")
     recall.attach(evaluator, "recall")
-    f1.attach(evaluator, "f1")
     evaluator.add_event_handler(Events.COMPLETED, early_stopping)
     conf_matrix.attach(evaluator, "confusion_matrix")
 
@@ -166,7 +170,7 @@ def ignite_train(
     def log_validation(engine: Engine):
         evaluator.run(
             cycle(valid_loader),
-            epoch_length=valid_dataset_len // batch_size,
+            epoch_length=10,
         )
 
         metrics = evaluator.state.metrics
@@ -269,7 +273,7 @@ def ignite_train(
             create_dir=True,
             require_empty=False,
             score_function=score_function,
-            score_name="validation_loss",
+            score_name="validation_f1_macro",
             greater_or_equal=True,
         )
         trainer.add_event_handler(
@@ -302,7 +306,7 @@ def ignite_train(
     trainer.run(
         cycle(train_loader),
         max_epochs=epochs,
-        epoch_length=train_dataset_len // batch_size,
+        epoch_length=10,
     )
 
     if wandb_mode != "disabled":
