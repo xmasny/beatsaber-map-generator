@@ -170,7 +170,7 @@ def ignite_train(
     def log_validation(engine: Engine):
         evaluator.run(
             cycle(valid_loader),
-            epoch_length=10,
+            epoch_length=valid_dataset_len // batch_size,
         )
 
         metrics = evaluator.state.metrics
@@ -306,7 +306,7 @@ def ignite_train(
     trainer.run(
         cycle(train_loader),
         max_epochs=epochs,
-        epoch_length=10,
+        epoch_length=train_dataset_len // batch_size,
     )
 
     if wandb_mode != "disabled":
