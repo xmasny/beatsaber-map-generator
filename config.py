@@ -139,6 +139,7 @@ class RunParams(DictConfig):
     mel_window: int
     focal_loss_gamma: float
     focal_loss_alpha: float
+    loss_fn: str
 
 
 class RunConfig(DictConfig):

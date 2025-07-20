@@ -195,10 +195,12 @@ class MultiClassOnsetClassifier(ClassesBase):
         num_classes=19,
         grid_shape=(3, 4),
         focal_loss_gamma=2.0,
+        loss_fn="focal_loss",
     ):
         super().__init__(class_counts=class_counts)
         self.grid_y, self.grid_x = grid_shape
         self.focal_loss_gamma = focal_loss_gamma
+        self.loss_fn = loss_fn
 
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, padding=1),  # (B,32,229,45)
@@ -212,15 +214,24 @@ class MultiClassOnsetClassifier(ClassesBase):
             nn.Conv2d(64, 128, kernel_size=3, padding=1),  # (B,128,19,11)
             nn.BatchNorm2d(128),
             nn.ReLU(),
+            nn.Dropout2d(p=0.3),
             nn.AdaptiveAvgPool2d((self.grid_y, self.grid_x)),  # → (B,128,3,4)
         )
 
         self.classifier = nn.Conv2d(128, num_classes, kernel_size=1)  # (B,19,3,4)
 
+        self.head = nn.Sequential(
+            nn.Flatten(),  # (B, 128, 3, 4) → (B, 1536)
+            nn.Linear(128 * 3 * 4, 512),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+            nn.Linear(512, 3 * 4 * num_classes),  # Predicts for all grid cells at once
+        )
+
     def forward(self, x):  # x: (B, 1, 229, 45)
         x = self.features(x)  # (B, 128, 3, 4)
-        x = self.classifier(x)  # (B, 19, 3, 4)
-        x = x.permute(0, 2, 3, 1)  # (B, 3, 4, 19)
+        x = self.head(x)  # (B, 19, 3, 4)
+        x = x.view(-1, 3, 4, 19)  # (B, 3, 4, 19)
         return x
 
 

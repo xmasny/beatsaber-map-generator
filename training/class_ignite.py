@@ -23,7 +23,6 @@ from utils import setup_checkpoint_upload
 def score_function(engine: Engine):
     metrics = engine.state.metrics
     if "f1_macro" not in metrics:
-        print("[WARNING] f1_macro not found in evaluator metrics.")
         return -1.0  # or any fallback low value to prevent early stop trigger
     return metrics["f1_macro"]
 
@@ -151,7 +150,6 @@ def ignite_train(
 
     precision.attach(evaluator, "precision")
     recall.attach(evaluator, "recall")
-    evaluator.add_event_handler(Events.COMPLETED, early_stopping)
     conf_matrix.attach(evaluator, "confusion_matrix")
 
     # Attach metrics
@@ -233,9 +231,7 @@ def ignite_train(
             plt.yticks(rotation=0)
 
             fig.tight_layout()
-            wandb_logger.log(
-                {"validation/confusion_matrix": wandb.Image(fig)}, step=epoch
-            )
+            wandb_logger.log({"validation/confusion_matrix": wandb.Image(fig)})
             plt.close(fig)
 
     # Checkpointing
