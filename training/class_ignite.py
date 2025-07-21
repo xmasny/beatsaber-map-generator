@@ -156,18 +156,19 @@ def ignite_train(
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss.attach(trainer, "loss")
     avg_loss.attach(evaluator, "loss")
+    if warmup_steps > 0:
 
-    @trainer.on(Events.EPOCH_COMPLETED(once=warmup_steps))
-    def attach_early_stopping(engine: Engine):
-        if wandb_mode != "disabled":
-            wandb_logger.watch(model, log="all", criterion=avg_loss)
+        @trainer.on(Events.EPOCH_COMPLETED(once=warmup_steps))
+        def attach_early_stopping(engine: Engine):
+            if wandb_mode != "disabled":
+                wandb_logger.watch(model, log="all", criterion=avg_loss)
 
-            print("[DEBUG] evaluator has metrics:", evaluator.state.metrics.keys())
+                print("[DEBUG] evaluator has metrics:", evaluator.state.metrics.keys())
 
-        evaluator.add_event_handler(
-            Events.EPOCH_COMPLETED(every=validation_interval), early_stopping
-        )
-        print(f"[INFO] Early stopping attached at epoch {engine.state.epoch}")
+            evaluator.add_event_handler(
+                Events.EPOCH_COMPLETED(every=validation_interval), early_stopping
+            )
+            print(f"[INFO] Early stopping attached at epoch {engine.state.epoch}")
 
     # Logging
     @trainer.on(Events.EPOCH_COMPLETED(every=validation_interval))
