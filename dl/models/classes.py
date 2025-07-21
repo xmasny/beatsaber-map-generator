@@ -269,6 +269,7 @@ class MultiClassFocalLoss(nn.Module):
             alpha = inv_freq / inv_freq.sum()
             alpha = torch.tensor(alpha, dtype=torch.float32)  # Convert to tensor
             self.alpha = alpha.to(device) if device else alpha
+            self.alpha = self.alpha * self.alpha_scale  # Scale alpha
         else:
             self.alpha = None
 
