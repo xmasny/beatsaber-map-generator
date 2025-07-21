@@ -193,7 +193,7 @@ def ignite_train(
                         {f"{k}/class_{i}": float(val) for i, val in enumerate(v)}
                     )
                 else:
-                    wandb_logger.log({f"{k}": float(v)})
+                    wandb_logger.log({f"{k}": float(v), "epoch": epoch})
 
             # Confusion Matrix
             cm = metrics["confusion_matrix"].cpu().numpy()
