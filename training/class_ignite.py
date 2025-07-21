@@ -156,6 +156,7 @@ def ignite_train(
     avg_loss = Average(output_transform=lambda output: output[1]["loss"])
     avg_loss.attach(trainer, "loss")
     avg_loss.attach(evaluator, "loss")
+
     if warmup_steps > 0:
 
         @trainer.on(Events.EPOCH_COMPLETED(once=warmup_steps))
@@ -189,13 +190,10 @@ def ignite_train(
                     continue
                 elif isinstance(v, torch.Tensor) and v.ndim == 1:
                     wandb_logger.log(
-                        {
-                            f"validation/{k}/class_{i}": float(val)
-                            for i, val in enumerate(v)
-                        }
+                        {f"{k}/class_{i}": float(val) for i, val in enumerate(v)}
                     )
                 else:
-                    wandb_logger.log({f"validation/{k}": float(v), "epoch": epoch})
+                    wandb_logger.log({f"{k}": float(v)})
 
             # Confusion Matrix
             cm = metrics["confusion_matrix"].cpu().numpy()
@@ -232,7 +230,7 @@ def ignite_train(
             plt.yticks(rotation=0)
 
             fig.tight_layout()
-            wandb_logger.log({"validation/confusion_matrix": wandb.Image(fig)})
+            wandb_logger.log({"confusion_matrix": wandb.Image(fig)})
             plt.close(fig)
 
     # Checkpointing
