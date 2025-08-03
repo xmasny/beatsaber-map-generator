@@ -63,7 +63,7 @@ class ClassBaseLoader(Dataset):
         self._load()
 
         if (
-            self.split == Split.VALIDATION and self.files
+            (self.split == Split.VALIDATION or self.split == Split.TEST) and self.files
         ) or self.model_type == "class":
             for f in self.files:
                 self.downloader.enqueue(f, f)
