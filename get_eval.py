@@ -148,11 +148,12 @@ for param in params:
     common_dataset_args = {
         "difficulty": param["difficulty"],
         "split_seed": param["seed"],
+        "batch_size": batch_size,
     }
 
     test_dataset = ClassBaseLoader(split=Split.TEST, **common_dataset_args)
 
-    test_loader = test_dataset.get_dataloader(batch_size=batch_size)
+    test_loader = test_dataset.get_dataloader()
 
     # Then call evaluation
     results = evaluate_full(model, test_loader, test_dataset, class_count, device)
