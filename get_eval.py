@@ -143,7 +143,7 @@ for param in params:
 
     model = MultiClassOnsetClassifier(class_count["test_class_count"]).to(device)
     model.load_state_dict(
-        torch.load(MODEL_PATH + "\\model_epoch_10.pt", map_location=device)
+        torch.load(MODEL_PATH + "/model_epoch_10.pt", map_location=device)
     )
 
     common_dataset_args = {
