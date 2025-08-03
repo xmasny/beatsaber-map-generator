@@ -20,10 +20,9 @@ batch_size = 1024  # Adjust as needed
 
 
 def cycle(dataloader, test_dataset):
-    while True:
-        for file in dataloader:
-            for batch in test_dataset.process(file):
-                yield batch
+    for file in dataloader:
+        for batch in test_dataset.process(file):
+            yield batch
 
 
 def evaluate_full(
