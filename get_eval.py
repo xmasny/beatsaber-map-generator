@@ -57,10 +57,6 @@ def evaluate_full(
 
             all_preds.append(pred_classes.cpu())
             all_targets.append(targets.cpu())
-
-            i += 1
-            if i == 10:
-                break
     # After collecting all_preds and all_targets
     y_pred = torch.cat(all_preds).cpu().numpy().reshape(-1)
     y_true = torch.cat(all_targets).cpu().numpy().reshape(-1)
