@@ -52,8 +52,13 @@ def evaluate_full(
             all_preds.append(pred_classes.cpu())
             all_targets.append(targets.cpu())
 
-    y_pred = torch.cat(all_preds).numpy()
-    y_true = torch.cat(all_targets).numpy()
+    # After collecting all_preds and all_targets
+    y_pred = torch.cat(all_preds).cpu().numpy().reshape(-1)
+    y_true = torch.cat(all_targets).cpu().numpy().reshape(-1)
+
+    assert y_pred.ndim == 1 and y_true.ndim == 1
+    assert np.issubdtype(y_pred.dtype, np.integer)
+    assert np.issubdtype(y_true.dtype, np.integer)
 
     macro_f1 = f1_score(y_true, y_pred, average="macro")
     micro_f1 = f1_score(y_true, y_pred, average="micro")
