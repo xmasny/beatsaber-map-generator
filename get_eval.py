@@ -47,8 +47,9 @@ def evaluate_full(
         ):
             preds, _ = model.run_on_batch(batch)
             targets = batch["classes"].argmax(-1).to(device)
+            pred_classes = preds["classes"].argmax(-1).to(device)
 
-            all_preds.append(preds)
+            all_preds.append(pred_classes)
             all_targets.append(targets)
 
     y_pred = torch.cat(all_preds).numpy()
